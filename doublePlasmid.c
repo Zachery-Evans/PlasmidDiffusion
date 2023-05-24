@@ -23,16 +23,19 @@ double calc_cosine_chain2(int, int, int);
 double **dmatrix(long, long, long, long);
 void free_dmatrix(double **, long, long, long, long);
 
-void shift_move_chain(void);
 void reptation_move_chain1(void);
 void reptation_move_chain2(void);
+void reptation_move_chain3(void);
+void shift_move_chain(void);
 void shift_move_chain2(void);
+void shift_move_chain3(void);
 int check_accept_reptation(long);
 void calc_delta_xyz(void);
 void crank_move_chain1(void);
 void crank_move_chain2(void);
+void crank_move_chain3(void);
 
-long nseg1, nseg2, nbin, i, j, k, ii, ncyc, overlap, nacc, kk, itest, iseed;
+long nseg1, nseg2, nseg3, nbin, i, j, k, ii, ncyc, overlap, nacc, kk, itest, iseed;
 long neq, nbintot, ibin, ichain, nsamp, nacc_shift, nshift;
 long imov, kmaxtest, freq_samp, freq_mon, freq_mov, ncmt, ngridx, ngridy;
 
