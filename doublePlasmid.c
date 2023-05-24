@@ -15,6 +15,7 @@ void write_data(void);
 void input(void);
 int check_accept(void);
 int check_shift_chain2(void);
+int check_shift_chain3(void);
 
 int check_energy(void);
 double calc_cosine_chain1(int, int, int);
@@ -89,7 +90,7 @@ double u, uxy;
 int main()
 {
   long imon, indx, indy;
-  double xcm1, ycm1, xcm2, ycm2;
+  double xcm1, ycm1, xcm2, ycm2, xcm3, ycm3;
 
   FILE *xp1, *yp1, *xp2, *yp2, *xp3, *yp3;
 
@@ -200,17 +201,18 @@ int main()
         ichain = 1;
         kmaxtest = nseg1 - 2;
       }
-      else if (nseg1 < k && k < nseg1 + nseg2)
+      else if (nseg1 < k && k < (nseg1 + nseg2))
       {
         ichain = 2;
         k -= nseg1;
         kmaxtest = nseg2 - 2;
       }
 
-      else
+      else if (k > (nseg1 + nseg2))
       {
         ichain = 3;
-        k -= (nseg1 + nseg2);
+        k -= nseg1;
+        k -= nseg2;
         kmaxtest = nseg3 - 2;
       }
 
@@ -657,7 +659,7 @@ int check_accept(void)
     }
 
     // Checking if second plasmid overlaps with T4 polymer
-    for (kk = 0; kk < nseg2; kk++)
+    for (kk = 0; kk < nseg3; kk++)
     {
       dx = r1x[k] - r3x[kk];
       dy = r1y[k] - r3y[kk];
@@ -667,7 +669,7 @@ int check_accept(void)
         return (reject);
     }
   }
-  else
+  else if (ichain == 2)
   {
     /* squareEllipse checks this
     if (r2z[k] < -Hd2 || r2z[k] > Hd2)
@@ -734,6 +736,99 @@ int check_accept(void)
       dx = r2x[k] - r1x[kk];
       dy = r2y[k] - r1y[kk];
       dz = r2z[k] - r1z[kk];
+      dr2 = dx * dx + dy * dy + dz * dz;
+      if (dr2 < 1.0)
+        return (reject);
+    }
+
+    for (kk = 0; kk < nseg3; kk++)
+    {
+      dx = r2x[k] - r3x[kk];
+      dy = r2y[k] - r3y[kk];
+      dz = r2z[k] - r3z[kk];
+      dr2 = dx * dx + dy * dy + dz * dz;
+      if (dr2 < 1.0)
+        return (reject);
+    }
+  }
+
+  else if (ichain == 3)
+  {
+    /* squareEllipse checks this
+    if (r2z[k] < -Hd2 || r2z[k] > Hd2)
+    {
+      return (reject);
+    }
+    */
+
+    /*
+    echeck = r2x[k] * r2x[k] / amax2 + r2y[k] * r2y[k] / bmin2;
+    if (echeck > 1.0)
+      return (reject);
+
+
+      for (kk=k-1;kk<=k+1;kk+=2) {
+        if (kk >= 0 && kk < nseg2) {
+          dx = r2x[k] - r2x[kk];
+          dy = r2y[k] - r2y[kk];
+          dz = r2z[k] - r2z[kk];
+          dr2 = dx*dx + dy*dy + dz*dz;
+          if (dr2 < dr2min || dr2 > dr2max) return(reject);
+        }
+      }
+    */
+
+    if (k == 0)
+    {
+      klow = nseg3 - 1;
+      khigh = 1;
+    }
+    else if (k == nseg3 - 1)
+    {
+      klow = nseg3 - 2;
+      khigh = 0;
+    }
+    else
+    {
+      klow = k - 1;
+      khigh = k + 1;
+    }
+
+    for (kk = 0; kk < nseg3; kk++)
+    {
+      if (squareEllipse(r3x[kk], r3y[kk], r3z[kk]) == reject)
+      {
+        return (reject);
+      }
+      if (kk != k && kk != klow && kk != khigh)
+      {
+        dx = r3x[k] - r3x[kk];
+        dy = r3y[k] - r3y[kk];
+        dz = r3z[k] - r3z[kk];
+        dr2 = dx * dx + dy * dy + dz * dz;
+
+        if (dr2 < 1.0)
+        {
+          return (reject);
+        }
+      }
+    }
+
+    for (kk = 0; kk < nseg1; kk++)
+    {
+      dx = r3x[k] - r1x[kk];
+      dy = r3y[k] - r1y[kk];
+      dz = r3z[k] - r1z[kk];
+      dr2 = dx * dx + dy * dy + dz * dz;
+      if (dr2 < 1.0)
+        return (reject);
+    }
+
+    for (kk = 0; kk < nseg2; kk++)
+    {
+      dx = r3x[k] - r2x[kk];
+      dy = r3y[k] - r2y[kk];
+      dz = r3z[k] - r2z[kk];
       dr2 = dx * dx + dy * dy + dz * dz;
       if (dr2 < 1.0)
         return (reject);
@@ -1075,6 +1170,71 @@ double calc_cosine_chain2(int i1, int i2, int i3)
   return (va_dot_vb / (sqrt(va_sq) * sqrt(vb_sq)));
 }
 
+double calc_cosine_chain3(int i1, int i2, int i3)
+{
+  if (i1 < 0)
+  {
+    x1 = xold;
+    yone = yold, z1 = zold;
+    x2 = r3x[i2];
+    y2 = r3y[i2];
+    z2 = r3z[i2];
+    x3 = r3x[i3];
+    y3 = r3y[i3];
+    z3 = r3z[i3];
+  }
+  else if (i2 < 0)
+  {
+    x1 = r3x[i1];
+    yone = r3y[i1];
+    z1 = r3z[i1];
+    x2 = xold;
+    y2 = yold;
+    z2 = zold;
+    x3 = r3x[i3];
+    y3 = r3y[i3];
+    z3 = r3z[i3];
+  }
+  else if (i3 < 0)
+  {
+    x1 = r3x[i1];
+    yone = r3y[i1];
+    z1 = r3z[i1];
+    x2 = r3x[i2];
+    y2 = r3y[i2];
+    z2 = r3z[i2];
+    x3 = xold;
+    y3 = yold;
+    z3 = zold;
+  }
+  else
+  {
+    x1 = r3x[i1];
+    yone = r3y[i1];
+    z1 = r3z[i1];
+    x2 = r3x[i2];
+    y2 = r3y[i2];
+    z2 = r3z[i2];
+    x3 = r3x[i3];
+    y3 = r3y[i3];
+    z3 = r3z[i3];
+  }
+
+  vax = x2 - x1;
+  vay = y2 - yone;
+  vaz = z2 - z1;
+  vbx = x3 - x2;
+  vby = y3 - y2;
+  vbz = z3 - z2;
+
+  va_sq = vax * vax + vay * vay + vaz * vaz;
+  vb_sq = vbx * vbx + vby * vby + vbz * vbz;
+
+  va_dot_vb = vax * vbx + vay * vby + vaz * vbz;
+
+  return (va_dot_vb / (sqrt(va_sq) * sqrt(vb_sq)));
+}
+
 // ----------------------------------------------------------------------
 //  Places polymer in original (unrealistic position); is called for each
 //  unique window. Overlaps the polymers somewhere to match the current
@@ -1122,6 +1282,13 @@ void init_pos(void)
     r2z[i] = -1.0;
     r2x[i] = Rplasmid * cos(i * theta_plasmid);
     r2y[i] = Rplasmid * sin(i * theta_plasmid);
+  }
+
+  for (i = 0; i < nseg3; i++)
+  {
+    r3z[i] = 1.0; // Initialized just above the first plasmid
+    r3x[i] = Rplasmid * cos(i * theta_plasmid);
+    r3y[i] = Rplasmid * sin(i * theta_plasmid);
   }
 }
 
@@ -1285,6 +1452,52 @@ void shift_move_chain2()
   }
 }
 
+void shift_move_chain3()
+{
+  double delrx, delry, delrz;
+  double xsold[5000];
+  double ysold[5000];
+  double zsold[5000];
+
+  for (i = 0; i < nseg3; i++)
+  {
+    xsold[i] = r3x[i];
+    ysold[i] = r3y[i];
+    zsold[i] = r3z[i];
+  }
+
+  delrx = rshift_max * (2.0 * ran3() - 1.0);
+  delry = rshift_max * (2.0 * ran3() - 1.0);
+  delrz = rshift_max * (2.0 * ran3() - 1.0);
+
+  for (i = 0; i < nseg3; i++)
+  {
+    r3x[i] += delrx;
+    r3y[i] += delry;
+    r3z[i] += delrz;
+  }
+
+  // printf("delrx = %lf, delry = %lf, delrz = %lf\n",delrx,delry,delrz);
+
+  overlap = check_shift_chain3();
+
+  nshift += 1;
+  if (overlap == 0)
+  {
+    nacc += 1;
+    nacc_shift += 1;
+  }
+  else if (overlap == 1)
+  {
+    for (i = 0; i < nseg3; i++)
+    {
+      r3x[i] = xsold[i];
+      r3y[i] = ysold[i];
+      r3z[i] = zsold[i];
+    }
+  }
+}
+
 int check_shift_chain2()
 {
   int accept = 0;
@@ -1320,6 +1533,61 @@ int check_shift_chain2()
       dr2 = dx * dx + dy * dy + dz * dz;
       if (dr2 < 1.0)
         return (reject);
+    }
+  }
+
+  return (accept);
+}
+
+int check_shift_chain3()
+{
+  int accept = 0;
+  int reject = 1;
+  double echeck;
+
+  for (i = 0; i < nseg3; i++)
+  {
+    /* r2z check done inside of squareEllipse
+
+    if (r2z[i] < -Hd2 || r2z[i] > Hd2)
+    {
+      return (reject);
+    }
+
+    //This echeck no longer relevant for this shape.
+
+    echeck = r2x[i] * r2x[i] / amax2 + r2y[i] * r2y[i] / bmin2;
+    if (echeck > 1.0)
+      return (reject);
+    */
+
+    for (kk = 0; kk < nseg1; kk++)
+    {
+      if (squareEllipse(r3x[kk], r3y[kk], r3z[kk]) == reject)
+      {
+        return (reject);
+      }
+
+      dx = r3x[i] - r1x[kk];
+      dy = r3y[i] - r1y[kk];
+      dz = r3z[i] - r1z[kk];
+      dr2 = dx * dx + dy * dy + dz * dz;
+      if (dr2 < 1.0)
+      {
+        return (reject);
+      }
+    }
+
+    for (kk = 0; kk < nseg2; kk++)
+    {
+      dx = r3x[i] - r2x[kk];
+      dy = r3y[i] - r2y[kk];
+      dz = r3z[i] - r2z[kk];
+      dr2 = dx * dx + dy * dy + dz * dz;
+      if (dr2 < 1.0)
+      {
+        return (reject);
+      }
     }
   }
 
@@ -1529,6 +1797,110 @@ void reptation_move_chain2()
   }
 }
 
+void reptation_move_chain3()
+{
+  double rannum;
+  rannum = ran3();
+  if (rannum <= 0.5)
+  {
+    irep = 0;
+  }
+  else
+  {
+    irep = nseg2 - 1;
+  }
+  rannum = ran3();
+  phi_prime = rannum * 2 * PI;
+
+  rannum = ran3();
+  if (kappa > -0.000001 && kappa < 0.000001)
+    costheta_prime = (2.0 * rannum) - 1.0;
+  else
+    costheta_prime = log((rannum * exp(kappa)) + ((1.0 - rannum) * exp(-1.0 * kappa))) / kappa;
+
+  dr_prime = pow((0.602 * rannum) + 0.729, (1.0 / 3.0));
+
+  //
+  //      keep bond length = 1
+  //
+  //      rannum = ran3();
+  //      dr_prime = pow((0.602*rannum)+0.729,(1.0/3.0));
+  dr_prime = 1.0;
+
+  xold = r3x[irep];
+  yold = r3y[irep];
+  zold = r3z[irep];
+
+  calc_delta_xyz();
+
+  if (irep == 0)
+  {
+    for (ind = 0; ind < nseg2 - 1; ind++)
+    {
+      r3x[ind] = r3x[ind + 1];
+      r3y[ind] = r3y[ind + 1];
+      r3z[ind] = r3z[ind + 1];
+    }
+
+    r3x[nseg3 - 1] = r3x[nseg3 - 2] + dx_fixed;
+    r3y[nseg3 - 1] = r3y[nseg3 - 2] + dy_fixed;
+    r3z[nseg3 - 1] = r3z[nseg3 - 2] + dz_fixed;
+
+    overlap = check_accept_reptation(nseg2 - 1);
+
+    if (overlap == 0)
+    {
+      nacc_rep += 1;
+    }
+    else
+    {
+      for (ind = nseg3 - 1; ind > 0; ind--)
+      {
+        r3x[ind] = r3x[ind - 1];
+        r3y[ind] = r3y[ind - 1];
+        r3z[ind] = r3z[ind - 1];
+      }
+
+      r3x[0] = xold;
+      r3y[0] = yold;
+      r3z[0] = zold;
+    }
+  }
+  else
+  { // irep == nseg2-1
+    for (ind = nseg3 - 1; ind > 0; ind--)
+    {
+      r3x[ind] = r3x[ind - 1];
+      r3y[ind] = r3y[ind - 1];
+      r3z[ind] = r3z[ind - 1];
+    }
+
+    r3x[0] = r3x[1] + dx_fixed;
+    r3y[0] = r3y[1] + dy_fixed;
+    r3z[0] = r3z[1] + dz_fixed;
+
+    overlap = check_accept_reptation(0);
+
+    if (overlap == 0)
+    {
+      nacc_rep += 1;
+    }
+    else
+    {
+      for (ind = 0; ind < nseg3 - 1; ind++)
+      {
+        r3x[ind] = r3x[ind + 1];
+        r3y[ind] = r3y[ind + 1];
+        r3z[ind] = r3z[ind + 1];
+      }
+
+      r3x[nseg3 - 1] = xold;
+      r3y[nseg3 - 1] = yold;
+      r3z[nseg3 - 1] = zold;
+    }
+  }
+}
+
 void calc_delta_xyz()
 {
   dx_prime = dr_prime * sqrt(1.0 - (costheta_prime * costheta_prime)) * cos(phi_prime);
@@ -1712,8 +2084,21 @@ int check_accept_reptation(long krep)
           return (reject); // if overlap with monomer in other chain, reject
       }
     }
+
+    for (kk = 0; kk < nseg3; kk++)
+    {
+      dz = r1z[krep] - r3z[kk];
+      if (fabs(dz) < 1.0)
+      {
+        dx = r1x[krep] - r3x[kk];
+        dy = r1y[krep] - r3y[kk];
+        dr2 = dx * dx + dy * dy + dz * dz;
+        if (dr2 < 1.0)
+          return (reject); // if overlap with monomer in other chain, reject
+      }
+    }
   }
-  else
+  else if (ichain == 2)
   { // ichain == 2
 
     /*
@@ -1756,8 +2141,78 @@ int check_accept_reptation(long krep)
           return (reject);
       }
     }
+
+    for (kk = 0; kk < nseg3; kk++)
+    {
+      dz = r2z[krep] - r3z[kk];
+      if (fabs(dz) < 1.0)
+      {
+        dx = r2x[krep] - r3x[kk];
+        dy = r2y[krep] - r3y[kk];
+        dr2 = dx * dx + dy * dy + dz * dz;
+        if (dr2 < 1.0)
+          return (reject);
+      }
+    }
   }
 
+  else if (ichain == 3)
+  { // ichain == 2
+
+    /*
+    if (r2z[krep] < -Hd2 || r2z[krep] > Hd2)
+      return (reject);
+    echeck = r2x[krep] * r2x[krep] / amax2 + r2y[krep] * r2y[krep] / bmin2;
+    if (echeck > 1.0)
+      return (reject);
+    */
+
+    for (kk = 0; kk < nseg3; kk++)
+    {
+      if (squareEllipse(r3x[kk], r3y[kk], r3z[kk]) == reject)
+      {
+        return (reject);
+      }
+      if (kk < krep - 1 || kk > krep + 1)
+      {
+        dz = r3z[krep] - r3z[kk];
+        if (fabs(dz) < 1.0)
+        {
+          dx = r3x[krep] - r3x[kk];
+          dy = r3y[krep] - r3y[kk];
+          dr2 = dx * dx + dy * dy + dz * dz;
+          if (dr2 < 1.0)
+            return (reject);
+        }
+      }
+    }
+
+    for (kk = 0; kk < nseg1; kk++)
+    {
+      dz = r2z[krep] - r1z[kk];
+      if (fabs(dz) < 1.0)
+      {
+        dx = r3x[krep] - r1x[kk];
+        dy = r3y[krep] - r1y[kk];
+        dr2 = dx * dx + dy * dy + dz * dz;
+        if (dr2 < 1.0)
+          return (reject);
+      }
+    }
+
+    for (kk = 0; kk < nseg2; kk++)
+    {
+      dz = r3z[krep] - r2z[kk];
+      if (fabs(dz) < 1.0)
+      {
+        dx = r3x[krep] - r2x[kk];
+        dy = r3y[krep] - r2y[kk];
+        dr2 = dx * dx + dy * dy + dz * dz;
+        if (dr2 < 1.0)
+          return (reject);
+      }
+    }
+  }
   return (accept);
 }
 
@@ -2014,13 +2469,13 @@ void crank_move_chain3()
   else if (k == 0)
   {
 
-    rx = r3x[k] - r2x[nseg2 - 1];
-    ry = r3y[k] - r2y[nseg2 - 1];
-    rz = r3z[k] - r2z[nseg2 - 1];
+    rx = r3x[k] - r2x[nseg3 - 1];
+    ry = r3y[k] - r2y[nseg3 - 1];
+    rz = r3z[k] - r2z[nseg3 - 1];
 
-    Rx = r3x[k + 1] - r3x[nseg2 - 1];
-    Ry = r3y[k + 1] - r3y[nseg2 - 1];
-    Rz = r3z[k + 1] - r3z[nseg2 - 1];
+    Rx = r3x[k + 1] - r3x[nseg3 - 1];
+    Ry = r3y[k + 1] - r3y[nseg3 - 1];
+    Rz = r3z[k + 1] - r3z[nseg3 - 1];
     Rmag = sqrt(Rx * Rx + Ry * Ry + Rz * Rz);
 
     Rnx = Rx / Rmag;
@@ -2051,11 +2506,11 @@ void crank_move_chain3()
     ry = uy + cosphi * vy + sinphi * vmag * wy / wmag;
     rz = uz + cosphi * vz + sinphi * vmag * wz / wmag;
 
-    r3x[k] = r3x[nseg2 - 1] + rx;
-    r3y[k] = r3y[nseg2 - 1] + ry;
-    r3z[k] = r3z[nseg2 - 1] + rz;
+    r3x[k] = r3x[nseg3 - 1] + rx;
+    r3y[k] = r3y[nseg3 - 1] + ry;
+    r3z[k] = r3z[nseg3 - 1] + rz;
   }
-  else if (k == nseg2 - 1)
+  else if (k == nseg3 - 1)
   {
 
     rx = r3x[k] - r3x[k - 1];
