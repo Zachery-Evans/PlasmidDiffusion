@@ -4,7 +4,7 @@
 ARGS= ''
 
 all:
-	cc -lm -O3 boxEllipse.c -o mc.run
+	cc -lm -O3 doublePlasmid.c -o mc.run
 	./mc.run $(ARGS)
 
 default:
