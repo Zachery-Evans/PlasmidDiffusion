@@ -91,7 +91,7 @@ int main()
   long imon, indx, indy;
   double xcm1, ycm1, xcm2, ycm2;
 
-  FILE *xp1, *yp1, *xp2, *yp2;
+  FILE *xp1, *yp1, *xp2, *yp2, *xp3, *yp3;
 
   input();
 
@@ -375,6 +375,7 @@ void input(void)
   {
     fscanf(fp, "%ld%*s", &nseg1);
     fscanf(fp, "%ld%*s", &nseg2);
+    fscanf(fp, "%ls%*s", &nseg3);
     fscanf(fp, "%lf%*s", &Area);
     fscanf(fp, "%lf%*s", &rectangleArea);
     fscanf(fp, "%lf%*s", &ecc);
@@ -410,6 +411,7 @@ void write_log(void)
 
   printf("nseg1    %ld\n", nseg1);
   printf("nseg2    %ld\n", nseg2);
+  printf("nseg2    %ld\n", nseg3);
   printf("Area     %lf\n", Area);
   printf("Rectangle %lf\n", rectangleArea);
   printf("ecc      %lf\n", ecc);
