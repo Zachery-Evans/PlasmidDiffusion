@@ -349,8 +349,8 @@ int main()
         xcm3 += r3x[i];
         ycm3 += r3y[i];
       }
-      xcm3 /= nseg2;
-      ycm3 /= nseg2;
+      xcm3 /= nseg3;
+      ycm3 /= nseg3;
 
       indx = (xcm3 + amax + xBoxMaxd2) / gridspacex_real;
       indy = (ycm3 + bmin) / gridspacey_real;
@@ -371,7 +371,7 @@ int main()
       fprintf(xp3, "%lf\n", xcm3);
       fprintf(yp1, "%lf\n", ycm1);
       fprintf(yp2, "%lf\n", ycm2);
-      fprintf(xp3, "%lf\n", ycm3);
+      fprintf(yp3, "%lf\n", ycm3);
     }
     /*
         if (imov == 1)
