@@ -45,7 +45,7 @@ double amax, bmin, amax2, bmin2, ecc, Area, rectangleArea, rectangleXYRatio, xBo
 double xBoxMaxd2, yBoxMaxd2;
 double kappa, xold, yold, zold, delphi_max;
 double z1min, z1max, z2min, z2max, zcm1, zcm2, z1bcm, z2bcm;
-double **prob1, **prob2, **probmon;
+double **prob1, **prob2, **prob3, **probmon;
 
 // FILE *fpmov;
 
@@ -125,6 +125,7 @@ int main()
   // ngridx, ngridy, gridspacex_real, gridspacey_real);
   prob1 = dmatrix(0, ngridx - 1, 0, ngridy - 1);
   prob2 = dmatrix(0, ngridx - 1, 0, ngridy - 1);
+  prob3 = dmatrix(0, ngridx - 1, 0, ngridy - 1);
   probmon = dmatrix(0, ngridx - 1, 0, ngridy - 1);
 
   for (i = 0; i < ngridx; i++)
@@ -133,6 +134,7 @@ int main()
     {
       prob1[i][j] = 0.0;
       prob2[i][j] = 0.0;
+      prob3[i][j] = 0.0;
       probmon[i][j] = 0.0;
     }
   }
@@ -179,28 +181,37 @@ int main()
 
   xp1 = fopen("xcm1.dat", "w");
   xp2 = fopen("xcm2.dat", "w");
+  xp3 = fopen("xcm3.dat", "w");
   yp1 = fopen("ycm1.dat", "w");
   yp2 = fopen("ycm2.dat", "w");
+  yp3 = fopen("ycm3.dat", "w");
 
   for (ii = 0; ii < ncyc; ii++)
   {
     // if (ii % 100 == 0) printf("ii = %ld\n",ii);
 
-    for (j = 0; j < nseg1 + nseg2; j++)
+    for (j = 0; j < nseg1 + nseg2 + nseg3; j++)
     {
 
-      k = (nseg1 + nseg2) * ran3();
+      k = (nseg1 + nseg2 + nseg3) * ran3();
 
       if (k < nseg1)
       {
         ichain = 1;
         kmaxtest = nseg1 - 2;
       }
-      else
+      else if (nseg1 < k && k < nseg1 + nseg2)
       {
         ichain = 2;
         k -= nseg1;
         kmaxtest = nseg2 - 2;
+      }
+
+      else
+      {
+        ichain = 3;
+        k -= (nseg1 + nseg2);
+        kmaxtest = nseg3 - 2;
       }
 
       if (ran3() >= rep_prob && (k >= 2 || k < kmaxtest))
@@ -213,12 +224,19 @@ int main()
           zold = r1z[k];
           crank_move_chain1();
         }
-        else
+        else if (ichain == 2)
         {
           xold = r2x[k];
           yold = r2y[k];
           zold = r2z[k];
           crank_move_chain2();
+        }
+        else if (ichain == 3)
+        {
+          xold = r3x[k];
+          yold = r3y[k];
+          zold = r3z[k];
+          crank_move_chain3();
         }
 
         overlap = check_accept();
@@ -313,12 +331,36 @@ int main()
       if (indx >= 0 && indx < ngridx && indy >= 0 && indy < ngridy)
         prob2[indx][indy] += 1.0;
 
+      xcm3 = 0.0;
+      ycm3 = 0.0;
+      for (i = 0; i < nseg3; i++)
+      {
+        xcm2 += r3x[i];
+        ycm2 += r3y[i];
+      }
+      xcm3 /= nseg2;
+      ycm3 /= nseg2;
+
+      indx = (xcm3 + amax + xBoxMaxd2) / gridspacex_real;
+      indy = (ycm3 + bmin) / gridspacey_real;
+
+      if (indx >= ngridx || indy >= ngridy)
+      {
+        printf("3:  indx = %ld/%ld, indy = %ld/%ld\n", indx, ngridx, indy, ngridy);
+        printf("    xcm2 = %lf, 2*amax = %lf,  ycm2 = %lf, 2*bmin = %lf\n",
+               xcm3 + amax / 2.0, 2 * amax, ycm3 + bmin / 2.0, 2 * bmin);
+      }
+      if (indx >= 0 && indx < ngridx && indy >= 0 && indy < ngridy)
+        prob3[indx][indy] += 1.0;
+
       nsamp += 1;
 
       fprintf(xp1, "%lf\n", xcm1);
       fprintf(xp2, "%lf\n", xcm2);
+      fprintf(xp3, "%lf\n", xcm3);
       fprintf(yp1, "%lf\n", ycm1);
       fprintf(yp2, "%lf\n", ycm2);
+      fprintf(xp3, "%lf\n", ycm3);
     }
     /*
         if (imov == 1)
@@ -343,8 +385,10 @@ int main()
 
   fclose(xp1);
   fclose(xp2);
+  fclose(xp3);
   fclose(yp1);
   fclose(yp2);
+  fclose(yp3);
 
   printf("Acc. ratio = %lf\n", 1.0 * nacc / ((ncyc * (nseg1 + nseg2)) - nrep));
   printf("Number of reptation attempts = %ld\n", nrep);
@@ -597,6 +641,17 @@ int check_accept(void)
       dx = r1x[k] - r2x[kk];
       dy = r1y[k] - r2y[kk];
       dz = r1z[k] - r2z[kk];
+      dr2 = dx * dx + dy * dy + dz * dz;
+      if (dr2 < 1.0)
+        return (reject);
+    }
+
+    // Checking if second plasmid overlaps with T4 polymer
+    for (kk = 0; kk < nseg2; kk++)
+    {
+      dx = r1x[k] - r3x[kk];
+      dy = r1y[k] - r3y[kk];
+      dz = r1z[k] - r3z[kk];
       dr2 = dx * dx + dy * dy + dz * dz;
       if (dr2 < 1.0)
         return (reject);
@@ -1878,6 +1933,146 @@ void crank_move_chain2()
     r2x[k] = r2x[k - 1] + rx;
     r2y[k] = r2y[k - 1] + ry;
     r2z[k] = r2z[k - 1] + rz;
+  }
+}
+
+void crank_move_chain3()
+{
+
+  double rx, ry, rz, Rx, Ry, Rz, Rmag, rdotRn, Rnx, Rny, Rnz;
+  double ux, uy, uz, vx, vy, vz, vmag, wx, wy, wz, wmag;
+  double cosphi, sinphi, delphi;
+
+  if (k > 0 && k < nseg2 - 1)
+  {
+    rx = r3x[k] - r3x[k - 1];
+    ry = r3y[k] - r3y[k - 1];
+    rz = r3z[k] - r3z[k - 1];
+
+    Rx = r3x[k + 1] - r3x[k - 1];
+    Ry = r3y[k + 1] - r3y[k - 1];
+    Rz = r3z[k + 1] - r3z[k - 1];
+    Rmag = sqrt(Rx * Rx + Ry * Ry + Rz * Rz);
+
+    Rnx = Rx / Rmag;
+    Rny = Ry / Rmag;
+    Rnz = Rz / Rmag;
+
+    rdotRn = rx * Rnx + ry * Rny + rz * Rnz;
+    ux = rdotRn * Rnx;
+    uy = rdotRn * Rny;
+    uz = rdotRn * Rnz;
+
+    vx = rx - ux;
+    vy = ry - uy;
+    vz = rz - uz;
+    vmag = sqrt(vx * vx + vy * vy + vz * vz);
+    // if (vmag < 0.00000001) printf("vmag = %lf\n", vmag);
+
+    wx = uy * vz - uz * vy;
+    wy = uz * vx - ux * vz;
+    wz = ux * vy - uy * vx;
+    wmag = sqrt(wx * wx + wy * wy + wz * wz);
+
+    delphi = (2.0 * ran3() - 1.0) * delphi_max;
+    cosphi = cos(delphi);
+    sinphi = sin(delphi);
+
+    rx = ux + cosphi * vx + sinphi * vmag * wx / wmag;
+    ry = uy + cosphi * vy + sinphi * vmag * wy / wmag;
+    rz = uz + cosphi * vz + sinphi * vmag * wz / wmag;
+
+    r3x[k] = r3x[k - 1] + rx;
+    r3y[k] = r3y[k - 1] + ry;
+    r3z[k] = r3z[k - 1] + rz;
+  }
+  else if (k == 0)
+  {
+
+    rx = r3x[k] - r2x[nseg2 - 1];
+    ry = r3y[k] - r2y[nseg2 - 1];
+    rz = r3z[k] - r2z[nseg2 - 1];
+
+    Rx = r3x[k + 1] - r3x[nseg2 - 1];
+    Ry = r3y[k + 1] - r3y[nseg2 - 1];
+    Rz = r3z[k + 1] - r3z[nseg2 - 1];
+    Rmag = sqrt(Rx * Rx + Ry * Ry + Rz * Rz);
+
+    Rnx = Rx / Rmag;
+    Rny = Ry / Rmag;
+    Rnz = Rz / Rmag;
+
+    rdotRn = rx * Rnx + ry * Rny + rz * Rnz;
+    ux = rdotRn * Rnx;
+    uy = rdotRn * Rny;
+    uz = rdotRn * Rnz;
+
+    vx = rx - ux;
+    vy = ry - uy;
+    vz = rz - uz;
+    vmag = sqrt(vx * vx + vy * vy + vz * vz);
+    // if (vmag < 0.00000001) printf("vmag = %lf\n", vmag);
+
+    wx = uy * vz - uz * vy;
+    wy = uz * vx - ux * vz;
+    wz = ux * vy - uy * vx;
+    wmag = sqrt(wx * wx + wy * wy + wz * wz);
+
+    delphi = (2.0 * ran3() - 1.0) * delphi_max;
+    cosphi = cos(delphi);
+    sinphi = sin(delphi);
+
+    rx = ux + cosphi * vx + sinphi * vmag * wx / wmag;
+    ry = uy + cosphi * vy + sinphi * vmag * wy / wmag;
+    rz = uz + cosphi * vz + sinphi * vmag * wz / wmag;
+
+    r3x[k] = r3x[nseg2 - 1] + rx;
+    r3y[k] = r3y[nseg2 - 1] + ry;
+    r3z[k] = r3z[nseg2 - 1] + rz;
+  }
+  else if (k == nseg2 - 1)
+  {
+
+    rx = r3x[k] - r3x[k - 1];
+    ry = r3y[k] - r3y[k - 1];
+    rz = r3z[k] - r3z[k - 1];
+
+    Rx = r3x[0] - r3x[k - 1];
+    Ry = r3y[0] - r3y[k - 1];
+    Rz = r3z[0] - r3z[k - 1];
+    Rmag = sqrt(Rx * Rx + Ry * Ry + Rz * Rz);
+
+    Rnx = Rx / Rmag;
+    Rny = Ry / Rmag;
+    Rnz = Rz / Rmag;
+
+    rdotRn = rx * Rnx + ry * Rny + rz * Rnz;
+    ux = rdotRn * Rnx;
+    uy = rdotRn * Rny;
+    uz = rdotRn * Rnz;
+
+    vx = rx - ux;
+    vy = ry - uy;
+    vz = rz - uz;
+    vmag = sqrt(vx * vx + vy * vy + vz * vz);
+    // if (vmag < 0.00000001) printf("vmag = %lf\n", vmag);
+
+    wx = uy * vz - uz * vy;
+    wy = uz * vx - ux * vz;
+    wz = ux * vy - uy * vx;
+    wmag = sqrt(wx * wx + wy * wy + wz * wz);
+
+    delphi = (2.0 * ran3() - 1.0) * delphi_max;
+    cosphi = cos(delphi);
+    sinphi = sin(delphi);
+
+    rx = ux + cosphi * vx + sinphi * vmag * wx / wmag;
+    ry = uy + cosphi * vy + sinphi * vmag * wy / wmag;
+    rz = uz + cosphi * vz + sinphi * vmag * wz / wmag;
+
+    r3x[k] = r3x[k - 1] + rx;
+    r3y[k] = r3y[k - 1] + ry;
+    r3z[k] = r3z[k - 1] + rz;
   }
 }
 
