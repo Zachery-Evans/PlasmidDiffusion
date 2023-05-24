@@ -253,11 +253,17 @@ int main()
             r1y[k] = yold;
             r1z[k] = zold;
           }
-          else
+          else if (ichain == 2)
           {
             r2x[k] = xold;
             r2y[k] = yold;
             r2z[k] = zold;
+          }
+          else if (ichain == 3)
+          {
+            r3x[k] = xold;
+            r3y[k] = yold;
+            r3z[k] = zold;
           }
         }
       }
@@ -269,9 +275,13 @@ int main()
         {
           reptation_move_chain1();
         }
-        else
+        else if (ichain == 2)
         {
           shift_move_chain2();
+        }
+        else if (ichain == 3)
+        {
+          shift_move_chain3();
         }
       }
     }
@@ -1146,6 +1156,21 @@ void write_data(void)
     {
       for (j = 0; j < ngridy; j++)
         fprintf(fp, "%8.2lf  ", prob2[i][j]);
+      fprintf(fp, "\n");
+    }
+    fclose(fp);
+  }
+
+  if ((fp = fopen("prob3.dat", "w")) == NULL)
+  {
+    printf("Cannot open file: prob3.dat\n");
+  }
+  else
+  {
+    for (i = 0; i < ngridx; i++)
+    {
+      for (j = 0; j < ngridy; j++)
+        fprintf(fp, "%8.2lf  ", prob3[i][j]);
       fprintf(fp, "\n");
     }
     fclose(fp);
