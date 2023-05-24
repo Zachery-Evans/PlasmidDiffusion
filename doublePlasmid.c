@@ -193,7 +193,6 @@ int main()
 
     for (j = 0; j < nseg1 + nseg2 + nseg3; j++)
     {
-
       k = (nseg1 + nseg2 + nseg3) * ran3();
 
       if (k < nseg1)
@@ -201,14 +200,14 @@ int main()
         ichain = 1;
         kmaxtest = nseg1 - 2;
       }
-      else if (nseg1 < k && k < (nseg1 + nseg2))
+      else if (nseg1 <= k && k < (nseg1 + nseg2))
       {
         ichain = 2;
         k -= nseg1;
         kmaxtest = nseg2 - 2;
       }
 
-      else if (k > (nseg1 + nseg2))
+      else if (k >= (nseg1 + nseg2))
       {
         ichain = 3;
         k -= nseg1;
@@ -347,8 +346,8 @@ int main()
       ycm3 = 0.0;
       for (i = 0; i < nseg3; i++)
       {
-        xcm2 += r3x[i];
-        ycm2 += r3y[i];
+        xcm3 += r3x[i];
+        ycm3 += r3y[i];
       }
       xcm3 /= nseg2;
       ycm3 /= nseg2;
@@ -431,7 +430,7 @@ void input(void)
   {
     fscanf(fp, "%ld%*s", &nseg1);
     fscanf(fp, "%ld%*s", &nseg2);
-    fscanf(fp, "%ls%*s", &nseg3);
+    fscanf(fp, "%ld%*s", &nseg3);
     fscanf(fp, "%lf%*s", &Area);
     fscanf(fp, "%lf%*s", &rectangleArea);
     fscanf(fp, "%lf%*s", &ecc);
@@ -467,7 +466,7 @@ void write_log(void)
 
   printf("nseg1    %ld\n", nseg1);
   printf("nseg2    %ld\n", nseg2);
-  printf("nseg2    %ld\n", nseg3);
+  printf("nseg3    %ld\n", nseg3);
   printf("Area     %lf\n", Area);
   printf("Rectangle %lf\n", rectangleArea);
   printf("ecc      %lf\n", ecc);
@@ -647,6 +646,7 @@ int check_accept(void)
           return (reject);
       }
     }
+
     // Checking if the plasmid overlaps with the T4 polymer
     for (kk = 0; kk < nseg2; kk++)
     {
@@ -1279,14 +1279,14 @@ void init_pos(void)
   double Rplasmid = 0.5 / tan(theta_plasmid / 2.0);
   for (i = 0; i < nseg2; i++)
   {
-    r2z[i] = -1.0;
+    r2z[i] = -4.0;
     r2x[i] = Rplasmid * cos(i * theta_plasmid);
     r2y[i] = Rplasmid * sin(i * theta_plasmid);
   }
 
   for (i = 0; i < nseg3; i++)
   {
-    r3z[i] = 1.0; // Initialized just above the first plasmid
+    r3z[i] = 4.0; // Initialized just above the first plasmid
     r3x[i] = Rplasmid * cos(i * theta_plasmid);
     r3y[i] = Rplasmid * sin(i * theta_plasmid);
   }
