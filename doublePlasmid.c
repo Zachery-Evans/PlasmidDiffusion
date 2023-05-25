@@ -48,7 +48,7 @@ double kappa, xold, yold, zold, delphi_max;
 double z1min, z1max, z2min, z2max, zcm1, zcm2, z1bcm, z2bcm;
 double **prob1, **prob2, **prob3, **probmon;
 
-// FILE *fpmov;
+FILE *fpmov;
 
 double r1x[5000];
 double r1y[5000];
@@ -149,32 +149,40 @@ int main()
 
   // *************************************************************
 
-  // if (imov == 1) // Don't include this in cluster
-  // fpmov = fopen("chain.xyz", "w");
+  if (imov == 1)
+  { // Don't include this in cluster
+    fpmov = fopen("chain.xyz", "w");
+  }
 
   imon = 0;
 
   init_pos(); // function call
-              /* Don't include this in cluster
-                if (imov == 1)
-                {
-                  if (ii % freq_mov == 0 && ii > -1)
-                  {
-                    fprintf(fpmov, "%ld\n", nseg1 + nseg2);
-                    fprintf(fpmov, "polymer:  %ld\n", ii);
-            
-                    for (i = 0; i < nseg1; i++)
-                    {
-                      fprintf(fpmov, "N    %lf  %lf  %lf\n", r1x[i], r1y[i], r1z[i]);
-                    }
-                    for (i = 0; i < nseg2; i++)
-                    {
-                      fprintf(fpmov, "O    %lf  %lf  %lf\n", r2x[i], r2y[i], r2z[i]);
-                    }
-                  }
-                }
-              */
-  nacc = 0;   // will hold number of accepted moves
+
+  // Don't include if statement below in cluster
+  if (imov == 1)
+  {
+    if (ii % freq_mov == 0 && ii > -1)
+    {
+      fprintf(fpmov, "%ld\n", nseg1 + nseg2 + nseg3);
+      fprintf(fpmov, "Polymer:  %ld\n", ii);
+
+      for (i = 0; i < nseg1; i++)
+      {
+        fprintf(fpmov, "N    %lf  %lf  %lf\n", r1x[i], r1y[i], r1z[i]);
+      }
+      for (i = 0; i < nseg2; i++)
+      {
+        fprintf(fpmov, "O    %lf  %lf  %lf\n", r2x[i], r2y[i], r2z[i]);
+      }
+
+      for (i = 0; i < nseg3; i++)
+      {
+        fprintf(fpmov, "F    %lf  %lf  %lf\n", r3x[i], r3y[i], r3z[i]);
+      }
+    }
+  }
+
+  nacc = 0; // will hold number of accepted moves
   nacc_rep = 0;
   nacc_shift = 0;
   nshift = 0;
@@ -373,25 +381,29 @@ int main()
       fprintf(yp2, "%lf\n", ycm2);
       fprintf(yp3, "%lf\n", ycm3);
     }
-    /*
-        if (imov == 1)
-        {
-          if (ii % freq_mov == 0 && ii > -1)
-          {
-            fprintf(fpmov, "%ld\n", nseg1 + nseg2);
-            fprintf(fpmov, "polymer:  %ld\n", ii);
 
-            for (i = 0; i < nseg1; i++)
-            {
-              fprintf(fpmov, "N    %lf  %lf  %lf\n", r1x[i], r1y[i], r1z[i]);
-            }
-            for (i = 0; i < nseg2; i++)
-            {
-              fprintf(fpmov, "O    %lf  %lf  %lf\n", r2x[i], r2y[i], r2z[i]);
-            }
-          }
+    if (imov == 1)
+    {
+      if (ii % freq_mov == 0 && ii > -1)
+      {
+        fprintf(fpmov, "%ld\n", nseg1 + nseg2 + nseg3);
+        fprintf(fpmov, "Polymer:  %ld\n", ii);
+
+        for (i = 0; i < nseg1; i++)
+        {
+          fprintf(fpmov, "N    %lf  %lf  %lf\n", r1x[i], r1y[i], r1z[i]);
         }
-      */
+        for (i = 0; i < nseg2; i++)
+        {
+          fprintf(fpmov, "O    %lf  %lf  %lf\n", r2x[i], r2y[i], r2z[i]);
+        }
+
+        for (i = 0; i < nseg3; i++)
+        {
+          fprintf(fpmov, "F    %lf  %lf  %lf\n", r3x[i], r3y[i], r3z[i]);
+        }
+      }
+    }
   }
 
   fclose(xp1);
@@ -408,10 +420,10 @@ int main()
 
   write_data();
 
-  /*
-    if (imov == 1)
-      fclose(fpmov);
-      */
+  if (imov == 1)
+  {
+    fclose(fpmov);
+  }
 }
 
 // ----------------------------------------------------------------------
@@ -601,7 +613,8 @@ int check_accept(void)
 
   if (ichain == 1)
   {
-    /* Checked in squareEllipse
+    /* 
+    // Checked in squareEllipse
     if (r1z[k] < -Hd2 || r1z[k] > Hd2)
     {
       return (reject);
@@ -723,14 +736,13 @@ int check_accept(void)
         dy = r2y[k] - r2y[kk];
         dz = r2z[k] - r2z[kk];
         dr2 = dx * dx + dy * dy + dz * dz;
-
         if (dr2 < 1.0)
         {
           return (reject);
         }
       }
     }
-
+    // Check if polymer and plasmid overlap
     for (kk = 0; kk < nseg1; kk++)
     {
       dx = r2x[k] - r1x[kk];
@@ -738,9 +750,11 @@ int check_accept(void)
       dz = r2z[k] - r1z[kk];
       dr2 = dx * dx + dy * dy + dz * dz;
       if (dr2 < 1.0)
+      {
         return (reject);
+      }
     }
-
+    // Check if plasmids overlap
     for (kk = 0; kk < nseg3; kk++)
     {
       dx = r2x[k] - r3x[kk];
@@ -752,7 +766,7 @@ int check_accept(void)
     }
   }
 
-  else if (ichain == 3)
+else if (ichain == 3)
   {
     /* squareEllipse checks this
     if (r2z[k] < -Hd2 || r2z[k] > Hd2)
@@ -806,25 +820,26 @@ int check_accept(void)
         dy = r3y[k] - r3y[kk];
         dz = r3z[k] - r3z[kk];
         dr2 = dx * dx + dy * dy + dz * dz;
-
         if (dr2 < 1.0)
         {
           return (reject);
         }
       }
     }
-
-    for (kk = 0; kk < nseg1; kk++)
+    // Check if polymer and plasmid overlap
+    for (kk = 0; kk < nseg3; kk++)
     {
       dx = r3x[k] - r1x[kk];
       dy = r3y[k] - r1y[kk];
       dz = r3z[k] - r1z[kk];
       dr2 = dx * dx + dy * dy + dz * dz;
       if (dr2 < 1.0)
+      {
         return (reject);
+      }
     }
-
-    for (kk = 0; kk < nseg2; kk++)
+    // Check if plasmids overlap
+    for (kk = 0; kk < nseg3; kk++)
     {
       dx = r3x[k] - r2x[kk];
       dy = r3y[k] - r2y[kk];
@@ -935,7 +950,7 @@ int check_energy(void)
     }
   }
   // if considering a movement in the second chain:
-  else
+  else if (ichain == 2)
   {
     if (k == 0)
     {
@@ -964,6 +979,66 @@ int check_energy(void)
       energy_old[1] = kappa * (1.0 - theta_old);
     }
     else if (k == nseg2 - 2)
+    {
+      theta_new = calc_cosine_chain2(k - 2, k - 1, k);
+      theta_old = calc_cosine_chain2(k - 2, k - 1, -1);
+      energy_new[0] = kappa * (1.0 - theta_new);
+      energy_old[0] = kappa * (1.0 - theta_old);
+
+      theta_new = calc_cosine_chain2(k - 1, k, k + 1);
+      theta_old = calc_cosine_chain2(k - 1, -1, k + 1);
+      energy_new[1] = kappa * (1.0 - theta_new);
+      energy_old[1] = kappa * (1.0 - theta_old);
+    }
+    else
+    {
+      theta_new = calc_cosine_chain2(k - 2, k - 1, k);
+      theta_old = calc_cosine_chain2(k - 2, k - 1, -1);
+      energy_new[0] = kappa * (1.0 - theta_new);
+      energy_old[0] = kappa * (1.0 - theta_old);
+
+      theta_new = calc_cosine_chain2(k - 1, k, k + 1);
+      theta_old = calc_cosine_chain2(k - 1, -1, k + 1);
+      energy_new[1] = kappa * (1.0 - theta_new);
+      energy_old[1] = kappa * (1.0 - theta_old);
+
+      theta_new = calc_cosine_chain2(k, k + 1, k + 2);
+      theta_old = calc_cosine_chain2(-1, k + 1, k + 2);
+      energy_new[2] = kappa * (1.0 - theta_new);
+      energy_old[2] = kappa * (1.0 - theta_old);
+    }
+  }
+
+  else if (ichain == 3)
+  {
+
+    if (k == 0)
+    {
+      theta_new = calc_cosine_chain2(k, k + 1, k + 2);
+      theta_old = calc_cosine_chain2(-1, k + 1, k + 2);
+      energy_new[0] = kappa * (1.0 - theta_new);
+      energy_old[0] = kappa * (1.0 - theta_old);
+    }
+    else if (k == nseg3 - 1)
+    {
+      theta_new = calc_cosine_chain2(k - 2, k - 1, k);
+      theta_old = calc_cosine_chain2(k - 2, k - 1, -1);
+      energy_new[0] = kappa * (1.0 - theta_new);
+      energy_old[0] = kappa * (1.0 - theta_old);
+    }
+    else if (k == 1)
+    {
+      theta_new = calc_cosine_chain2(k - 1, k, k + 1);
+      theta_old = calc_cosine_chain2(k - 1, -1, k + 1);
+      energy_new[0] = kappa * (1.0 - theta_new);
+      energy_old[0] = kappa * (1.0 - theta_old);
+
+      theta_new = calc_cosine_chain2(k, k + 1, k + 2);
+      theta_old = calc_cosine_chain2(-1, k + 1, k + 2);
+      energy_new[1] = kappa * (1.0 - theta_new);
+      energy_old[1] = kappa * (1.0 - theta_old);
+    }
+    else if (k == nseg3 - 2)
     {
       theta_new = calc_cosine_chain2(k - 2, k - 1, k);
       theta_old = calc_cosine_chain2(k - 2, k - 1, -1);
@@ -2254,7 +2329,6 @@ void crank_move_chain1()
 
   if (wmag > 0.00000001)
   {
-
     delphi = (2.0 * ran3() - 1.0) * delphi_max;
     cosphi = cos(delphi);
     sinphi = sin(delphi);
@@ -2269,7 +2343,6 @@ void crank_move_chain1()
   }
   else
   { // bonds are parallel
-
     r1x[k] = xold;
     r1y[k] = yold;
     r1z[k] = zold;
@@ -2423,7 +2496,7 @@ void crank_move_chain3()
   double ux, uy, uz, vx, vy, vz, vmag, wx, wy, wz, wmag;
   double cosphi, sinphi, delphi;
 
-  if (k > 0 && k < nseg2 - 1)
+  if (k > 0 && k < nseg3 - 1)
   {
     rx = r3x[k] - r3x[k - 1];
     ry = r3y[k] - r3y[k - 1];
