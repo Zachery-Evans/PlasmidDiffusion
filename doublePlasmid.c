@@ -208,14 +208,14 @@ int main()
         ichain = 1;
         kmaxtest = nseg1 - 2;
       }
-      else if (nseg1 <= k && k < (nseg1 + nseg2))
+      else if (nseg1 < k && k < (nseg1 + nseg2))
       {
         ichain = 2;
         k -= nseg1;
         kmaxtest = nseg2 - 2;
       }
 
-      else if (k >= (nseg1 + nseg2))
+      else if (k > (nseg1 + nseg2))
       {
         ichain = 3;
         k -= nseg1;
@@ -278,7 +278,6 @@ int main()
       }
       else
       {
-
         nrep++;
         if (ichain == 1)
         {
@@ -651,7 +650,9 @@ int check_accept(void)
       dz = r1z[k] - r3z[kk];
       dr2 = dx * dx + dy * dy + dz * dz;
       if (dr2 < 1.0)
+      {
         return (reject);
+      }
     }
   }
   else if (ichain == 2)
@@ -753,7 +754,7 @@ int check_accept(void)
       }
     }
     // Check if polymer and plasmid overlap
-    for (kk = 0; kk < nseg3; kk++)
+    for (kk = 0; kk < nseg1; kk++)
     {
       dx = r3x[k] - r1x[kk];
       dy = r3y[k] - r1y[kk];
@@ -765,14 +766,16 @@ int check_accept(void)
       }
     }
     // Check if plasmids overlap
-    for (kk = 0; kk < nseg3; kk++)
+    for (kk = 0; kk < nseg2; kk++)
     {
       dx = r3x[k] - r2x[kk];
       dy = r3y[k] - r2y[kk];
       dz = r3z[k] - r2z[kk];
       dr2 = dx * dx + dy * dy + dz * dz;
       if (dr2 < 1.0)
+      {
         return (reject);
+      }
     }
   }
 
