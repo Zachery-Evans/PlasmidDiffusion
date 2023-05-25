@@ -613,34 +613,6 @@ int check_accept(void)
 
   if (ichain == 1)
   {
-    /* 
-    // Checked in squareEllipse
-    if (r1z[k] < -Hd2 || r1z[k] > Hd2)
-    {
-      return (reject);
-    }
-    */
-
-    /* This eccentricity check does not apply in the region of the square.
-    echeck = r1x[k] * r1x[k] / amax2 + r1y[k] * r1y[k] / bmin2;
-
-    if (echeck > 1.0)
-    {
-      return (reject);
-    }
-    */
-
-    /*
-        for (kk=k-1;kk<=k+1;kk+=2) {
-          if (kk >= 0 && kk < nseg1) {
-            dx = r1x[k] - r1x[kk];
-            dy = r1y[k] - r1y[kk];
-            dz = r1z[k] - r1z[kk];
-            dr2 = dx*dx + dy*dy + dz*dz;
-            if (dr2 < dr2min || dr2 > dr2max) return(reject);
-          }
-        }
-    */
 
     // Checking if the T4 polymer overlaps with itself
     for (kk = 0; kk < nseg1; kk++)
@@ -684,30 +656,6 @@ int check_accept(void)
   }
   else if (ichain == 2)
   {
-    /* squareEllipse checks this
-    if (r2z[k] < -Hd2 || r2z[k] > Hd2)
-    {
-      return (reject);
-    }
-    */
-
-    /*
-    echeck = r2x[k] * r2x[k] / amax2 + r2y[k] * r2y[k] / bmin2;
-    if (echeck > 1.0)
-      return (reject);
-
-
-      for (kk=k-1;kk<=k+1;kk+=2) {
-        if (kk >= 0 && kk < nseg2) {
-          dx = r2x[k] - r2x[kk];
-          dy = r2y[k] - r2y[kk];
-          dz = r2z[k] - r2z[kk];
-          dr2 = dx*dx + dy*dy + dz*dz;
-          if (dr2 < dr2min || dr2 > dr2max) return(reject);
-        }
-      }
-    */
-
     if (k == 0)
     {
       klow = nseg2 - 1;
@@ -762,36 +710,14 @@ int check_accept(void)
       dz = r2z[k] - r3z[kk];
       dr2 = dx * dx + dy * dy + dz * dz;
       if (dr2 < 1.0)
+      {
         return (reject);
+      }
     }
   }
 
-else if (ichain == 3)
+  else if (ichain == 3)
   {
-    /* squareEllipse checks this
-    if (r2z[k] < -Hd2 || r2z[k] > Hd2)
-    {
-      return (reject);
-    }
-    */
-
-    /*
-    echeck = r2x[k] * r2x[k] / amax2 + r2y[k] * r2y[k] / bmin2;
-    if (echeck > 1.0)
-      return (reject);
-
-
-      for (kk=k-1;kk<=k+1;kk+=2) {
-        if (kk >= 0 && kk < nseg2) {
-          dx = r2x[k] - r2x[kk];
-          dy = r2y[k] - r2y[kk];
-          dz = r2z[k] - r2z[kk];
-          dr2 = dx*dx + dy*dy + dz*dz;
-          if (dr2 < dr2min || dr2 > dr2max) return(reject);
-        }
-      }
-    */
-
     if (k == 0)
     {
       klow = nseg3 - 1;
@@ -1354,14 +1280,14 @@ void init_pos(void)
   double Rplasmid = 0.5 / tan(theta_plasmid / 2.0);
   for (i = 0; i < nseg2; i++)
   {
-    r2z[i] = -4.0;
+    r2z[i] = -2.0;
     r2x[i] = Rplasmid * cos(i * theta_plasmid);
     r2y[i] = Rplasmid * sin(i * theta_plasmid);
   }
 
   for (i = 0; i < nseg3; i++)
   {
-    r3z[i] = 4.0; // Initialized just above the first plasmid
+    r3z[i] = 2.0; // Initialized just above the first plasmid
     r3x[i] = Rplasmid * cos(i * theta_plasmid);
     r3y[i] = Rplasmid * sin(i * theta_plasmid);
   }
@@ -1683,9 +1609,13 @@ void reptation_move_chain1()
 
   rannum = ran3();
   if (kappa > -0.000001 && kappa < 0.000001)
+  {
     costheta_prime = (2.0 * rannum) - 1.0;
+  }
   else
+  {
     costheta_prime = log((rannum * exp(kappa)) + ((1.0 - rannum) * exp(-1.0 * kappa))) / kappa;
+  }
 
   //
   //      keep bond length = 1
@@ -1882,7 +1812,7 @@ void reptation_move_chain3()
   }
   else
   {
-    irep = nseg2 - 1;
+    irep = nseg3 - 1;
   }
   rannum = ran3();
   phi_prime = rannum * 2 * PI;
@@ -1910,7 +1840,7 @@ void reptation_move_chain3()
 
   if (irep == 0)
   {
-    for (ind = 0; ind < nseg2 - 1; ind++)
+    for (ind = 0; ind < nseg3 - 1; ind++)
     {
       r3x[ind] = r3x[ind + 1];
       r3y[ind] = r3y[ind + 1];
@@ -1921,7 +1851,7 @@ void reptation_move_chain3()
     r3y[nseg3 - 1] = r3y[nseg3 - 2] + dy_fixed;
     r3z[nseg3 - 1] = r3z[nseg3 - 2] + dz_fixed;
 
-    overlap = check_accept_reptation(nseg2 - 1);
+    overlap = check_accept_reptation(nseg3 - 1);
 
     if (overlap == 0)
     {
@@ -1997,7 +1927,7 @@ void calc_delta_xyz()
       uz = r1z[0] - r1z[1];
     }
   }
-  else
+  else if (ichain == 2)
   {
     if (irep == 0)
     {
@@ -2010,6 +1940,21 @@ void calc_delta_xyz()
       ux = r2x[0] - r2x[1];
       uy = r2y[0] - r2y[1];
       uz = r2z[0] - r2z[1];
+    }
+  }
+  else if (ichain == 3)
+  {
+    if (irep == 0)
+    {
+      ux = r3x[nseg3 - 1] - r3x[nseg3 - 2];
+      uy = r3y[nseg3 - 1] - r3y[nseg3 - 2];
+      uz = r3z[nseg3 - 1] - r3z[nseg3 - 2];
+    }
+    else
+    {
+      ux = r3x[0] - r3x[1];
+      uy = r3y[0] - r3y[1];
+      uz = r3z[0] - r3z[1];
     }
   }
 
