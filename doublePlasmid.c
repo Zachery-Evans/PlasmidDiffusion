@@ -1600,9 +1600,13 @@ void reptation_move_chain1()
   double rannum;
   rannum = ran3();
   if (rannum <= 0.5)
+  {
     irep = 0;
+  }
   else
+  {
     irep = nseg1 - 1;
+  }
 
   rannum = ran3();
   phi_prime = rannum * 2.0 * PI;
@@ -1715,9 +1719,13 @@ void reptation_move_chain2()
 
   rannum = ran3();
   if (kappa > -0.000001 && kappa < 0.000001)
+  {
     costheta_prime = (2.0 * rannum) - 1.0;
+  }
   else
+  {
     costheta_prime = log((rannum * exp(kappa)) + ((1.0 - rannum) * exp(-1.0 * kappa))) / kappa;
+  }
 
   dr_prime = pow((0.602 * rannum) + 0.729, (1.0 / 3.0));
 
@@ -1819,9 +1827,13 @@ void reptation_move_chain3()
 
   rannum = ran3();
   if (kappa > -0.000001 && kappa < 0.000001)
+  {
     costheta_prime = (2.0 * rannum) - 1.0;
+  }
   else
+  {
     costheta_prime = log((rannum * exp(kappa)) + ((1.0 - rannum) * exp(-1.0 * kappa))) / kappa;
+  }
 
   dr_prime = pow((0.602 * rannum) + 0.729, (1.0 / 3.0));
 
@@ -1927,6 +1939,7 @@ void calc_delta_xyz()
       uz = r1z[0] - r1z[1];
     }
   }
+
   else if (ichain == 2)
   {
     if (irep == 0)
@@ -1942,7 +1955,8 @@ void calc_delta_xyz()
       uz = r2z[0] - r2z[1];
     }
   }
-  else if (ichain == 3)
+
+  else
   {
     if (irep == 0)
     {
@@ -2176,8 +2190,8 @@ int check_accept_reptation(long krep)
     }
   }
 
-  else if (ichain == 3)
-  { // ichain == 2
+  else
+  { // ichain == 3
 
     /*
     if (r2z[krep] < -Hd2 || r2z[krep] > Hd2)
