@@ -92,7 +92,7 @@ int main()
   long imon, indx, indy;
   double xcm1, ycm1, xcm2, ycm2, xcm3, ycm3;
 
-  FILE *xp1, *yp1, *xp2, *yp2, *xp3, *yp3;
+  FILE *xp1, *yp1, *xp2, *yp2, *xp3, *yp3, *x1x2;
 
   input();
 
@@ -194,6 +194,7 @@ int main()
   yp1 = fopen("ycm1.dat", "w");
   yp2 = fopen("ycm2.dat", "w");
   yp3 = fopen("ycm3.dat", "w");
+  x1x2 = fopen("x2x3cm.dat", "w");
 
   for (ii = 0; ii < ncyc; ii++)
   {
@@ -379,6 +380,7 @@ int main()
       fprintf(yp1, "%lf\n", ycm1);
       fprintf(yp2, "%lf\n", ycm2);
       fprintf(yp3, "%lf\n", ycm3);
+      fprintf(x1x2, "%lf\n", xcm2 * xcm3);
     }
 
     if (imov == 1)
@@ -411,6 +413,7 @@ int main()
   fclose(yp1);
   fclose(yp2);
   fclose(yp3);
+  fclose(x1x2);
 
   printf("Acc. ratio = %lf\n", 1.0 * nacc / ((ncyc * (nseg1 + nseg2)) - nrep));
   printf("Number of reptation attempts = %ld\n", nrep);
@@ -1247,9 +1250,7 @@ double calc_cosine_chain3(int i1, int i2, int i3)
 void init_pos(void)
 {
 
-  double xadd, yadd, bond_length, xmax, ymax;
-
-  bond_length = 1.0;
+  double xadd, yadd, xmax, ymax;
 
   r1x[0] = 0.0;
   r1y[0] = -bmin / 2.0 + 1.0;
@@ -1506,7 +1507,6 @@ int check_shift_chain2()
 {
   int accept = 0;
   int reject = 1;
-  double echeck;
 
   for (i = 0; i < nseg2; i++)
   {
@@ -1547,7 +1547,6 @@ int check_shift_chain3()
 {
   int accept = 0;
   int reject = 1;
-  double echeck;
 
   for (i = 0; i < nseg3; i++)
   {
