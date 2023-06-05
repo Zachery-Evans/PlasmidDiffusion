@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define PI 3.141592653589793
 #define NR_END 1
@@ -93,6 +94,9 @@ int main()
   double xcm1, ycm1, xcm2, ycm2, xcm3, ycm3;
 
   FILE *xp1, *yp1, *xp2, *yp2, *xp3, *yp3, *x1x2;
+
+  clock_t start, end;
+  start = clock();
 
   input();
 
@@ -426,6 +430,11 @@ int main()
   {
     fclose(fpmov);
   }
+  
+  end = clock();
+  double duration = ((double)end - start)/CLOCKS_PER_SEC; 
+  printf("Time taken to execute in seconds : %lf", duration);
+
 }
 
 // ----------------------------------------------------------------------
