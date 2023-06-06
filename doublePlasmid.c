@@ -39,7 +39,7 @@ void crank_move_chain3(void);
 
 long nseg1, nseg2, nseg3, nbin, i, j, k, ii, ncyc, overlap, nacc, kk, itest, iseed;
 long neq, nbintot, ibin, ichain, nsamp, nacc_shift, nshift;
-long imov, kmaxtest, freq_samp, freq_mon, freq_mov, ncmt, ngridx, ngridy;
+long imov, kmaxtest, freq_samp, cmFreqSamp, freq_mon, freq_mov, ncmt, ngridx, ngridy;
 
 double L, H, Ld2, Hd2, rmax, xt, yt, zt, dx, dy, dz, re, dr2, drxy2, dr2min, dr2max;
 double qmin, qmax, re2av, re2, drmin, drmax, gridspace, gridspacex_real, gridspacey_real;
@@ -377,7 +377,10 @@ int main()
         prob3[indx][indy] += 1.0;
 
       nsamp += 1;
+    }
 
+    if (ii % cmFreqSamp == 0 && ii > neq)
+    {
       fprintf(xp1, "%lf\n", xcm1);
       fprintf(xp2, "%lf\n", xcm2);
       fprintf(xp3, "%lf\n", xcm3);
@@ -430,11 +433,10 @@ int main()
   {
     fclose(fpmov);
   }
-  
-  end = clock();
-  double duration = ((double)end - start)/CLOCKS_PER_SEC; 
-  printf("Time taken to execute in seconds : %lf", duration);
 
+  end = clock();
+  double duration = ((double)end - start) / CLOCKS_PER_SEC;
+  printf("Time taken to execute in seconds : %lf", duration);
 }
 
 // ----------------------------------------------------------------------
@@ -471,6 +473,7 @@ void input(void)
     fscanf(fp, "%ld%*s", &iseed);
 
     fscanf(fp, "\n%ld%*s", &freq_samp);
+    fscanf(fp, "\n%ld%*s", &cmFreqSamp);
     fscanf(fp, "\n%ld%*s", &freq_mon);
     fscanf(fp, "\n%ld%*s", &freq_mov);
 
@@ -516,6 +519,7 @@ void write_log(void)
   printf("\n");
 
   printf("freq_samp  %ld\n", freq_samp);
+  printf("freq_samp  %ld\n", cmFreqSamp);
   printf("freq_mon   %ld\n", freq_mon);
   printf("freq_mov   %ld\n", freq_mov);
   printf("\n");
