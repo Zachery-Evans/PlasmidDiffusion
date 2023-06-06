@@ -18,6 +18,7 @@
 1348378           iseed
 
 10                freq_samp
+100               cmFreqSamp
 1000              freq_mon
 100               freq_mov
 
