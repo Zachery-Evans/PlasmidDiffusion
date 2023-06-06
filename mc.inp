@@ -1,8 +1,8 @@
 1000              nseg1
-25                nseg2
-25                nseg3
+50                nseg2
+50                nseg3
 3000.0            Area
-1500.0            rectangleArea
+1200.0            rectangleArea
 0.8               ecc
 15.0              H
 50                kappa
