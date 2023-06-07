@@ -95,8 +95,8 @@ int main()
 
   FILE *xp1, *yp1, *xp2, *yp2, *xp3, *yp3, *x1x2;
 
-  //clock_t start, end;
-  //start = clock();
+  // clock_t start, end;
+  // start = clock();
 
   input();
 
@@ -107,12 +107,12 @@ int main()
   // Requires that the y direction of the box is the same height as the semi-minor
   // axis of the ellipse.
 
-  amax = sqrt((Area - rectangleArea) / PI) * pow(1.0 - ecc * ecc, -0.25);
-  bmin = sqrt((Area - rectangleArea) / PI) * pow(1.0 - ecc * ecc, +0.25);
+  amax = bmin / sqrt(1 - ecc * ecc);
   amax2 = amax * amax;
   bmin2 = bmin * bmin;
+  rectangleArea = 2 * amax * sqrt(1 - ecc * ecc);
   yBoxMaxd2 = bmin; // Width of the rectangle section equivalent to the semi-minor axis
-  xBoxMax = rectangleArea / yBoxMaxd2 * 2.0;
+  xBoxMax = (Area - PI * amax2 * sqrt(1 - ecc * ecc)) / 2 * amax * sqrt(1 - ecc * ecc);
   xBoxMaxd2 = xBoxMax / 2.0;
 
   // printf("Length of the box: %lf\n", xBoxMax);
@@ -434,9 +434,9 @@ int main()
     fclose(fpmov);
   }
 
-  //end = clock();
-  //double duration = ((double)end - start) / CLOCKS_PER_SEC;
-  //printf("Time taken to execute in seconds : %lf", duration);
+  // end = clock();
+  // double duration = ((double)end - start) / CLOCKS_PER_SEC;
+  // printf("Time taken to execute in seconds : %lf", duration);
 }
 
 // ----------------------------------------------------------------------
@@ -457,7 +457,7 @@ void input(void)
     fscanf(fp, "%ld%*s", &nseg2);
     fscanf(fp, "%ld%*s", &nseg3);
     fscanf(fp, "%lf%*s", &Area);
-    fscanf(fp, "%lf%*s", &rectangleArea);
+    fscanf(fp, "%lf%*s", &bmin);
     fscanf(fp, "%lf%*s", &ecc);
     fscanf(fp, "%lf%*s", &H);
     fscanf(fp, "%lf%*s", &kappa);
@@ -494,7 +494,6 @@ void write_log(void)
   printf("nseg2    %ld\n", nseg2);
   printf("nseg3    %ld\n", nseg3);
   printf("Area     %lf\n", Area);
-  printf("Rectangle %lf\n", rectangleArea);
   printf("ecc      %lf\n", ecc);
   printf("amax     %lf\n", amax);
   printf("bmin     %lf\n", bmin);
@@ -519,7 +518,7 @@ void write_log(void)
   printf("\n");
 
   printf("freq_samp  %ld\n", freq_samp);
-  printf("freq_samp  %ld\n", cmFreqSamp);
+  printf("cmFreqSamp  %ld\n", cmFreqSamp);
   printf("freq_mon   %ld\n", freq_mon);
   printf("freq_mov   %ld\n", freq_mov);
   printf("\n");
