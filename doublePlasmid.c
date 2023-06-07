@@ -95,8 +95,8 @@ int main()
 
   FILE *xp1, *yp1, *xp2, *yp2, *xp3, *yp3, *x1x2;
 
-  clock_t start, end;
-  start = clock();
+  //clock_t start, end;
+  //start = clock();
 
   input();
 
@@ -434,9 +434,9 @@ int main()
     fclose(fpmov);
   }
 
-  end = clock();
-  double duration = ((double)end - start) / CLOCKS_PER_SEC;
-  printf("Time taken to execute in seconds : %lf", duration);
+  //end = clock();
+  //double duration = ((double)end - start) / CLOCKS_PER_SEC;
+  //printf("Time taken to execute in seconds : %lf", duration);
 }
 
 // ----------------------------------------------------------------------
