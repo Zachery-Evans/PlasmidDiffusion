@@ -1552,6 +1552,18 @@ int check_shift_chain2()
     }
   }
 
+  for (kk = 0; kk < nseg3; kk++)
+    {
+      dx = r2x[i] - r3x[kk];
+      dy = r2y[i] - r3y[kk];
+      dz = r2z[i] - r3z[kk];
+      dr2 = dx * dx + dy * dy + dz * dz;
+      if (dr2 < 1.0)
+      {
+        return (reject);
+      }
+    }
+
   return (accept);
 }
 

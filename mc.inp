@@ -1,7 +1,7 @@
 1000              nseg1
-25                nseg2
-25                nseg3
-3000.0            Area
+50                nseg2
+50                nseg3
+1000.0            Area
 18.0              bmin
 0.0               ecc
 15.0              H
@@ -22,4 +22,4 @@
 1000              freq_mon
 100               freq_mov
 
-0                 imov
+1                 imov
