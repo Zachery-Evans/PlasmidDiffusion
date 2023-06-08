@@ -1548,21 +1548,23 @@ int check_shift_chain2()
       dz = r2z[i] - r1z[kk];
       dr2 = dx * dx + dy * dy + dz * dz;
       if (dr2 < 1.0)
-        return (reject);
-    }
-  }
-
-  for (kk = 0; kk < nseg3; kk++)
-    {
-      dx = r2x[i] - r3x[kk];
-      dy = r2y[i] - r3y[kk];
-      dz = r2z[i] - r3z[kk];
-      dr2 = dx * dx + dy * dy + dz * dz;
-      if (dr2 < 1.0)
       {
         return (reject);
       }
+
+      if (kk < nseg3)
+      {
+        dx = r2x[i] - r3x[kk];
+        dy = r2y[i] - r3y[kk];
+        dz = r2z[i] - r3z[kk];
+        dr2 = dx * dx + dy * dy + dz * dz;
+        if (dr2 < 1.0)
+        {
+          return (reject);
+        }
+      }
     }
+  }
 
   return (accept);
 }
@@ -1603,17 +1605,17 @@ int check_shift_chain3()
       {
         return (reject);
       }
-    }
 
-    for (kk = 0; kk < nseg2; kk++)
-    {
-      dx = r3x[i] - r2x[kk];
-      dy = r3y[i] - r2y[kk];
-      dz = r3z[i] - r2z[kk];
-      dr2 = dx * dx + dy * dy + dz * dz;
-      if (dr2 < 1.0)
+      if (kk < nseg2)
       {
-        return (reject);
+        dx = r3x[i] - r2x[kk];
+        dy = r3y[i] - r2y[kk];
+        dz = r3z[i] - r2z[kk];
+        dr2 = dx * dx + dy * dy + dz * dz;
+        if (dr2 < 1.0)
+        {
+          return (reject);
+        }
       }
     }
   }
