@@ -1982,47 +1982,6 @@ void calc_delta_xyz()
     }
   }
 
-  /*beta = atan(ux / uz);
-  alpha = atan(uy / ux);*/
-
-  /*if (uz > -0.000001 && uz < 0.000001) {
-    beta = PI / 2.0;
-  }
-  else if (ux > -0.000001 && ux < 0.000001) {
-    if (uz >= 0.0)
-      beta = 0.0;
-    else
-      beta = PI;
-  }
-  else if (uz >= 0.0) {
-    beta = atan(fabs(ux)/ uz);
-  }
-  else {
-    beta = atan(fabs(uz) / fabs(ux)) + (PI / 2.0);
-  }*/
-
-  /*if (ux > -0.000001 && ux < 0.000001) {
-    if (uy >= 0.0)
-      alpha = PI / 2.0;
-    else
-      alpha = 3.0 * PI / 2.0;
-  }
-  else if (uy > -0.000001 && uy < 0.000001) {
-    if (ux >= 0.0)
-      alpha = 0.0;
-    else
-      alpha = PI;
-  }
-  else if (ux >= 0.0 && uy >= 0.0)
-    alpha = atan(uy/ux);
-  else if (ux < 0.0 && uy >= 0.0)
-    alpha = atan (fabs(ux)/uy) + (PI / 2.0);
-  else if (ux < 0.0 && uy < 0.0)
-    alpha = atan(uy/ux) + PI;
-  else
-    alpha = atan(ux/fabs(uy)) + (3.0 * PI / 2.0);
-  */
-
   u = sqrt(ux * ux + uy * uy + uz * uz);
   uxy = sqrt(ux * ux + uy * uy);
   cos_beta = uz / u;
@@ -2055,21 +2014,6 @@ void calc_delta_xyz()
     }
   }
 
-  /*cos_beta = cos(beta);
-  cos_alpha = cos(alpha);
-  sin_beta = sin(beta);
-  sin_alpha = sin(alpha);*/
-
-  // Incorret order of rotations
-  /*dx_fixed = (cos_beta*cos_alpha*dx_prime) + (cos_beta*sin_alpha*dy_prime) - (sin_beta*dz_prime);
-  dy_fixed = (cos_alpha*dy_prime) - (sin_alpha*dx_prime);
-  dz_fixed = (sin_beta*cos_alpha*dx_prime) + (sin_beta*sin_alpha*dy_prime) + (cos_beta*dz_prime);*/
-
-  // Inverted matrix with negative angles
-  /*dx_fixed = (cos_beta*cos_alpha*dx_prime) + (sin_alpha*dy_prime) - (sin_beta*cos_alpha*dz_prime);
-  dy_fixed = (cos_alpha*dy_prime) - (cos_beta*sin_alpha*dx_prime) + (sin_beta*sin_alpha*dz_prime);
-  dz_fixed = (cos_beta*dz_prime) + (sin_beta*dx_prime);*/
-
   // inverted matrix
   dx_fixed = (cos_beta * cos_alpha * dx_prime) - (sin_alpha * dy_prime) + (sin_beta * cos_alpha * dz_prime);
   dy_fixed = (cos_beta * sin_alpha * dx_prime) + (cos_alpha * dy_prime) + (sin_beta * sin_alpha * dz_prime);
@@ -2086,17 +2030,8 @@ int check_accept_reptation(long krep)
 
   if (ichain == 1)
   {
-    /*
-    if (r1z[krep] < -Hd2 || r1z[krep] > Hd2)
-      return (reject);
-    echeck = r1x[krep] * r1x[krep] / amax2 + r1y[krep] * r1y[krep] / bmin2;
-    if (echeck > 1.0)
-      return (reject);
-    */
-
     for (kk = 0; kk < nseg1; kk++)
     {
-
       if (squareEllipse(r1x[kk], r1y[kk], r1z[kk]) == reject)
       {
         return (reject);
@@ -2114,65 +2049,36 @@ int check_accept_reptation(long krep)
             return (reject); // if overlap with other monomer within chain, reject
         }
       }
-    }
 
-    for (kk = 0; kk < nseg2; kk++)
-    {
-      dz = r1z[krep] - r2z[kk];
-      if (fabs(dz) < 1.0)
+      if (kk < nseg2)
       {
-        dx = r1x[krep] - r2x[kk];
-        dy = r1y[krep] - r2y[kk];
-        dr2 = dx * dx + dy * dy + dz * dz;
-        if (dr2 < 1.0)
-          return (reject); // if overlap with monomer in other chain, reject
+        dz = r1z[krep] - r2z[kk];
+        if (fabs(dz) < 1.0)
+        {
+          dx = r1x[krep] - r2x[kk];
+          dy = r1y[krep] - r2y[kk];
+          dr2 = dx * dx + dy * dy + dz * dz;
+          if (dr2 < 1.0)
+            return (reject); // if overlap with monomer in other chain, reject
+        }
       }
-    }
 
-    for (kk = 0; kk < nseg3; kk++)
-    {
-      dz = r1z[krep] - r3z[kk];
-      if (fabs(dz) < 1.0)
+      if (kk < nseg3)
       {
-        dx = r1x[krep] - r3x[kk];
-        dy = r1y[krep] - r3y[kk];
-        dr2 = dx * dx + dy * dy + dz * dz;
-        if (dr2 < 1.0)
-          return (reject); // if overlap with monomer in other chain, reject
+        dz = r1z[krep] - r3z[kk];
+        if (fabs(dz) < 1.0)
+        {
+          dx = r1x[krep] - r3x[kk];
+          dy = r1y[krep] - r3y[kk];
+          dr2 = dx * dx + dy * dy + dz * dz;
+          if (dr2 < 1.0)
+            return (reject); // if overlap with monomer in other chain, reject
+        }
       }
     }
   }
   else if (ichain == 2)
-  { // ichain == 2
-
-    /*
-    if (r2z[krep] < -Hd2 || r2z[krep] > Hd2)
-      return (reject);
-    echeck = r2x[krep] * r2x[krep] / amax2 + r2y[krep] * r2y[krep] / bmin2;
-    if (echeck > 1.0)
-      return (reject);
-    */
-
-    for (kk = 0; kk < nseg2; kk++)
-    {
-      if (squareEllipse(r2x[kk], r2y[kk], r2z[kk]) == reject)
-      {
-        return (reject);
-      }
-      if (kk < krep - 1 || kk > krep + 1)
-      {
-        dz = r2z[krep] - r2z[kk];
-        if (fabs(dz) < 1.0)
-        {
-          dx = r2x[krep] - r2x[kk];
-          dy = r2y[krep] - r2y[kk];
-          dr2 = dx * dx + dy * dy + dz * dz;
-          if (dr2 < 1.0)
-            return (reject);
-        }
-      }
-    }
-
+  { // plasmid 2
     for (kk = 0; kk < nseg1; kk++)
     {
       dz = r2z[krep] - r1z[kk];
@@ -2181,56 +2087,56 @@ int check_accept_reptation(long krep)
         dx = r2x[krep] - r1x[kk];
         dy = r2y[krep] - r1y[kk];
         dr2 = dx * dx + dy * dy + dz * dz;
-        if (dr2 < 1.0)
-          return (reject);
-      }
-    }
 
-    for (kk = 0; kk < nseg3; kk++)
-    {
-      dz = r2z[krep] - r3z[kk];
-      if (fabs(dz) < 1.0)
-      {
-        dx = r2x[krep] - r3x[kk];
-        dy = r2y[krep] - r3y[kk];
-        dr2 = dx * dx + dy * dy + dz * dz;
         if (dr2 < 1.0)
+        {
           return (reject);
+        }
+      }
+
+      if (kk < nseg2)
+      {
+        if (squareEllipse(r2x[kk], r2y[kk], r2z[kk]) == reject)
+        {
+          return (reject);
+        }
+        if (kk < krep - 1 || kk > krep + 1)
+        {
+          dz = r2z[krep] - r2z[kk];
+          if (fabs(dz) < 1.0)
+          {
+            dx = r2x[krep] - r2x[kk];
+            dy = r2y[krep] - r2y[kk];
+            dr2 = dx * dx + dy * dy + dz * dz;
+
+            if (dr2 < 1.0)
+            {
+              return (reject);
+            }
+          }
+        }
+      }
+
+      if (kk < nseg3)
+      {
+        dz = r2z[krep] - r3z[kk];
+        if (fabs(dz) < 1.0)
+        {
+          dx = r2x[krep] - r3x[kk];
+          dy = r2y[krep] - r3y[kk];
+          dr2 = dx * dx + dy * dy + dz * dz;
+
+          if (dr2 < 1.0)
+          {
+            return (reject);
+          }
+        }
       }
     }
   }
 
   else
-  { // ichain == 3
-
-    /*
-    if (r2z[krep] < -Hd2 || r2z[krep] > Hd2)
-      return (reject);
-    echeck = r2x[krep] * r2x[krep] / amax2 + r2y[krep] * r2y[krep] / bmin2;
-    if (echeck > 1.0)
-      return (reject);
-    */
-
-    for (kk = 0; kk < nseg3; kk++)
-    {
-      if (squareEllipse(r3x[kk], r3y[kk], r3z[kk]) == reject)
-      {
-        return (reject);
-      }
-      if (kk < krep - 1 || kk > krep + 1)
-      {
-        dz = r3z[krep] - r3z[kk];
-        if (fabs(dz) < 1.0)
-        {
-          dx = r3x[krep] - r3x[kk];
-          dy = r3y[krep] - r3y[kk];
-          dr2 = dx * dx + dy * dy + dz * dz;
-          if (dr2 < 1.0)
-            return (reject);
-        }
-      }
-    }
-
+  {
     for (kk = 0; kk < nseg1; kk++)
     {
       dz = r2z[krep] - r1z[kk];
@@ -2239,21 +2145,50 @@ int check_accept_reptation(long krep)
         dx = r3x[krep] - r1x[kk];
         dy = r3y[krep] - r1y[kk];
         dr2 = dx * dx + dy * dy + dz * dz;
-        if (dr2 < 1.0)
-          return (reject);
-      }
-    }
 
-    for (kk = 0; kk < nseg2; kk++)
-    {
-      dz = r3z[krep] - r2z[kk];
-      if (fabs(dz) < 1.0)
-      {
-        dx = r3x[krep] - r2x[kk];
-        dy = r3y[krep] - r2y[kk];
-        dr2 = dx * dx + dy * dy + dz * dz;
         if (dr2 < 1.0)
+        {
           return (reject);
+        }
+      }
+
+      if (kk < nseg2)
+      {
+        dz = r3z[krep] - r2z[kk];
+        if (fabs(dz) < 1.0)
+        {
+          dx = r3x[krep] - r2x[kk];
+          dy = r3y[krep] - r2y[kk];
+          dr2 = dx * dx + dy * dy + dz * dz;
+
+          if (dr2 < 1.0)
+          {
+            return (reject);
+          }
+        }
+      }
+
+      if (kk < nseg3)
+      {
+        if (squareEllipse(r3x[kk], r3y[kk], r3z[kk]) == reject)
+        {
+          return (reject);
+        }
+        if (kk < krep - 1 || kk > krep + 1)
+        {
+          dz = r3z[krep] - r3z[kk];
+          if (fabs(dz) < 1.0)
+          {
+            dx = r3x[krep] - r3x[kk];
+            dy = r3y[krep] - r3y[kk];
+            dr2 = dx * dx + dy * dy + dz * dz;
+
+            if (dr2 < 1.0)
+            {
+              return (reject);
+            }
+          }
+        }
       }
     }
   }
