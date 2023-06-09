@@ -648,29 +648,29 @@ int check_accept(void)
         if (dr2 < 1.0)
           return (reject);
       }
-    }
 
-    // Checking if the plasmid overlaps with the T4 polymer
-    for (kk = 0; kk < nseg2; kk++)
-    {
-      dx = r1x[k] - r2x[kk];
-      dy = r1y[k] - r2y[kk];
-      dz = r1z[k] - r2z[kk];
-      dr2 = dx * dx + dy * dy + dz * dz;
-      if (dr2 < 1.0)
-        return (reject);
-    }
-
-    // Checking if second plasmid overlaps with T4 polymer
-    for (kk = 0; kk < nseg3; kk++)
-    {
-      dx = r1x[k] - r3x[kk];
-      dy = r1y[k] - r3y[kk];
-      dz = r1z[k] - r3z[kk];
-      dr2 = dx * dx + dy * dy + dz * dz;
-      if (dr2 < 1.0)
+      // Checking if the plasmid overlaps with the T4 polymer
+      if (kk < nseg2)
       {
-        return (reject);
+        dx = r1x[k] - r2x[kk];
+        dy = r1y[k] - r2y[kk];
+        dz = r1z[k] - r2z[kk];
+        dr2 = dx * dx + dy * dy + dz * dz;
+        if (dr2 < 1.0)
+          return (reject);
+      }
+
+      // Checking if second plasmid overlaps with T4 polymer
+      if (kk < nseg3)
+      {
+        dx = r1x[k] - r3x[kk];
+        dy = r1y[k] - r3y[kk];
+        dz = r1z[k] - r3z[kk];
+        dr2 = dx * dx + dy * dy + dz * dz;
+        if (dr2 < 1.0)
+        {
+          return (reject);
+        }
       }
     }
   }
@@ -692,27 +692,9 @@ int check_accept(void)
       khigh = k + 1;
     }
 
-    for (kk = 0; kk < nseg2; kk++)
-    {
-      if (squareEllipse(r2x[kk], r2y[kk], r2z[kk]) == reject)
-      {
-        return (reject);
-      }
-      if (kk != k && kk != klow && kk != khigh)
-      {
-        dx = r2x[k] - r2x[kk];
-        dy = r2y[k] - r2y[kk];
-        dz = r2z[k] - r2z[kk];
-        dr2 = dx * dx + dy * dy + dz * dz;
-        if (dr2 < 1.0)
-        {
-          return (reject);
-        }
-      }
-    }
-    // Check if polymer and plasmid overlap
     for (kk = 0; kk < nseg1; kk++)
     {
+      // Check if polymer and plasmid overlap
       dx = r2x[k] - r1x[kk];
       dy = r2y[k] - r1y[kk];
       dz = r2z[k] - r1z[kk];
@@ -721,17 +703,38 @@ int check_accept(void)
       {
         return (reject);
       }
-    }
-    // Check if plasmids overlap
-    for (kk = 0; kk < nseg3; kk++)
-    {
-      dx = r2x[k] - r3x[kk];
-      dy = r2y[k] - r3y[kk];
-      dz = r2z[k] - r3z[kk];
-      dr2 = dx * dx + dy * dy + dz * dz;
-      if (dr2 < 1.0)
+
+      // Check if nseg=2 plasmid escapes squareEllipse or overlaps
+      if (kk < nseg2)
       {
-        return (reject);
+        if (squareEllipse(r2x[kk], r2y[kk], r2z[kk]) == reject)
+        {
+          return (reject);
+        }
+        if (kk != k && kk != klow && kk != khigh)
+        {
+          dx = r2x[k] - r2x[kk];
+          dy = r2y[k] - r2y[kk];
+          dz = r2z[k] - r2z[kk];
+          dr2 = dx * dx + dy * dy + dz * dz;
+          if (dr2 < 1.0)
+          {
+            return (reject);
+          }
+        }
+      }
+
+      // Check if plasmids overlap
+      if (kk < nseg3)
+      {
+        dx = r2x[k] - r3x[kk];
+        dy = r2y[k] - r3y[kk];
+        dz = r2z[k] - r3z[kk];
+        dr2 = dx * dx + dy * dy + dz * dz;
+        if (dr2 < 1.0)
+        {
+          return (reject);
+        }
       }
     }
   }
@@ -754,27 +757,10 @@ int check_accept(void)
       khigh = k + 1;
     }
 
-    for (kk = 0; kk < nseg3; kk++)
-    {
-      if (squareEllipse(r3x[kk], r3y[kk], r3z[kk]) == reject)
-      {
-        return (reject);
-      }
-      if (kk != k && kk != klow && kk != khigh)
-      {
-        dx = r3x[k] - r3x[kk];
-        dy = r3y[k] - r3y[kk];
-        dz = r3z[k] - r3z[kk];
-        dr2 = dx * dx + dy * dy + dz * dz;
-        if (dr2 < 1.0)
-        {
-          return (reject);
-        }
-      }
-    }
-    // Check if polymer and plasmid overlap
     for (kk = 0; kk < nseg1; kk++)
     {
+
+      // Check if nseg=3 plasmid overlaps with linear polymer
       dx = r3x[k] - r1x[kk];
       dy = r3y[k] - r1y[kk];
       dz = r3z[k] - r1z[kk];
@@ -783,19 +769,40 @@ int check_accept(void)
       {
         return (reject);
       }
-    }
-    // Check if plasmids overlap
-    for (kk = 0; kk < nseg2; kk++)
-    {
-      dx = r3x[k] - r2x[kk];
-      dy = r3y[k] - r2y[kk];
-      dz = r3z[k] - r2z[kk];
-      dr2 = dx * dx + dy * dy + dz * dz;
-      if (dr2 < 1.0)
+
+      // Check if plasmids overlap
+      if (kk < nseg2)
       {
-        return (reject);
+        dx = r3x[k] - r2x[kk];
+        dy = r3y[k] - r2y[kk];
+        dz = r3z[k] - r2z[kk];
+        dr2 = dx * dx + dy * dy + dz * dz;
+        if (dr2 < 1.0)
+        {
+          return (reject);
+        }
+      }
+
+      if (kk < nseg3)
+      {
+        if (squareEllipse(r3x[kk], r3y[kk], r3z[kk]) == reject)
+        {
+          return (reject);
+        }
+        if (kk != k && kk != klow && kk != khigh)
+        {
+          dx = r3x[k] - r3x[kk];
+          dy = r3y[k] - r3y[kk];
+          dz = r3z[k] - r3z[kk];
+          dr2 = dx * dx + dy * dy + dz * dz;
+          if (dr2 < 1.0)
+          {
+            return (reject);
+          }
+        }
       }
     }
+    // Check if polymer and plasmid overlap
   }
 
   if (ichain == 1)
@@ -959,7 +966,6 @@ int check_energy(void)
 
   else if (ichain == 3)
   {
-
     if (k == 0)
     {
       theta_new = calc_cosine_chain2(k, k + 1, k + 2);
@@ -1526,20 +1532,6 @@ int check_shift_chain2()
 
   for (i = 0; i < nseg2; i++)
   {
-    /* r2z check done inside of squareEllipse
-
-    if (r2z[i] < -Hd2 || r2z[i] > Hd2)
-    {
-      return (reject);
-    }
-
-    //This echeck no longer relevant for this shape.
-
-    echeck = r2x[i] * r2x[i] / amax2 + r2y[i] * r2y[i] / bmin2;
-    if (echeck > 1.0)
-      return (reject);
-    */
-
     for (kk = 0; kk < nseg1; kk++)
     {
       if (squareEllipse(r2x[kk], r2y[kk], r2z[kk]) == reject)
@@ -1552,7 +1544,21 @@ int check_shift_chain2()
       dz = r2z[i] - r1z[kk];
       dr2 = dx * dx + dy * dy + dz * dz;
       if (dr2 < 1.0)
+      {
         return (reject);
+      }
+    }
+
+    for (kk = 0; kk < nseg3; kk++)
+    {
+      dx = r2x[i] - r3x[kk];
+      dy = r2y[i] - r3y[kk];
+      dz = r2z[i] - r3z[kk];
+      dr2 = dx * dx + dy * dy + dz * dz;
+      if (dr2 < 1.0)
+      {
+        return (reject);
+      }
     }
   }
 
@@ -1566,20 +1572,6 @@ int check_shift_chain3()
 
   for (i = 0; i < nseg3; i++)
   {
-    /* r2z check done inside of squareEllipse
-
-    if (r2z[i] < -Hd2 || r2z[i] > Hd2)
-    {
-      return (reject);
-    }
-
-    //This echeck no longer relevant for this shape.
-
-    echeck = r2x[i] * r2x[i] / amax2 + r2y[i] * r2y[i] / bmin2;
-    if (echeck > 1.0)
-      return (reject);
-    */
-
     for (kk = 0; kk < nseg1; kk++)
     {
       if (squareEllipse(r3x[kk], r3y[kk], r3z[kk]) == reject)

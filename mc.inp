@@ -3,15 +3,15 @@
 25                nseg3
 3000.0            Area
 15.0              bmin
-0.8               ecc
+0.9               ecc
 15.0              H
 50                kappa
 0.9               drmin
 1.1               drmax
 1.0               gridspace
 
-150000             ncyc
-50000             neq
+100000             ncyc
+10000             neq
 0.14              rmax
 3.14159           delphi_max
 0.5               rshift_max
