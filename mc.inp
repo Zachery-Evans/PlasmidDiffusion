@@ -10,8 +10,8 @@
 1.1               drmax
 1.0               gridspace
 
-50000             ncyc
-10000             neq
+150000             ncyc
+50000             neq
 0.14              rmax
 3.14159           delphi_max
 0.5               rshift_max

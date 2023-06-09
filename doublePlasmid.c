@@ -172,7 +172,7 @@ int main()
   // Don't include if statement below in cluster
   if (imov == 1)
   {
-    if (ii % freq_mov == 0 && ii > -1)
+    if (ii % freq_mov == 0 && ii > neq)
     {
       fprintf(fpmov, "%ld\n", nseg1 + nseg2 + nseg3);
       fprintf(fpmov, "Polymer:  %ld\n", ii);
