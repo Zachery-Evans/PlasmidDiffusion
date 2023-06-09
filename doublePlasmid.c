@@ -115,17 +115,18 @@ int main()
   amax = bmin / sqrt(1 - ecc * ecc);
   amax2 = amax * amax;
   bmin2 = bmin * bmin;
-  rectangleArea = 2 * amax * sqrt(1 - ecc * ecc);
+  rectangleArea = Area - PI * amax * bmin;
+  yBoxMax = 2.0 * bmin;
   yBoxMaxd2 = bmin; // Width of the rectangle section equivalent to the semi-minor axis
-  xBoxMax = (Area - PI * amax2 * sqrt(1 - ecc * ecc)) / 2 * amax * sqrt(1 - ecc * ecc);
+  xBoxMax = rectangleArea / (2.0 * bmin);
   xBoxMaxd2 = xBoxMax / 2.0;
 
   //  printf("%lf \t %lf\n", amax, bmin);
-  //  printf("Length of the box: %lf\n", xBoxMax);
+  // printf("Length of the box: %lf\n", xBoxMax);
   //  printf("1/2 Length of the box: %lf\n", xBoxMaxd2);
   //  printf("Semi-major axis: %lf\n", amax);
   //  printf("Semi-minor axis: %lf\n", bmin);
-  //  printf("Height of box: %lf\n", yBoxMax);
+  // printf("Height of box: %lf\n", yBoxMax);
   Hd2 = H / 2.0;
 
   ngridx = 2.0 * (amax + xBoxMaxd2) / gridspace + 0.00001;
@@ -1267,9 +1268,9 @@ void init_pos(void)
 
   double xadd, yadd, xmax, ymax;
 
-  r1x[0] = 0.0;
-  r1y[0] = -bmin / 2.0 + 1.0;
-  r1z[0] = 1.0;
+  r1x[0] = -xBoxMaxd2;
+  r1y[0] = -yBoxMaxd2 + 1.0;
+  r1z[0] = 0.0;
   xadd = 1.0;
   yadd = 1.02;
 
