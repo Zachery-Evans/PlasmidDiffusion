@@ -625,12 +625,12 @@ int squareEllipse(double xPos, double yPos, double zPos)
 }
 
 /*
-* checkCrossing is a function that will assign a value of either +2 or -2 to a "crossing"
-* between the plasmids. 
-* The z axis of two monomers are then compared
-*
-* Written by Zach Evans 
-*/
+ * checkCrossing is a function that will assign a value of either +2 or -2 to a "crossing"
+ * between the plasmids.
+ * The z axis of two monomers are then compared
+ *
+ * Written by Zach Evans
+ */
 int checkCrossing(double zPlas1, double zPlas2)
 {
   int posCross = +1, negCross = -1;
@@ -646,14 +646,14 @@ int checkCrossing(double zPlas1, double zPlas2)
 }
 
 /*
-* checkPlasmidLink is a function that will check the topology of (currently 2) plasmids to ensure that they do not 
-* link with each other. 
-* Written by Zach Evans 
-*/
+ * checkPlasmidLink is a function that will check the topology of (currently 2) plasmids to ensure that they do not
+ * link with each other.
+ * Written by Zach Evans
+ */
 
 int checkPlasmidLink(double xPlas1[], double yPlas1[], double zPlas1[], double xPlas2[], double yPlas2[], double zPlas2[])
 {
-  const int linked = 0, unlinked = 1; 
+  const int linked = 1, unlinked = 0;
   int crossings = 0, links = 0;
   double xLinkPlas1[nseg2], xLinkPlas2[nseg3], yLinkPlas1[nseg2], yLinkPlas2[nseg3], zLinkPlas1[nseg2], zLinkPlas2[nseg3];
   double dr2Plas1, dr2Plas2;
@@ -688,9 +688,13 @@ int checkPlasmidLink(double xPlas1[], double yPlas1[], double zPlas1[], double x
     }
   }
 
+  if (links % 2 == 0)
+  {
+    return linked;
+  }
+
   return unlinked;
 }
-
 
 // ----------------------------------------------------------------------
 // This function determines whether the move just performed in the main
@@ -698,11 +702,11 @@ int checkPlasmidLink(double xPlas1[], double yPlas1[], double zPlas1[], double x
 // ----------------------------------------------------------------------
 int check_accept(void)
 {
-  int accept, reject;
+  int accept, reject, unlinked, linked;
   long klow, khigh;
 
-  accept = 0;
-  reject = 1;
+  accept = 0, unlinked = 0;
+  reject = 1, linked = 1;
 
   if (ichain == 1)
   {
@@ -756,7 +760,10 @@ int check_accept(void)
   else if (ichain == 2)
   {
 
-    checkPlasmidLink(r2x, r2y, r2z, r3x, r3y, r3z);
+    if (checkPlasmidLink(r2x, r2y, r2z, r3x, r3y, r3z) == linked)
+    {
+      return reject;
+    }
 
     if (k == 0)
     {
@@ -823,6 +830,11 @@ int check_accept(void)
 
   else if (ichain == 3)
   {
+    if (checkPlasmidLink(r2x, r2y, r2z, r3x, r3y, r3z) == linked)
+    {
+      return reject;
+    }
+    
     if (k == 0)
     {
       klow = nseg3 - 1;
