@@ -122,11 +122,11 @@ int main()
   xBoxMaxd2 = xBoxMax / 2.0;
 
   //  printf("%lf \t %lf\n", amax, bmin);
-  // printf("Length of the box: %lf\n", xBoxMax);
+  //  printf("Length of the box: %lf\n", xBoxMax);
   //  printf("1/2 Length of the box: %lf\n", xBoxMaxd2);
   //  printf("Semi-major axis: %lf\n", amax);
   //  printf("Semi-minor axis: %lf\n", bmin);
-  // printf("Height of box: %lf\n", yBoxMax);
+  //  printf("Height of box: %lf\n", yBoxMax);
   Hd2 = H / 2.0;
 
   ngridx = 2.0 * (amax + xBoxMaxd2) / gridspace + 0.00001;
@@ -624,6 +624,60 @@ int squareEllipse(double xPos, double yPos, double zPos)
   return accept;
 }
 
+int checkPlasmidLink(double xPlas1[], double yPlas1[], double zPlas1[], double xPlas2[], double yPlas2[], double zPlas2[])
+{
+  int linked = 0, unlinked = 1, crossings = 0;
+
+  double dr2Plas1;
+  double dr2Plas2;
+
+  for (int kk = 0; kk < nseg2; kk++)
+  {
+    for (int jj = 0; jj < nseg3; jj++)
+    {
+      dr2Plas1 = xPlas1[kk] * xPlas1[kk] + yPlas1[kk] * yPlas1[kk];
+      dr2Plas2 = xPlas2[jj] * xPlas2[jj] + yPlas2[jj] * yPlas2[jj];
+
+      if (abs(dr2Plas1 - dr2Plas2) < 1.00001)
+      {
+        crossings++;
+      }
+    }
+  }
+
+  return unlinked;
+}
+
+int checkCrossing(double zPlas1[], double zPlas2[])
+{
+  int posCross = +2, negCross = -2, linked = 0, unlinked = 1, totalCross = 0;
+
+  if (zPlas1[0] > zPlas2[0])
+  {
+    totalCross += posCross;
+  }
+  else
+  {
+    totalCross += negCross;
+  }
+
+  if (zPlas1[1] > zPlas2[1])
+  {
+    totalCross += posCross;
+  }
+  else
+  {
+    totalCross += negCross;
+  }
+
+  if (totalCross == 0)
+  {
+    return linked;
+  }
+
+  return unlinked;
+}
+
 // ----------------------------------------------------------------------
 // This function determines whether the move just performed in the main
 // function is permitted or not (checks overlap with a number of conditions)
@@ -687,6 +741,9 @@ int check_accept(void)
   }
   else if (ichain == 2)
   {
+
+    checkPlasmidLink(r2x, r2y, r2z, r3x, r3y, r3z);
+
     if (k == 0)
     {
       klow = nseg2 - 1;
@@ -1646,7 +1703,6 @@ void reptation_move_chain1()
     costheta_prime = log((rannum * exp(kappa)) + ((1.0 - rannum) * exp(-1.0 * kappa))) / kappa;
   }
 
-  //
   //      keep bond length = 1
   //
   //      rannum = ran3();
