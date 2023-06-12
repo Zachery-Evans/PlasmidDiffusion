@@ -336,7 +336,9 @@ int main()
         indx = (r1x[i] + amax + xBoxMaxd2) / gridspacex_real;
         indy = (r1y[i] + bmin) / gridspacey_real;
         if (indx >= 0 && indx < ngridx && indy >= 0 && indy < ngridy)
+        {
           probmon[indx][indy] += 1.0;
+        }
       }
 
       xcm2 = 0.0;
@@ -359,7 +361,9 @@ int main()
                xcm2 + amax / 2.0, 2 * amax, ycm2 + bmin / 2.0, 2 * bmin);
       }
       if (indx >= 0 && indx < ngridx && indy >= 0 && indy < ngridy)
+      {
         prob2[indx][indy] += 1.0;
+      }
 
       xcm3 = 0.0;
       ycm3 = 0.0;
@@ -380,8 +384,11 @@ int main()
         printf("    xcm2 = %lf, 2*amax = %lf,  ycm2 = %lf, 2*bmin = %lf\n",
                xcm3 + amax / 2.0, 2 * amax, ycm3 + bmin / 2.0, 2 * bmin);
       }
+
       if (indx >= 0 && indx < ngridx && indy >= 0 && indy < ngridy)
+      {
         prob3[indx][indy] += 1.0;
+      }
 
       nsamp += 1;
     }
@@ -646,7 +653,9 @@ int check_accept(void)
         dz = r1z[k] - r1z[kk];
         dr2 = dx * dx + dy * dy + dz * dz;
         if (dr2 < 1.0)
+        {
           return (reject);
+        }
       }
 
       // Checking if the plasmid overlaps with the T4 polymer
@@ -657,7 +666,9 @@ int check_accept(void)
         dz = r1z[k] - r2z[kk];
         dr2 = dx * dx + dy * dy + dz * dz;
         if (dr2 < 1.0)
+        {
           return (reject);
+        }
       }
 
       // Checking if second plasmid overlaps with T4 polymer
@@ -1364,7 +1375,9 @@ void write_data(void)
     for (i = 0; i < ngridx; i++)
     {
       for (j = 0; j < ngridy; j++)
+      {
         fprintf(fp, "%8.2lf  ", prob3[i][j]);
+      }
       fprintf(fp, "\n");
     }
     fclose(fp);
@@ -1379,7 +1392,9 @@ void write_data(void)
     for (i = 0; i < ngridx; i++)
     {
       for (j = 0; j < ngridy; j++)
+      {
         fprintf(fp, "%8.2lf  ", probmon[i][j]);
+      }
       fprintf(fp, "\n");
     }
     fclose(fp);
@@ -2023,7 +2038,6 @@ void calc_delta_xyz()
 int check_accept_reptation(long krep)
 {
   int accept, reject; // will return either accept or reject at end of function
-  double echeck;
 
   accept = 0;
   reject = 1;
