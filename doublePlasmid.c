@@ -624,12 +624,39 @@ int squareEllipse(double xPos, double yPos, double zPos)
   return accept;
 }
 
+/*
+* checkCrossing is a function that will assign a value of either +2 or -2 to a "crossing"
+* between the plasmids. 
+* The z axis of two monomers are then compared
+*
+* Written by Zach Evans 
+*/
+int checkCrossing(double zPlas1, double zPlas2)
+{
+  int posCross = +1, negCross = -1;
+
+  if (zPlas1 > zPlas2)
+  {
+    return posCross;
+  }
+  else
+  {
+    return negCross;
+  }
+}
+
+/*
+* checkPlasmidLink is a function that will check the topology of (currently 2) plasmids to ensure that they do not 
+* link with each other. 
+* Written by Zach Evans 
+*/
+
 int checkPlasmidLink(double xPlas1[], double yPlas1[], double zPlas1[], double xPlas2[], double yPlas2[], double zPlas2[])
 {
-  int linked = 0, unlinked = 1, crossings = 0;
-
-  double dr2Plas1;
-  double dr2Plas2;
+  const int linked = 0, unlinked = 1; 
+  int crossings = 0, links = 0;
+  double xLinkPlas1[nseg2], xLinkPlas2[nseg3], yLinkPlas1[nseg2], yLinkPlas2[nseg3], zLinkPlas1[nseg2], zLinkPlas2[nseg3];
+  double dr2Plas1, dr2Plas2;
 
   for (int kk = 0; kk < nseg2; kk++)
   {
@@ -638,45 +665,32 @@ int checkPlasmidLink(double xPlas1[], double yPlas1[], double zPlas1[], double x
       dr2Plas1 = xPlas1[kk] * xPlas1[kk] + yPlas1[kk] * yPlas1[kk];
       dr2Plas2 = xPlas2[jj] * xPlas2[jj] + yPlas2[jj] * yPlas2[jj];
 
-      if (abs(dr2Plas1 - dr2Plas2) < 1.00001)
+      if (abs(dr2Plas1 - dr2Plas2) < 1.01)
       {
+
+        xLinkPlas1[crossings] = xPlas1[kk];
+        xLinkPlas2[crossings] = xPlas2[jj];
+        yLinkPlas1[crossings] = yPlas1[kk];
+        yLinkPlas2[crossings] = yPlas2[jj];
+        zLinkPlas1[crossings] = zPlas1[kk];
+        zLinkPlas2[crossings] = zPlas2[jj];
+
         crossings++;
       }
+    }
+  }
+
+  for (int kk = 0; kk < crossings; kk++)
+  {
+    for (int jj = 0; jj < crossings; jj++)
+    {
+      links += checkCrossing(zLinkPlas1[kk], zLinkPlas2[jj]);
     }
   }
 
   return unlinked;
 }
 
-int checkCrossing(double zPlas1[], double zPlas2[])
-{
-  int posCross = +2, negCross = -2, linked = 0, unlinked = 1, totalCross = 0;
-
-  if (zPlas1[0] > zPlas2[0])
-  {
-    totalCross += posCross;
-  }
-  else
-  {
-    totalCross += negCross;
-  }
-
-  if (zPlas1[1] > zPlas2[1])
-  {
-    totalCross += posCross;
-  }
-  else
-  {
-    totalCross += negCross;
-  }
-
-  if (totalCross == 0)
-  {
-    return linked;
-  }
-
-  return unlinked;
-}
 
 // ----------------------------------------------------------------------
 // This function determines whether the move just performed in the main
