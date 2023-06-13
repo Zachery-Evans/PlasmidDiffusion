@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define PI 3.141592653589793
 #define NR_END 1
@@ -93,8 +94,10 @@ int main()
   double xcm1, ycm1, xcm2, ycm2, xcm3, ycm3;
 
   FILE *xp1, *yp1, *xp2, *yp2, *xp3, *yp3, *x1x2;
+  clock_t start, end;
 
   input();
+  start = clock();
 
   rep_prob = 0.95;
   // defining the area of the ellipse as the total area subtracted by the area
@@ -102,15 +105,6 @@ int main()
 
   // Requires that the y direction of the box is the same height as the semi-minor
   // axis of the ellipse.
-  /*
-    amax = sqrt((Area - rectangleArea) / PI) * pow(1.0 - ecc * ecc, -0.25);
-    bmin = sqrt((Area - rectangleArea) / PI) * pow(1.0 - ecc * ecc, +0.25);
-    amax2 = amax * amax;
-    bmin2 = bmin * bmin;
-    yBoxMaxd2 = bmin; // Width of the rectangle section equivalent to the semi-minor axis
-    xBoxMax = rectangleArea / yBoxMaxd2 * 2.0;
-    xBoxMaxd2 = xBoxMax / 2.0;
-  */
 
   amax = bmin / sqrt(1 - ecc * ecc);
   amax2 = amax * amax;
@@ -406,7 +400,7 @@ int main()
 
     if (imov == 1)
     {
-      if (ii % freq_mov == 0 && ii > -1)
+      if (ii % freq_mov == 0 && ii > neq)
       {
         fprintf(fpmov, "%ld\n", nseg1 + nseg2 + nseg3);
         fprintf(fpmov, "Polymer:  %ld\n", ii);
@@ -447,6 +441,12 @@ int main()
   {
     fclose(fpmov);
   }
+
+  end = clock();
+
+  double duration = ((double)(end - start)) / CLOCKS_PER_SEC;
+
+  printf("The program completed in %lf seconds.", duration);
 }
 
 // ----------------------------------------------------------------------
@@ -627,6 +627,7 @@ int squareEllipse(double xPos, double yPos, double zPos)
 /*
  * checkCrossing is a function that will assign a value of either +2 or -2 to a "crossing"
  * between the plasmids.
+ *
  * The z axis of two monomers are then compared to determine a value of either +1 or -1 for that crossing.
  * If the sum of the crossings is zero, then there is a link. If it is nonzero, it is unlinked.
  *
@@ -649,7 +650,7 @@ int checkCrossing(double zPlas1, double zPlas2)
 /*
  * checkPlasmidLink is a function that will check the topology of (currently 2) plasmids to ensure that they do not
  * link with each other.
- * 
+ *
  * Written by Zach Evans
  */
 
@@ -657,7 +658,7 @@ int checkPlasmidLink(double xPlas1[], double yPlas1[], double zPlas1[], double x
 {
   const int linked = 1, unlinked = 0;
   int crossings = 0, links = 0;
-  double xLinkPlas1[nseg2], xLinkPlas2[nseg3], yLinkPlas1[nseg2], yLinkPlas2[nseg3], zLinkPlas1[nseg2], zLinkPlas2[nseg3];
+  double xLinkPlas1[5000], xLinkPlas2[5000], yLinkPlas1[5000], yLinkPlas2[5000], zLinkPlas1[5000], zLinkPlas2[5000];
   double dr2Plas1, dr2Plas2;
 
   for (int kk = 0; kk < nseg2; kk++)
@@ -765,6 +766,11 @@ int check_accept(void)
   else if (ichain == 2)
   {
 
+    if (checkPlasmidLink(r2x, r2y, r2z, r3x, r3y, r3z) == linked)
+    {
+      return reject;
+    }
+
     if (k == 0)
     {
       klow = nseg2 - 1;
@@ -830,6 +836,11 @@ int check_accept(void)
 
   else if (ichain == 3)
   {
+
+    if (checkPlasmidLink(r2x, r2y, r2z, r3x, r3y, r3z) == linked)
+    {
+      return reject;
+    }
 
     if (k == 0)
     {
