@@ -661,36 +661,36 @@ int checkPlasmidLink(double xPlas1[], double yPlas1[], double zPlas1[], double x
   double xLinkPlas1[5000], xLinkPlas2[5000], yLinkPlas1[5000], yLinkPlas2[5000], zLinkPlas1[5000], zLinkPlas2[5000];
   double dr2Plas1, dr2Plas2;
 
-  for (int kk = 0; kk < nseg2; kk++)
+  for (int nn = 0; nn < nseg2; nn++)
   {
-    for (int jj = 0; jj < nseg3; jj++)
+    for (int mm = 0; mm < nseg3; mm++)
     {
-      dr2Plas1 = xPlas1[kk] * xPlas1[kk] + yPlas1[kk] * yPlas1[kk];
-      dr2Plas2 = xPlas2[jj] * xPlas2[jj] + yPlas2[jj] * yPlas2[jj];
+      dr2Plas1 = xPlas1[nn] * xPlas1[nn] + yPlas1[nn] * yPlas1[nn];
+      dr2Plas2 = xPlas2[mm] * xPlas2[mm] + yPlas2[mm] * yPlas2[mm];
 
       if (abs(dr2Plas1 - dr2Plas2) < 1.01)
       {
         // If the xy coordinates of a particular monomer
         // are within a threshold, count it as a crossing.
-        xLinkPlas1[crossings] = xPlas1[kk];
-        xLinkPlas2[crossings] = xPlas2[jj];
-        yLinkPlas1[crossings] = yPlas1[kk];
-        yLinkPlas2[crossings] = yPlas2[jj];
-        zLinkPlas1[crossings] = zPlas1[kk];
-        zLinkPlas2[crossings] = zPlas2[jj];
+        xLinkPlas1[crossings] = xPlas1[nn];
+        xLinkPlas2[crossings] = xPlas2[mm];
+        yLinkPlas1[crossings] = yPlas1[nn];
+        yLinkPlas2[crossings] = yPlas2[mm];
+        zLinkPlas1[crossings] = zPlas1[nn];
+        zLinkPlas2[crossings] = zPlas2[mm];
 
         crossings++;
       }
     }
   }
 
-  for (int kk = 0; kk < crossings; kk++)
+  for (int nn = 0; nn < crossings; nn++)
   {
-    for (int jj = 0; jj < crossings; jj++)
+    for (int mm = 0; mm < crossings; mm++)
     {
       // Using the checkCrossing function, determine how many links there are.
       // If there are an odd number of links, then the plasmids are unlinked.
-      links += checkCrossing(zLinkPlas1[kk], zLinkPlas2[jj]);
+      links += checkCrossing(zLinkPlas1[nn], zLinkPlas2[mm]);
     }
   }
 
