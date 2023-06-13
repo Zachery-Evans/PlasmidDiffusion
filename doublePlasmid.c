@@ -627,7 +627,8 @@ int squareEllipse(double xPos, double yPos, double zPos)
 /*
  * checkCrossing is a function that will assign a value of either +2 or -2 to a "crossing"
  * between the plasmids.
- * The z axis of two monomers are then compared
+ * The z axis of two monomers are then compared to determine a value of either +1 or -1 for that crossing.
+ * If the sum of the crossings is zero, then there is a link. If it is nonzero, it is unlinked.
  *
  * Written by Zach Evans
  */
@@ -648,6 +649,7 @@ int checkCrossing(double zPlas1, double zPlas2)
 /*
  * checkPlasmidLink is a function that will check the topology of (currently 2) plasmids to ensure that they do not
  * link with each other.
+ * 
  * Written by Zach Evans
  */
 
@@ -667,7 +669,8 @@ int checkPlasmidLink(double xPlas1[], double yPlas1[], double zPlas1[], double x
 
       if (abs(dr2Plas1 - dr2Plas2) < 1.01)
       {
-
+        // If the xy coordinates of a particular monomer
+        // are within a threshold, count it as a crossing.
         xLinkPlas1[crossings] = xPlas1[kk];
         xLinkPlas2[crossings] = xPlas2[jj];
         yLinkPlas1[crossings] = yPlas1[kk];
@@ -684,6 +687,8 @@ int checkPlasmidLink(double xPlas1[], double yPlas1[], double zPlas1[], double x
   {
     for (int jj = 0; jj < crossings; jj++)
     {
+      // Using the checkCrossing function, determine how many links there are.
+      // If there are an odd number of links, then the plasmids are unlinked.
       links += checkCrossing(zLinkPlas1[kk], zLinkPlas2[jj]);
     }
   }
@@ -760,11 +765,6 @@ int check_accept(void)
   else if (ichain == 2)
   {
 
-    if (checkPlasmidLink(r2x, r2y, r2z, r3x, r3y, r3z) == linked)
-    {
-      return reject;
-    }
-
     if (k == 0)
     {
       klow = nseg2 - 1;
@@ -830,11 +830,7 @@ int check_accept(void)
 
   else if (ichain == 3)
   {
-    if (checkPlasmidLink(r2x, r2y, r2z, r3x, r3y, r3z) == linked)
-    {
-      return reject;
-    }
-    
+
     if (k == 0)
     {
       klow = nseg3 - 1;
