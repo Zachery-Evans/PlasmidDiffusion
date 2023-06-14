@@ -430,7 +430,7 @@ int main()
   fclose(yp3);
   fclose(x1x2);
 
-  printf("Acc. ratio = %lf\n", 1.0 * nacc / ((ncyc * (nseg1 + nseg2)) - nrep));
+  printf("Acc. ratio = %lf\n", 1.0 * nacc / ((ncyc * (nseg1 + nseg2 + nseg3)) - nrep));
   printf("Number of reptation attempts = %ld\n", nrep);
   printf("Reptation Acc. ratio = %lf\n", 1.0 * nacc_rep / nrep);
   printf("Shift 2 Acc. ratio = %ld / %ld = %lf\n", nacc_shift, nshift, 1.0 * nacc_shift / nshift);
