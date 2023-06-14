@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define PI 3.141592653589793
 #define NR_END 1
@@ -91,6 +92,7 @@ int main()
 {
   long imon, indx, indy;
   double xcm1, ycm1, xcm2, ycm2, xcm3, ycm3;
+  clock_t start, end;
 
   FILE *xp1, *yp1, *xp2, *yp2, *xp3, *yp3, *x1x2;
 
@@ -102,16 +104,7 @@ int main()
 
   // Requires that the y direction of the box is the same height as the semi-minor
   // axis of the ellipse.
-  /*
-    amax = sqrt((Area - rectangleArea) / PI) * pow(1.0 - ecc * ecc, -0.25);
-    bmin = sqrt((Area - rectangleArea) / PI) * pow(1.0 - ecc * ecc, +0.25);
-    amax2 = amax * amax;
-    bmin2 = bmin * bmin;
-    yBoxMaxd2 = bmin; // Width of the rectangle section equivalent to the semi-minor axis
-    xBoxMax = rectangleArea / yBoxMaxd2 * 2.0;
-    xBoxMaxd2 = xBoxMax / 2.0;
-  */
-
+  
   amax = bmin / sqrt(1 - ecc * ecc);
   amax2 = amax * amax;
   bmin2 = bmin * bmin;
@@ -163,6 +156,7 @@ int main()
   if (imov == 1)
   { // Don't include this in cluster
     fpmov = fopen("chain.xyz", "w");
+    start = clock();
   }
 
   imon = 0;
@@ -446,6 +440,12 @@ int main()
   if (imov == 1)
   {
     fclose(fpmov);
+
+    end = clock();
+
+    double duration = (double)(end - start) / CLOCKS_PER_SEC;
+
+    printf("Program finished in %lf seconds", duration);
   }
 }
 
