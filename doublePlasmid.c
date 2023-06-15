@@ -62,6 +62,7 @@ double r3y[5000];
 double r3z[5000];
 
 double x1, x2, x3, yone, y2, y3, z1, z2, z3;
+double xcm2Current = 0.0, ycm2Current = 0.0, xcm3Current = 0.0, ycm3Current = 0.0;
 double vax, vay, vaz, vbx, vby, vbz;
 double va_sq, vb_sq;
 double va_dot_vb;
@@ -345,6 +346,9 @@ int main()
       xcm2 /= nseg2;
       ycm2 /= nseg2;
 
+      xcm2Current = xcm2;
+      ycm2Current = ycm2;
+
       indx = (xcm2 + amax + xBoxMaxd2) / gridspacex_real;
       indy = (ycm2 + bmin) / gridspacey_real;
 
@@ -368,6 +372,9 @@ int main()
       }
       xcm3 /= nseg3;
       ycm3 /= nseg3;
+
+      xcm3Current = xcm3;
+      ycm3Current = ycm3;
 
       indx = (xcm3 + amax + xBoxMaxd2) / gridspacex_real;
       indy = (ycm3 + bmin) / gridspacey_real;
@@ -660,6 +667,7 @@ int checkPlasmidLink(double xPlas1[], double yPlas1[], double zPlas1[], double x
   int crossings = 0, links = 0;
   double xLinkPlas1[5000], xLinkPlas2[5000], yLinkPlas1[5000], yLinkPlas2[5000], zLinkPlas1[5000], zLinkPlas2[5000];
   double dr2Plas1, dr2Plas2;
+  double rPlasmid2 = nseg2 / 2 * PI, rPlasmid3 = nseg3 / 2 * PI;
 
   for (int nn = 0; nn < nseg2; nn++)
   {
@@ -668,9 +676,9 @@ int checkPlasmidLink(double xPlas1[], double yPlas1[], double zPlas1[], double x
       dr2Plas1 = xPlas1[nn] * xPlas1[nn] + yPlas1[nn] * yPlas1[nn];
       dr2Plas2 = xPlas2[mm] * xPlas2[mm] + yPlas2[mm] * yPlas2[mm];
 
-      if (abs(dr2Plas1 - dr2Plas2) < 1.01)
+      if (abs(dr2Plas1 - dr2Plas2) < 1.01 && (abs(zLinkPlas1[nn] - zLinkPlas2[mm]) > rPlasmid2 || abs(zLinkPlas1[nn] - zLinkPlas2[mm]) > rPlasmid3))
       {
-        // If the xy coordinates of a particular monomer
+        // If the xyz coordinates of a particular monomer
         // are within a threshold, count it as a crossing.
         xLinkPlas1[crossings] = xPlas1[nn];
         xLinkPlas2[crossings] = xPlas2[mm];
@@ -683,20 +691,22 @@ int checkPlasmidLink(double xPlas1[], double yPlas1[], double zPlas1[], double x
       }
     }
   }
+  // Check the first crossing, will be a value of either +1 or -1
+  links += checkCrossing(zLinkPlas1[0], zLinkPlas2[0]);
 
   for (int nn = 0; nn < crossings; nn++)
   {
     for (int mm = 0; mm < crossings; mm++)
     {
-      // Using the checkCrossing function, determine how many links there are.
-      // If there are an odd number of links, then the plasmids are unlinked.
-      links += checkCrossing(zLinkPlas1[nn], zLinkPlas2[mm]);
-    }
-  }
+      // Loop through the rest of the crossings, if the type of crossing changes, then there is a link
+      // Be aware that this does not take into account scenarios where there are two links that when put together
+      // unlink the entire structure, but with rigidity this will be very statistically unlikely.
 
-  if (links % 2 == 0)
-  {
-    return linked;
+      if (links + checkCrossing(zLinkPlas1[nn], zLinkPlas2[mm]) == 0)
+      {
+        return linked;
+      }
+    }
   }
 
   return unlinked;
@@ -710,6 +720,9 @@ int check_accept(void)
 {
   int accept, reject, unlinked, linked;
   long klow, khigh;
+  double rPlasmid2 = nseg2 / 2 * PI, rPlasmid3 = nseg3 / 2 * PI;
+  double rcmPlas2sq = xcm2Current * xcm2Current + ycm2Current * ycm2Current;
+  double rcmPlas3sq = xcm3Current * xcm3Current + ycm3Current * ycm3Current;
 
   accept = 0, unlinked = 0;
   reject = 1, linked = 1;
@@ -766,9 +779,13 @@ int check_accept(void)
   else if (ichain == 2)
   {
 
-    if (checkPlasmidLink(r2x, r2y, r2z, r3x, r3y, r3z) == linked)
+    if (rcmPlas2sq - rcmPlas3sq < rPlasmid3 * rPlasmid3 || rcmPlas2sq - rcmPlas3sq < rPlasmid2 * rPlasmid2)
     {
-      return reject;
+      if (checkPlasmidLink(r2x, r2y, r2z, r3x, r3y, r3z) == linked)
+      {
+        printf("Rejecting link 2\n");
+        return reject;
+      }
     }
 
     if (k == 0)
@@ -836,12 +853,14 @@ int check_accept(void)
 
   else if (ichain == 3)
   {
-
-    if (checkPlasmidLink(r2x, r2y, r2z, r3x, r3y, r3z) == linked)
+    if (rcmPlas2sq - rcmPlas3sq < rPlasmid3 * rPlasmid3 || rcmPlas2sq - rcmPlas3sq < rPlasmid2 * rPlasmid2)
     {
-      return reject;
+      if (checkPlasmidLink(r2x, r2y, r2z, r3x, r3y, r3z) == linked)
+      {
+        printf("Rejecting link 3\n");
+        return reject;
+      }
     }
-
     if (k == 0)
     {
       klow = nseg3 - 1;
