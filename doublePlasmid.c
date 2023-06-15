@@ -104,7 +104,7 @@ int main()
 
   // Requires that the y direction of the box is the same height as the semi-minor
   // axis of the ellipse.
-  
+
   amax = bmin / sqrt(1 - ecc * ecc);
   amax2 = amax * amax;
   bmin2 = bmin * bmin;
@@ -445,7 +445,7 @@ int main()
 
     double duration = (double)(end - start) / CLOCKS_PER_SEC;
 
-    printf("Program finished in %lf seconds", duration);
+    printf("Program finished in %lf seconds\n", duration);
   }
 }
 
