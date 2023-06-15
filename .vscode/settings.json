@@ -1,0 +1,9 @@
+{
+    "makefile.launchConfigurations": [
+        {
+            "cwd": "/home/zach/Documents/doublePlasmid",
+            "binaryPath": "/home/zach/Documents/doublePlasmid/mc.run",
+            "binaryArgs": []
+        }
+    ]
+}

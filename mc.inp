@@ -1,6 +1,6 @@
-1000              nseg1
-25                nseg2
-25                nseg3
+50              nseg1
+50                nseg2
+50                nseg3
 3000.0            Area
 15.0              bmin
 0.8               ecc
@@ -10,11 +10,11 @@
 1.1               drmax
 1.0               gridspace
 
-100000             ncyc
-10000             neq
+75000             ncyc
+5000             neq
 0.14              rmax
 3.14159           delphi_max
-0.5               rshift_max
+1.0               rshift_max
 1348378           iseed
 
 10                freq_samp

@@ -36,6 +36,8 @@ void calc_delta_xyz(void);
 void crank_move_chain1(void);
 void crank_move_chain2(void);
 void crank_move_chain3(void);
+void forceLink2(void);
+void forceLink3(void);
 
 long nseg1, nseg2, nseg3, nbin, i, j, k, ii, ncyc, overlap, nacc, kk, itest, iseed;
 long neq, nbintot, ibin, ichain, nsamp, nacc_shift, nshift;
@@ -83,8 +85,7 @@ double dx_prime, dy_prime, dz_prime;
 double dx_fixed, dy_fixed, dz_fixed;
 double alpha, beta;
 double cos_alpha, cos_beta, sin_alpha, sin_beta;
-double ux, uy, uz;
-double u, uxy;
+double ux, uy, uz, u, uxy;
 
 // ------------------------------------------------------------------------
 // main function
@@ -290,9 +291,17 @@ int main()
         {
           reptation_move_chain1();
         }
+        else if (ichain == 2 && ncyc % 10000 == 0 && ncyc != 0)
+        {
+          forceLink2();
+        }
         else if (ichain == 2)
         {
           shift_move_chain2();
+        }
+        else if (ichain == 3 && ncyc % 10000 == 0 && ncyc != 0)
+        {
+          forceLink3();
         }
         else if (ichain == 3)
         {
@@ -453,7 +462,7 @@ int main()
 
   double duration = ((double)(end - start)) / CLOCKS_PER_SEC;
 
-  printf("The program completed in %lf seconds.", duration);
+  printf("The program completed in %lf seconds.\n", duration);
 }
 
 // ----------------------------------------------------------------------
@@ -665,7 +674,7 @@ int checkPlasmidLink(double xPlas1[], double yPlas1[], double zPlas1[], double x
 {
   const int linked = 1, unlinked = 0;
   int crossings = 0, links = 0;
-  double xLinkPlas1[5000], xLinkPlas2[5000], yLinkPlas1[5000], yLinkPlas2[5000], zLinkPlas1[5000], zLinkPlas2[5000];
+  double zLinkPlas1[5000], zLinkPlas2[5000];
   double dr2Plas1, dr2Plas2;
   double rPlasmid2 = nseg2 / 2 * PI, rPlasmid3 = nseg3 / 2 * PI;
 
@@ -680,10 +689,6 @@ int checkPlasmidLink(double xPlas1[], double yPlas1[], double zPlas1[], double x
       {
         // If the xyz coordinates of a particular monomer
         // are within a threshold, count it as a crossing.
-        xLinkPlas1[crossings] = xPlas1[nn];
-        xLinkPlas2[crossings] = xPlas2[mm];
-        yLinkPlas1[crossings] = yPlas1[nn];
-        yLinkPlas2[crossings] = yPlas2[mm];
         zLinkPlas1[crossings] = zPlas1[nn];
         zLinkPlas2[crossings] = zPlas2[mm];
 
@@ -2515,6 +2520,61 @@ void crank_move_chain2()
   }
 }
 
+void forceLink2()
+{
+
+  double xadd, yadd, xmax, ymax;
+
+  r1x[0] = -xBoxMaxd2;
+  r1y[0] = -yBoxMaxd2 + 1.0;
+  r1z[0] = 0.0;
+  xadd = 1.0;
+  yadd = 1.02;
+
+  for (i = 0; i < nseg1; i++)
+  {
+    r1x[i] = r1x[i - 1] + xadd;
+    r1y[i] = r1y[i - 1];
+    xmax = xBoxMaxd2; // Changed to be inside of the rectangle structure
+    // xmax = amax * sqrt(1.0 - pow(r1y[i] / bmin, 2.0)) - 3.0;
+    if (r1x[i] > xmax || r1x[i] < -xmax)
+    {
+      r1x[i] -= xadd;
+      r1y[i] = r1y[i] + yadd;
+      ymax = yBoxMaxd2;
+      // ymax = bmin * sqrt(1.0 - pow(r1x[i] / amax, 2.0));
+      if (r1y[i] > ymax || r1y[i] < -ymax)
+      {
+        printf("Can't place polymer... exiting...\n");
+        exit(0);
+      }
+      xadd *= -1.0;
+    }
+    r1z[i] = -Hd2 + 2;
+  }
+
+  double theta_plasmid2 = 2.0 * PI / nseg2;
+  double theta_plasmid3 = 2.0 * PI / nseg3;
+  double Rplasmid2 = 0.5 / tan(theta_plasmid2 / 2.0);
+  double Rplasmid3 = 0.5 / tan(theta_plasmid2 / 2.0);
+
+  for (i = 0; i < nseg2; i++)
+  {
+    r2z[i] = Rplasmid2 * cos(i * theta_plasmid2);
+    r2x[i] = 0.0;
+    r2y[i] = Rplasmid2 * sin(i * theta_plasmid2);
+  }
+
+  for (i = 0; i < nseg3; i++)
+  {
+    r3z[i] = -2.0; // Initialized just above the first plasmid
+    r3x[i] = Rplasmid3 * cos(i * theta_plasmid3);
+    r3y[i] = Rplasmid3 * sin(i * theta_plasmid3) - 2.0;
+  }
+
+  check_accept();
+}
+
 void crank_move_chain3()
 {
 
@@ -2653,6 +2713,58 @@ void crank_move_chain3()
     r3y[k] = r3y[k - 1] + ry;
     r3z[k] = r3z[k - 1] + rz;
   }
+}
+
+void forceLink3()
+{
+
+  double xadd, yadd, xmax, ymax;
+
+  r1x[0] = -xBoxMaxd2;
+  r1y[0] = -yBoxMaxd2 + 1.0;
+  r1z[0] = 0.0;
+  xadd = 1.0;
+  yadd = 1.02;
+
+  for (i = 0; i < nseg1; i++)
+  {
+    r1x[i] = r1x[i - 1] + xadd;
+    r1y[i] = r1y[i - 1];
+    xmax = xBoxMaxd2; // Changed to be inside of the rectangle structure
+    // xmax = amax * sqrt(1.0 - pow(r1y[i] / bmin, 2.0)) - 3.0;
+    if (r1x[i] > xmax || r1x[i] < -xmax)
+    {
+      r1x[i] -= xadd;
+      r1y[i] = r1y[i] + yadd;
+      ymax = yBoxMaxd2;
+      // ymax = bmin * sqrt(1.0 - pow(r1x[i] / amax, 2.0));
+      if (r1y[i] > ymax || r1y[i] < -ymax)
+      {
+        printf("Can't place polymer... exiting...\n");
+        exit(0);
+      }
+      xadd *= -1.0;
+    }
+    r1z[i] = 1.0;
+  }
+
+  double theta_plasmid = 2.0 * PI / nseg2;
+  double Rplasmid = 0.5 / tan(theta_plasmid / 2.0);
+  for (i = 0; i < nseg2; i++)
+  {
+    r2z[i] = -2.0;
+    r2x[i] = Rplasmid * cos(i * theta_plasmid);
+    r2y[i] = Rplasmid * sin(i * theta_plasmid);
+  }
+
+  for (i = 0; i < nseg3; i++)
+  {
+    r3z[i] = 2.0; // Initialized just above the first plasmid
+    r3x[i] = Rplasmid * cos(i * theta_plasmid);
+    r3y[i] = Rplasmid * sin(i * theta_plasmid);
+  }
+
+  check_accept();
 }
 
 double **dmatrix(long nrl, long nrh, long ncl, long nch)
