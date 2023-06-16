@@ -291,7 +291,7 @@ int main()
         {
           reptation_move_chain1();
         }
-        else if (ichain == 2 && ncyc % 10000 == 0 && ncyc != 0)
+        else if (ichain == 2 && ii % 5000 == 0 && ii != 0)
         {
           forceLink2();
         }
@@ -299,7 +299,7 @@ int main()
         {
           shift_move_chain2();
         }
-        else if (ichain == 3 && ncyc % 10000 == 0 && ncyc != 0)
+        else if (ichain == 3 && ii % 5000 == 0 && ii != 0)
         {
           forceLink3();
         }
@@ -670,7 +670,7 @@ int checkCrossing(double zPlas1, double zPlas2)
  * Written by Zach Evans
  */
 
-int checkPlasmidLink(double xPlas1[], double yPlas1[], double zPlas1[], double xPlas2[], double yPlas2[], double zPlas2[])
+int checkPlasmidLink(double xPlas1[5000], double yPlas1[5000], double zPlas1[5000], double xPlas2[5000], double yPlas2[5000], double zPlas2[5000])
 {
   const int linked = 1, unlinked = 0;
   int crossings = 0, links = 0;
@@ -678,14 +678,14 @@ int checkPlasmidLink(double xPlas1[], double yPlas1[], double zPlas1[], double x
   double dr2Plas1, dr2Plas2;
   double rPlasmid2 = nseg2 / 2 * PI, rPlasmid3 = nseg3 / 2 * PI;
 
-  for (int nn = 0; nn < nseg2; nn++)
+  for (int nn = 0; nn < nseg2 + 1; nn++)
   {
-    for (int mm = 0; mm < nseg3; mm++)
+    for (int mm = 0; mm < nseg3 + 1; mm++)
     {
       dr2Plas1 = xPlas1[nn] * xPlas1[nn] + yPlas1[nn] * yPlas1[nn];
       dr2Plas2 = xPlas2[mm] * xPlas2[mm] + yPlas2[mm] * yPlas2[mm];
 
-      if (abs(dr2Plas1 - dr2Plas2) < 1.01 && (abs(zLinkPlas1[nn] - zLinkPlas2[mm]) > rPlasmid2 || abs(zLinkPlas1[nn] - zLinkPlas2[mm]) > rPlasmid3))
+      if (abs(dr2Plas1 - dr2Plas2) < 1.1 && (abs(zLinkPlas1[nn] - zLinkPlas2[mm]) > rPlasmid2 || abs(zLinkPlas1[nn] - zLinkPlas2[mm]) > rPlasmid3))
       {
         // If the xyz coordinates of a particular monomer
         // are within a threshold, count it as a crossing.
@@ -699,9 +699,9 @@ int checkPlasmidLink(double xPlas1[], double yPlas1[], double zPlas1[], double x
   // Check the first crossing, will be a value of either +1 or -1
   links += checkCrossing(zLinkPlas1[0], zLinkPlas2[0]);
 
-  for (int nn = 0; nn < crossings; nn++)
+  for (int nn = 1; nn < crossings; nn++)
   {
-    for (int mm = 0; mm < crossings; mm++)
+    for (int mm = 1; mm < crossings; mm++)
     {
       // Loop through the rest of the crossings, if the type of crossing changes, then there is a link
       // Be aware that this does not take into account scenarios where there are two links that when put together
@@ -725,7 +725,10 @@ int check_accept(void)
 {
   int accept, reject, unlinked, linked;
   long klow, khigh;
-  double rPlasmid2 = nseg2 / 2 * PI, rPlasmid3 = nseg3 / 2 * PI;
+  double theta_plasmid2 = 2.0 * PI / nseg2;
+  double theta_plasmid3 = 2.0 * PI / nseg3;
+  double rPlasmid2 = 0.5 / tan(theta_plasmid2 / 2.0);
+  double rPlasmid3 = 0.5 / tan(theta_plasmid2 / 2.0);
   double rcmPlas2sq = xcm2Current * xcm2Current + ycm2Current * ycm2Current;
   double rcmPlas3sq = xcm3Current * xcm3Current + ycm3Current * ycm3Current;
 
@@ -783,7 +786,6 @@ int check_accept(void)
   }
   else if (ichain == 2)
   {
-
     if (rcmPlas2sq - rcmPlas3sq < rPlasmid3 * rPlasmid3 || rcmPlas2sq - rcmPlas3sq < rPlasmid2 * rPlasmid2)
     {
       if (checkPlasmidLink(r2x, r2y, r2z, r3x, r3y, r3z) == linked)
@@ -1424,23 +1426,25 @@ void init_pos(void)
       }
       xadd *= -1.0;
     }
-    r1z[i] = 1.0;
+    r1z[i] = 0.0;
   }
 
-  double theta_plasmid = 2.0 * PI / nseg2;
-  double Rplasmid = 0.5 / tan(theta_plasmid / 2.0);
+  double theta_plasmid2 = 2.0 * PI / nseg2;
+  double theta_plasmid3 = 2.0 * PI / nseg3;
+  double Rplasmid2 = 0.5 / tan(theta_plasmid2 / 2.0);
+  double Rplasmid3 = 0.5 / tan(theta_plasmid3 / 2.0);
   for (i = 0; i < nseg2; i++)
   {
     r2z[i] = -2.0;
-    r2x[i] = Rplasmid * cos(i * theta_plasmid);
-    r2y[i] = Rplasmid * sin(i * theta_plasmid);
+    r2x[i] = Rplasmid2 * cos(i * theta_plasmid2);
+    r2y[i] = Rplasmid2 * sin(i * theta_plasmid2);
   }
 
   for (i = 0; i < nseg3; i++)
   {
     r3z[i] = 2.0; // Initialized just above the first plasmid
-    r3x[i] = Rplasmid * cos(i * theta_plasmid);
-    r3y[i] = Rplasmid * sin(i * theta_plasmid);
+    r3x[i] = Rplasmid3 * cos(i * theta_plasmid3);
+    r3y[i] = Rplasmid3 * sin(i * theta_plasmid3);
   }
 }
 
@@ -1894,8 +1898,9 @@ void reptation_move_chain2()
     r2z[nseg2 - 1] = r2z[nseg2 - 2] + dz_fixed;
 
     overlap = check_accept_reptation(nseg2 - 1);
+    int linked = checkPlasmidLink(r2x, r2y, r2z, r3x, r3y, r3z);
 
-    if (overlap == 0)
+    if (overlap == 0 && linked == 0)
     {
       nacc_rep += 1;
     }
@@ -1927,8 +1932,9 @@ void reptation_move_chain2()
     r2z[0] = r2z[1] + dz_fixed;
 
     overlap = check_accept_reptation(0);
+    int linked = checkPlasmidLink(r2x, r2y, r2z, r3x, r3y, r3z);
 
-    if (overlap == 0)
+    if (overlap == 0 && linked == 0)
     {
       nacc_rep += 1;
     }
@@ -2002,8 +2008,9 @@ void reptation_move_chain3()
     r3z[nseg3 - 1] = r3z[nseg3 - 2] + dz_fixed;
 
     overlap = check_accept_reptation(nseg3 - 1);
+    int linked = checkPlasmidLink(r2x, r2y, r2z, r3x, r3y, r3z);
 
-    if (overlap == 0)
+    if (overlap == 0 && linked == 0)
     {
       nacc_rep += 1;
     }
@@ -2035,8 +2042,9 @@ void reptation_move_chain3()
     r3z[0] = r3z[1] + dz_fixed;
 
     overlap = check_accept_reptation(0);
+    int linked = checkPlasmidLink(r2x, r2y, r2z, r3x, r3y, r3z);
 
-    if (overlap == 0)
+    if (overlap == 0 && linked == 0)
     {
       nacc_rep += 1;
     }
@@ -2555,21 +2563,21 @@ void forceLink2()
 
   double theta_plasmid2 = 2.0 * PI / nseg2;
   double theta_plasmid3 = 2.0 * PI / nseg3;
-  double Rplasmid2 = 0.5 / tan(theta_plasmid2 / 2.0);
-  double Rplasmid3 = 0.5 / tan(theta_plasmid2 / 2.0);
+  double rPlasmid2 = 0.5 / tan(theta_plasmid2 / 2.0);
+  double rPlasmid3 = 0.5 / tan(theta_plasmid2 / 2.0);
 
   for (i = 0; i < nseg2; i++)
   {
-    r2z[i] = Rplasmid2 * cos(i * theta_plasmid2);
+    r2z[i] = rPlasmid2 * cos(i * theta_plasmid2);
     r2x[i] = 0.0;
-    r2y[i] = Rplasmid2 * sin(i * theta_plasmid2);
+    r2y[i] = rPlasmid2 * sin(i * theta_plasmid2);
   }
 
   for (i = 0; i < nseg3; i++)
   {
     r3z[i] = -2.0; // Initialized just above the first plasmid
-    r3x[i] = Rplasmid3 * cos(i * theta_plasmid3);
-    r3y[i] = Rplasmid3 * sin(i * theta_plasmid3) - 2.0;
+    r3x[i] = rPlasmid3 * cos(i * theta_plasmid3);
+    r3y[i] = rPlasmid3 * sin(i * theta_plasmid3) - rPlasmid2 / 2.0;
   }
 
   check_accept();
@@ -2745,23 +2753,26 @@ void forceLink3()
       }
       xadd *= -1.0;
     }
-    r1z[i] = 1.0;
+    r1z[i] = 0.0;
   }
 
-  double theta_plasmid = 2.0 * PI / nseg2;
-  double Rplasmid = 0.5 / tan(theta_plasmid / 2.0);
+  double theta_plasmid2 = 2.0 * PI / nseg2;
+  double theta_plasmid3 = 2.0 * PI / nseg3;
+  double rPlasmid2 = 0.5 / tan(theta_plasmid2 / 2.0);
+  double rPlasmid3 = 0.5 / tan(theta_plasmid2 / 2.0);
+
   for (i = 0; i < nseg2; i++)
   {
-    r2z[i] = -2.0;
-    r2x[i] = Rplasmid * cos(i * theta_plasmid);
-    r2y[i] = Rplasmid * sin(i * theta_plasmid);
+    r2z[i] = rPlasmid2 * cos(i * theta_plasmid2);
+    r2x[i] = 0.0;
+    r2y[i] = rPlasmid2 * sin(i * theta_plasmid2);
   }
 
   for (i = 0; i < nseg3; i++)
   {
-    r3z[i] = 2.0; // Initialized just above the first plasmid
-    r3x[i] = Rplasmid * cos(i * theta_plasmid);
-    r3y[i] = Rplasmid * sin(i * theta_plasmid);
+    r3z[i] = -2.0; // Initialized just above the first plasmid
+    r3x[i] = rPlasmid3 * cos(i * theta_plasmid3);
+    r3y[i] = rPlasmid3 * sin(i * theta_plasmid3) - rPlasmid2 / 2.0;
   }
 
   check_accept();

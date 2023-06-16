@@ -1,8 +1,8 @@
 50              nseg1
 50                nseg2
 50                nseg3
-3000.0            Area
-15.0              bmin
+1000.0            Area
+12.0              bmin
 0.8               ecc
 15.0              H
 6.36                kappa
