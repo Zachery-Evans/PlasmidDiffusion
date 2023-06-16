@@ -420,7 +420,7 @@ int main()
       double rPlasmid2 = 0.5 / tan(theta_plasmid2 / 2.0);
       double rPlasmid3 = 0.5 / tan(theta_plasmid3 / 2.0);
       double distSq = sqrt((xcm2 - xcm3) * (xcm2 - xcm3) + (ycm2 - ycm3) * (ycm2 - ycm3) + (zcm2 - zcm3) * (zcm2 - zcm3));
-      printf("%lf\n", rPlasmid2 + rPlasmid3);
+      // printf("%lf\n", rPlasmid2 + rPlasmid3);
 
       fprintf(xp1, "%lf\n", xcm1);
       fprintf(xp2, "%lf\n", xcm2);
@@ -428,7 +428,6 @@ int main()
       fprintf(yp1, "%lf\n", ycm1);
       fprintf(yp2, "%lf\n", ycm2);
       fprintf(yp3, "%lf\n", ycm3);
-      fprintf(x1x2, "Maximum cm distance: %lf\n", 1.0);
       fprintf(x1x2, "%lf\n", distSq);
     }
 
