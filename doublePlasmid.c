@@ -36,8 +36,7 @@ void calc_delta_xyz(void);
 void crank_move_chain1(void);
 void crank_move_chain2(void);
 void crank_move_chain3(void);
-void forceLink2(void);
-void forceLink3(void);
+void forceLink(void);
 
 long nseg1, nseg2, nseg3, nbin, i, j, k, ii, ncyc, overlap, nacc, kk, itest, iseed;
 long neq, nbintot, ibin, ichain, nsamp, nacc_shift, nshift;
@@ -48,7 +47,7 @@ double qmin, qmax, re2av, re2, drmin, drmax, gridspace, gridspacex_real, gridspa
 double amax, bmin, amax2, bmin2, ecc, Area, rectangleArea, rectangleXYRatio, xBoxMax, yBoxMax, rshift_max;
 double xBoxMaxd2, yBoxMaxd2;
 double kappa, xold, yold, zold, delphi_max;
-double z1min, z1max, z2min, z2max, zcm1, zcm2, z1bcm, z2bcm;
+double z1min, z1max, z2min, z2max, zcm1, zcm2, zcm3, z1bcm, z2bcm;
 double **prob1, **prob2, **prob3, **probmon;
 
 FILE *fpmov;
@@ -64,7 +63,7 @@ double r3y[5000];
 double r3z[5000];
 
 double x1, x2, x3, yone, y2, y3, z1, z2, z3;
-double xcm2Current = 0.0, ycm2Current = 0.0, xcm3Current = 0.0, ycm3Current = 0.0;
+double xcm2Current = 0.0, ycm2Current = 0.0, zcm2Current = 0.0, xcm3Current = 0.0, ycm3Current = 0.0, zcm3Current = 0.0;
 double vax, vay, vaz, vbx, vby, vbz;
 double va_sq, vb_sq;
 double va_dot_vb;
@@ -163,9 +162,9 @@ int main()
 
   imon = 0;
 
-  init_pos(); // function call
+  // init_pos(); // function call
+  forceLink();
 
-  // Don't include if statement below in cluster
   if (imov == 1)
   {
     if (ii % freq_mov == 0 && ii > neq)
@@ -201,7 +200,7 @@ int main()
   yp1 = fopen("ycm1.dat", "w");
   yp2 = fopen("ycm2.dat", "w");
   yp3 = fopen("ycm3.dat", "w");
-  x1x2 = fopen("x2x3cm.dat", "w");
+  x1x2 = fopen("cmDifference.dat", "w");
 
   for (ii = 0; ii < ncyc; ii++)
   {
@@ -291,17 +290,19 @@ int main()
         {
           reptation_move_chain1();
         }
-        else if (ichain == 2 && ii % 5000 == 0 && ii != 0)
+        else if (ichain == 2 && ii % 10000 == 0 && ii != 0)
         {
-          forceLink2();
+          // forceLink();
+          shift_move_chain2();
         }
         else if (ichain == 2)
         {
           shift_move_chain2();
         }
-        else if (ichain == 3 && ii % 5000 == 0 && ii != 0)
+        else if (ichain == 3 && ii % 10000 == 0 && ii != 0)
         {
-          forceLink3();
+          // forceLink3();
+          shift_move_chain3();
         }
         else if (ichain == 3)
         {
@@ -312,16 +313,18 @@ int main()
 
     if (ii % freq_samp == 0 && ii > neq)
     {
-
       xcm1 = 0.0;
       ycm1 = 0.0;
+      zcm1 = 0.0;
       for (i = 0; i < nseg1; i++)
       {
         xcm1 += r1x[i];
         ycm1 += r1y[i];
+        zcm1 += r1z[i];
       }
       xcm1 /= nseg1;
       ycm1 /= nseg1;
+      zcm1 /= nseg1;
 
       indx = (xcm1 + amax + xBoxMaxd2) / gridspacex_real;
       indy = (ycm1 + bmin) / gridspacey_real;
@@ -347,16 +350,20 @@ int main()
 
       xcm2 = 0.0;
       ycm2 = 0.0;
+      zcm2 = 0.0;
       for (i = 0; i < nseg2; i++)
       {
         xcm2 += r2x[i];
         ycm2 += r2y[i];
+        zcm2 += r2z[i];
       }
       xcm2 /= nseg2;
       ycm2 /= nseg2;
+      zcm2 /= nseg2;
 
       xcm2Current = xcm2;
       ycm2Current = ycm2;
+      zcm2Current = zcm2;
 
       indx = (xcm2 + amax + xBoxMaxd2) / gridspacex_real;
       indy = (ycm2 + bmin) / gridspacey_real;
@@ -378,12 +385,15 @@ int main()
       {
         xcm3 += r3x[i];
         ycm3 += r3y[i];
+        zcm3 += r3z[i];
       }
       xcm3 /= nseg3;
       ycm3 /= nseg3;
+      zcm3 /= nseg3;
 
       xcm3Current = xcm3;
       ycm3Current = ycm3;
+      zcm3Current = zcm3;
 
       indx = (xcm3 + amax + xBoxMaxd2) / gridspacex_real;
       indy = (ycm3 + bmin) / gridspacey_real;
@@ -405,13 +415,20 @@ int main()
 
     if (ii % cmFreqSamp == 0 && ii > neq)
     {
+      double theta_plasmid2 = 2.0 * PI / nseg2;
+      double theta_plasmid3 = 2.0 * PI / nseg3;
+      double rPlasmid2 = 0.5 / tan(theta_plasmid2 / 2.0);
+      double rPlasmid3 = 0.5 / tan(theta_plasmid3 / 2.0);
+      double distSq = (xcm2 - xcm3) * (xcm2 - xcm3) + (ycm2 - ycm3) * (ycm2 - ycm3) + (zcm2 - zcm3) * (zcm2 - zcm3);
+
       fprintf(xp1, "%lf\n", xcm1);
       fprintf(xp2, "%lf\n", xcm2);
       fprintf(xp3, "%lf\n", xcm3);
       fprintf(yp1, "%lf\n", ycm1);
       fprintf(yp2, "%lf\n", ycm2);
       fprintf(yp3, "%lf\n", ycm3);
-      fprintf(x1x2, "%lf\n", xcm2 * xcm3);
+      fprintf(x1x2, "Maximum cm distance: %lf\n", (double)(nseg2 + nseg3) * (nseg2 + nseg3) / 4.0);
+      fprintf(x1x2, "%lf\n", distSq);
     }
 
     if (imov == 1)
@@ -676,7 +693,10 @@ int checkPlasmidLink(double xPlas1[5000], double yPlas1[5000], double zPlas1[500
   int crossings = 0, links = 0;
   double zLinkPlas1[5000], zLinkPlas2[5000];
   double dr2Plas1, dr2Plas2;
-  double rPlasmid2 = nseg2 / 2 * PI, rPlasmid3 = nseg3 / 2 * PI;
+  double theta_plasmid2 = 2.0 * PI / nseg2;
+  double theta_plasmid3 = 2.0 * PI / nseg3;
+  double rPlasmid2 = 0.5 / tan(theta_plasmid2 / 2.0);
+  double rPlasmid3 = 0.5 / tan(theta_plasmid2 / 2.0);
 
   for (int nn = 0; nn < nseg2 + 1; nn++)
   {
@@ -685,7 +705,7 @@ int checkPlasmidLink(double xPlas1[5000], double yPlas1[5000], double zPlas1[500
       dr2Plas1 = xPlas1[nn] * xPlas1[nn] + yPlas1[nn] * yPlas1[nn];
       dr2Plas2 = xPlas2[mm] * xPlas2[mm] + yPlas2[mm] * yPlas2[mm];
 
-      if (abs(dr2Plas1 - dr2Plas2) < 1.1 && (abs(zLinkPlas1[nn] - zLinkPlas2[mm]) > rPlasmid2 || abs(zLinkPlas1[nn] - zLinkPlas2[mm]) > rPlasmid3))
+      if (abs(dr2Plas1 - dr2Plas2) < 1.49999 && (abs(zLinkPlas1[nn] - zLinkPlas2[mm]) > rPlasmid2 || abs(zLinkPlas1[nn] - zLinkPlas2[mm]) > rPlasmid3))
       {
         // If the xyz coordinates of a particular monomer
         // are within a threshold, count it as a crossing.
@@ -706,7 +726,6 @@ int checkPlasmidLink(double xPlas1[5000], double yPlas1[5000], double zPlas1[500
       // Loop through the rest of the crossings, if the type of crossing changes, then there is a link
       // Be aware that this does not take into account scenarios where there are two links that when put together
       // unlink the entire structure, but with rigidity this will be very statistically unlikely.
-
       if (links + checkCrossing(zLinkPlas1[nn], zLinkPlas2[mm]) == 0)
       {
         return linked;
@@ -729,31 +748,33 @@ int check_accept(void)
   double theta_plasmid3 = 2.0 * PI / nseg3;
   double rPlasmid2 = 0.5 / tan(theta_plasmid2 / 2.0);
   double rPlasmid3 = 0.5 / tan(theta_plasmid2 / 2.0);
-  double rcmPlas2sq = xcm2Current * xcm2Current + ycm2Current * ycm2Current;
-  double rcmPlas3sq = xcm3Current * xcm3Current + ycm3Current * ycm3Current;
+  double rcmPlas2sq = xcm2Current * xcm2Current + ycm2Current * ycm2Current + zcm2Current * zcm2Current;
+  double rcmPlas3sq = xcm3Current * xcm3Current + ycm3Current * ycm3Current + zcm3Current * zcm3Current;
 
   accept = 0, unlinked = 0;
   reject = 1, linked = 1;
 
   if (ichain == 1)
   {
-
     // Checking if the T4 polymer overlaps with itself
-    for (kk = 0; kk < nseg1; kk++)
+    for (kk = 0; kk < nseg1 + nseg2 + nseg3; kk++)
     {
-      if (squareEllipse(r1x[kk], r1y[kk], r1z[kk]) == reject)
+      if (kk < nseg1)
       {
-        return (reject);
-      }
-      if (kk < k - 1 || kk > k + 1)
-      {
-        dx = r1x[k] - r1x[kk];
-        dy = r1y[k] - r1y[kk];
-        dz = r1z[k] - r1z[kk];
-        dr2 = dx * dx + dy * dy + dz * dz;
-        if (dr2 < 1.0)
+        if (squareEllipse(r1x[kk], r1y[kk], r1z[kk]) == reject)
         {
           return (reject);
+        }
+        if (kk < k - 1 || kk > k + 1)
+        {
+          dx = r1x[k] - r1x[kk];
+          dy = r1y[k] - r1y[kk];
+          dz = r1z[k] - r1z[kk];
+          dr2 = dx * dx + dy * dy + dz * dz;
+          if (dr2 < 1.0)
+          {
+            return (reject);
+          }
         }
       }
 
@@ -784,8 +805,10 @@ int check_accept(void)
       }
     }
   }
+
   else if (ichain == 2)
   {
+    /*
     if (rcmPlas2sq - rcmPlas3sq < rPlasmid3 * rPlasmid3 || rcmPlas2sq - rcmPlas3sq < rPlasmid2 * rPlasmid2)
     {
       if (checkPlasmidLink(r2x, r2y, r2z, r3x, r3y, r3z) == linked)
@@ -794,7 +817,7 @@ int check_accept(void)
         return reject;
       }
     }
-
+    */
     if (k == 0)
     {
       klow = nseg2 - 1;
@@ -811,16 +834,19 @@ int check_accept(void)
       khigh = k + 1;
     }
 
-    for (kk = 0; kk < nseg1; kk++)
+    for (kk = 0; kk < nseg1 + nseg2 + nseg3; kk++)
     {
-      // Check if polymer and plasmid overlap
-      dx = r2x[k] - r1x[kk];
-      dy = r2y[k] - r1y[kk];
-      dz = r2z[k] - r1z[kk];
-      dr2 = dx * dx + dy * dy + dz * dz;
-      if (dr2 < 1.0)
+      if (kk < nseg1)
       {
-        return (reject);
+        // Check if polymer and plasmid overlap
+        dx = r2x[k] - r1x[kk];
+        dy = r2y[k] - r1y[kk];
+        dz = r2z[k] - r1z[kk];
+        dr2 = dx * dx + dy * dy + dz * dz;
+        if (dr2 < 1.0)
+        {
+          return (reject);
+        }
       }
 
       // Check if nseg=2 plasmid escapes squareEllipse or overlaps
@@ -860,6 +886,7 @@ int check_accept(void)
 
   else if (ichain == 3)
   {
+    /*
     if (rcmPlas2sq - rcmPlas3sq < rPlasmid3 * rPlasmid3 || rcmPlas2sq - rcmPlas3sq < rPlasmid2 * rPlasmid2)
     {
       if (checkPlasmidLink(r2x, r2y, r2z, r3x, r3y, r3z) == linked)
@@ -868,6 +895,7 @@ int check_accept(void)
         return reject;
       }
     }
+    */
     if (k == 0)
     {
       klow = nseg3 - 1;
@@ -884,17 +912,19 @@ int check_accept(void)
       khigh = k + 1;
     }
 
-    for (kk = 0; kk < nseg1; kk++)
+    for (kk = 0; kk < nseg1 + nseg2 + nseg3; kk++)
     {
-
-      // Check if nseg=3 plasmid overlaps with linear polymer
-      dx = r3x[k] - r1x[kk];
-      dy = r3y[k] - r1y[kk];
-      dz = r3z[k] - r1z[kk];
-      dr2 = dx * dx + dy * dy + dz * dz;
-      if (dr2 < 1.0)
+      if (kk < nseg1)
       {
-        return (reject);
+        // Check if nseg=3 plasmid overlaps with linear polymer
+        dx = r3x[k] - r1x[kk];
+        dy = r3y[k] - r1y[kk];
+        dz = r3z[k] - r1z[kk];
+        dr2 = dx * dx + dy * dy + dz * dz;
+        if (dr2 < 1.0)
+        {
+          return (reject);
+        }
       }
 
       // Check if plasmids overlap
@@ -2528,7 +2558,7 @@ void crank_move_chain2()
   }
 }
 
-void forceLink2()
+void forceLink()
 {
 
   double xadd, yadd, xmax, ymax;
@@ -2721,61 +2751,6 @@ void crank_move_chain3()
     r3y[k] = r3y[k - 1] + ry;
     r3z[k] = r3z[k - 1] + rz;
   }
-}
-
-void forceLink3()
-{
-
-  double xadd, yadd, xmax, ymax;
-
-  r1x[0] = -xBoxMaxd2;
-  r1y[0] = -yBoxMaxd2 + 1.0;
-  r1z[0] = 0.0;
-  xadd = 1.0;
-  yadd = 1.02;
-
-  for (i = 0; i < nseg1; i++)
-  {
-    r1x[i] = r1x[i - 1] + xadd;
-    r1y[i] = r1y[i - 1];
-    xmax = xBoxMaxd2; // Changed to be inside of the rectangle structure
-    // xmax = amax * sqrt(1.0 - pow(r1y[i] / bmin, 2.0)) - 3.0;
-    if (r1x[i] > xmax || r1x[i] < -xmax)
-    {
-      r1x[i] -= xadd;
-      r1y[i] = r1y[i] + yadd;
-      ymax = yBoxMaxd2;
-      // ymax = bmin * sqrt(1.0 - pow(r1x[i] / amax, 2.0));
-      if (r1y[i] > ymax || r1y[i] < -ymax)
-      {
-        printf("Can't place polymer... exiting...\n");
-        exit(0);
-      }
-      xadd *= -1.0;
-    }
-    r1z[i] = 0.0;
-  }
-
-  double theta_plasmid2 = 2.0 * PI / nseg2;
-  double theta_plasmid3 = 2.0 * PI / nseg3;
-  double rPlasmid2 = 0.5 / tan(theta_plasmid2 / 2.0);
-  double rPlasmid3 = 0.5 / tan(theta_plasmid2 / 2.0);
-
-  for (i = 0; i < nseg2; i++)
-  {
-    r2z[i] = rPlasmid2 * cos(i * theta_plasmid2);
-    r2x[i] = 0.0;
-    r2y[i] = rPlasmid2 * sin(i * theta_plasmid2);
-  }
-
-  for (i = 0; i < nseg3; i++)
-  {
-    r3z[i] = -2.0; // Initialized just above the first plasmid
-    r3x[i] = rPlasmid3 * cos(i * theta_plasmid3);
-    r3y[i] = rPlasmid3 * sin(i * theta_plasmid3) - rPlasmid2 / 2.0;
-  }
-
-  check_accept();
 }
 
 double **dmatrix(long nrl, long nrh, long ncl, long nch)
