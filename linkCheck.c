@@ -285,19 +285,9 @@ int main()
         {
           reptation_move_chain1();
         }
-        else if (ichain == 2 && ii % 10000 == 0 && ii != 0)
-        {
-          // forceLink();
-          shift_move_chain2();
-        }
         else if (ichain == 2)
         {
           shift_move_chain2();
-        }
-        else if (ichain == 3 && ii % 10000 == 0 && ii != 0)
-        {
-          // forceLink3();
-          shift_move_chain3();
         }
         else if (ichain == 3)
         {
