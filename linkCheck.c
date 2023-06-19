@@ -544,7 +544,10 @@ void write_log(void)
   printf("\n");
 }
 
-/* squareEllipse and checkEllipse Code written by Zach Evans in attempt to create geometry of rectangle between two halves of an ellipse */
+/*
+ *  squareEllipse and checkEllipse Code written by Zach Evans to create geometry of rectangle between two halves of an ellipse
+ *  
+ */
 
 /*
  *
@@ -701,6 +704,7 @@ int checkPlasmidLink(double xPlas1[5000], double yPlas1[5000], double zPlas1[500
       // unlink the entire structure, but with rigidity this will be very statistically unlikely.
       if (links + checkCrossing(zLinkPlas1[nn], zLinkPlas2[mm]) == 0)
       {
+        printf("Linked");
         return linked;
       }
     }
@@ -1881,7 +1885,6 @@ void reptation_move_chain2()
     r2z[nseg2 - 1] = r2z[nseg2 - 2] + dz_fixed;
 
     overlap = check_accept_reptation(nseg2 - 1);
-    int linked = checkPlasmidLink(r2x, r2y, r2z, r3x, r3y, r3z);
 
     if (overlap == 0 && linked == 0)
     {
@@ -1915,7 +1918,6 @@ void reptation_move_chain2()
     r2z[0] = r2z[1] + dz_fixed;
 
     overlap = check_accept_reptation(0);
-    int linked = checkPlasmidLink(r2x, r2y, r2z, r3x, r3y, r3z);
 
     if (overlap == 0 && linked == 0)
     {
@@ -1991,7 +1993,6 @@ void reptation_move_chain3()
     r3z[nseg3 - 1] = r3z[nseg3 - 2] + dz_fixed;
 
     overlap = check_accept_reptation(nseg3 - 1);
-    int linked = checkPlasmidLink(r2x, r2y, r2z, r3x, r3y, r3z);
 
     if (overlap == 0 && linked == 0)
     {
@@ -2025,7 +2026,6 @@ void reptation_move_chain3()
     r3z[0] = r3z[1] + dz_fixed;
 
     overlap = check_accept_reptation(0);
-    int linked = checkPlasmidLink(r2x, r2y, r2z, r3x, r3y, r3z);
 
     if (overlap == 0 && linked == 0)
     {
