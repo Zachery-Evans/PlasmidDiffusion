@@ -98,7 +98,6 @@ int main()
   clock_t start, end;
 
   input();
-  start = clock();
 
   rep_prob = 0.95;
   // defining the area of the ellipse as the total area subtracted by the area
@@ -156,7 +155,8 @@ int main()
   // *************************************************************
 
   if (imov == 1)
-  { // Don't include this in cluster
+  { // DO NOT SET imov == 1 in cluster
+    start = clock();
     fpmov = fopen("chain.xyz", "w");
   }
 
@@ -473,13 +473,12 @@ int main()
   if (imov == 1)
   {
     fclose(fpmov);
+    end = clock();
+
+    double duration = ((double)(end - start)) / CLOCKS_PER_SEC;
+
+    printf("The program completed in %lf seconds.\n", duration);
   }
-
-  end = clock();
-
-  double duration = ((double)(end - start)) / CLOCKS_PER_SEC;
-
-  printf("The program completed in %lf seconds.\n", duration);
 }
 
 // ----------------------------------------------------------------------
