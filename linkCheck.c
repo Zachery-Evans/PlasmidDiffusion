@@ -789,16 +789,6 @@ int check_accept(void)
 
   else if (ichain == 2)
   {
-    /*
-    if (rcmPlas2sq - rcmPlas3sq < rPlasmid3 * rPlasmid3 || rcmPlas2sq - rcmPlas3sq < rPlasmid2 * rPlasmid2)
-    {
-      if (checkPlasmidLink(r2x, r2y, r2z, r3x, r3y, r3z) == linked)
-      {
-        printf("Rejecting link 2\n");
-        return reject;
-      }
-    }
-    */
     if (k == 0)
     {
       klow = nseg2 - 1;
@@ -867,16 +857,6 @@ int check_accept(void)
 
   else if (ichain == 3)
   {
-    /*
-    if (rcmPlas2sq - rcmPlas3sq < rPlasmid3 * rPlasmid3 || rcmPlas2sq - rcmPlas3sq < rPlasmid2 * rPlasmid2)
-    {
-      if (checkPlasmidLink(r2x, r2y, r2z, r3x, r3y, r3z) == linked)
-      {
-        printf("Rejecting link 3\n");
-        return reject;
-      }
-    }
-    */
     if (k == 0)
     {
       klow = nseg3 - 1;
@@ -1106,56 +1086,56 @@ int check_energy(void)
   {
     if (k == 0)
     {
-      theta_new = calc_cosine_chain2(k, k + 1, k + 2);
-      theta_old = calc_cosine_chain2(-1, k + 1, k + 2);
+      theta_new = calc_cosine_chain3(k, k + 1, k + 2);
+      theta_old = calc_cosine_chain3(-1, k + 1, k + 2);
       energy_new[0] = kappa * (1.0 - theta_new);
       energy_old[0] = kappa * (1.0 - theta_old);
     }
     else if (k == nseg3 - 1)
     {
-      theta_new = calc_cosine_chain2(k - 2, k - 1, k);
-      theta_old = calc_cosine_chain2(k - 2, k - 1, -1);
+      theta_new = calc_cosine_chain3(k - 2, k - 1, k);
+      theta_old = calc_cosine_chain3(k - 2, k - 1, -1);
       energy_new[0] = kappa * (1.0 - theta_new);
       energy_old[0] = kappa * (1.0 - theta_old);
     }
     else if (k == 1)
     {
-      theta_new = calc_cosine_chain2(k - 1, k, k + 1);
-      theta_old = calc_cosine_chain2(k - 1, -1, k + 1);
+      theta_new = calc_cosine_chain3(k - 1, k, k + 1);
+      theta_old = calc_cosine_chain3(k - 1, -1, k + 1);
       energy_new[0] = kappa * (1.0 - theta_new);
       energy_old[0] = kappa * (1.0 - theta_old);
 
-      theta_new = calc_cosine_chain2(k, k + 1, k + 2);
-      theta_old = calc_cosine_chain2(-1, k + 1, k + 2);
+      theta_new = calc_cosine_chain3(k, k + 1, k + 2);
+      theta_old = calc_cosine_chain3(-1, k + 1, k + 2);
       energy_new[1] = kappa * (1.0 - theta_new);
       energy_old[1] = kappa * (1.0 - theta_old);
     }
     else if (k == nseg3 - 2)
     {
-      theta_new = calc_cosine_chain2(k - 2, k - 1, k);
-      theta_old = calc_cosine_chain2(k - 2, k - 1, -1);
+      theta_new = calc_cosine_chain3(k - 2, k - 1, k);
+      theta_old = calc_cosine_chain3(k - 2, k - 1, -1);
       energy_new[0] = kappa * (1.0 - theta_new);
       energy_old[0] = kappa * (1.0 - theta_old);
 
-      theta_new = calc_cosine_chain2(k - 1, k, k + 1);
-      theta_old = calc_cosine_chain2(k - 1, -1, k + 1);
+      theta_new = calc_cosine_chain3(k - 1, k, k + 1);
+      theta_old = calc_cosine_chain3(k - 1, -1, k + 1);
       energy_new[1] = kappa * (1.0 - theta_new);
       energy_old[1] = kappa * (1.0 - theta_old);
     }
     else
     {
-      theta_new = calc_cosine_chain2(k - 2, k - 1, k);
-      theta_old = calc_cosine_chain2(k - 2, k - 1, -1);
+      theta_new = calc_cosine_chain3(k - 2, k - 1, k);
+      theta_old = calc_cosine_chain3(k - 2, k - 1, -1);
       energy_new[0] = kappa * (1.0 - theta_new);
       energy_old[0] = kappa * (1.0 - theta_old);
 
-      theta_new = calc_cosine_chain2(k - 1, k, k + 1);
-      theta_old = calc_cosine_chain2(k - 1, -1, k + 1);
+      theta_new = calc_cosine_chain3(k - 1, k, k + 1);
+      theta_old = calc_cosine_chain3(k - 1, -1, k + 1);
       energy_new[1] = kappa * (1.0 - theta_new);
       energy_old[1] = kappa * (1.0 - theta_old);
 
-      theta_new = calc_cosine_chain2(k, k + 1, k + 2);
-      theta_old = calc_cosine_chain2(-1, k + 1, k + 2);
+      theta_new = calc_cosine_chain3(k, k + 1, k + 2);
+      theta_old = calc_cosine_chain3(-1, k + 1, k + 2);
       energy_new[2] = kappa * (1.0 - theta_new);
       energy_old[2] = kappa * (1.0 - theta_old);
     }

@@ -2647,9 +2647,9 @@ void crank_move_chain3()
   else if (k == 0)
   {
 
-    rx = r3x[k] - r2x[nseg3 - 1];
-    ry = r3y[k] - r2y[nseg3 - 1];
-    rz = r3z[k] - r2z[nseg3 - 1];
+    rx = r3x[k] - r3x[nseg3 - 1];
+    ry = r3y[k] - r3y[nseg3 - 1];
+    rz = r3z[k] - r3z[nseg3 - 1];
 
     Rx = r3x[k + 1] - r3x[nseg3 - 1];
     Ry = r3y[k + 1] - r3y[nseg3 - 1];
