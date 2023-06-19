@@ -1547,13 +1547,13 @@ int check_shift_chain2()
 
   for (i = 0; i < nseg2; i++)
   {
+    if (squareEllipse(r2x[i], r2y[i], r2z[i]) == reject)
+    {
+      return (reject);
+    }
+
     for (kk = 0; kk < nseg1; kk++)
     {
-      if (squareEllipse(r2x[kk], r2y[kk], r2z[kk]) == reject)
-      {
-        return (reject);
-      }
-
       dx = r2x[i] - r1x[kk];
       dy = r2y[i] - r1y[kk];
       dz = r2z[i] - r1z[kk];
@@ -1587,12 +1587,13 @@ int check_shift_chain3()
 
   for (i = 0; i < nseg3; i++)
   {
+    if (squareEllipse(r3x[i], r3y[i], r3z[i]) == reject)
+    {
+      return (reject);
+    }
+
     for (kk = 0; kk < nseg1; kk++)
     {
-      if (squareEllipse(r3x[kk], r3y[kk], r3z[kk]) == reject)
-      {
-        return (reject);
-      }
 
       dx = r3x[i] - r1x[kk];
       dy = r3y[i] - r1y[kk];
@@ -1981,7 +1982,7 @@ void calc_delta_xyz()
     }
   }
 
-  else
+  else if (ichain == 3)
   {
     if (irep == 0)
     {
