@@ -1886,7 +1886,7 @@ void reptation_move_chain2()
 
     overlap = check_accept_reptation(nseg2 - 1);
 
-    if (overlap == 0 && linked == 0)
+    if (overlap == 0)
     {
       nacc_rep += 1;
     }
@@ -1919,7 +1919,7 @@ void reptation_move_chain2()
 
     overlap = check_accept_reptation(0);
 
-    if (overlap == 0 && linked == 0)
+    if (overlap == 0)
     {
       nacc_rep += 1;
     }
@@ -1994,7 +1994,7 @@ void reptation_move_chain3()
 
     overlap = check_accept_reptation(nseg3 - 1);
 
-    if (overlap == 0 && linked == 0)
+    if (overlap == 0)
     {
       nacc_rep += 1;
     }
@@ -2027,7 +2027,7 @@ void reptation_move_chain3()
 
     overlap = check_accept_reptation(0);
 
-    if (overlap == 0 && linked == 0)
+    if (overlap == 0)
     {
       nacc_rep += 1;
     }
