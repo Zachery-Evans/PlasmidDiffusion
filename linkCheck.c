@@ -21,6 +21,7 @@ int check_shift_chain3(void);
 int check_energy(void);
 double calc_cosine_chain1(int, int, int);
 double calc_cosine_chain2(int, int, int);
+double calc_cosine_chain3(int, int, int);
 
 double **dmatrix(long, long, long, long);
 void free_dmatrix(double **, long, long, long, long);
@@ -93,6 +94,7 @@ int main()
 {
   long imon, indx, indy;
   double xcm1, ycm1, xcm2, ycm2, xcm3, ycm3;
+  clock_t start, end;
 
   FILE *xp1, *yp1, *xp2, *yp2, *xp3, *yp3, *x1x2;
   clock_t start, end;
@@ -158,6 +160,7 @@ int main()
   { // DO NOT SET imov == 1 in cluster
     start = clock();
     fpmov = fopen("chain.xyz", "w");
+    start = clock();
   }
 
   imon = 0;
@@ -395,7 +398,7 @@ int main()
       if (indx >= ngridx || indy >= ngridy)
       {
         printf("3:  indx = %ld/%ld, indy = %ld/%ld\n", indx, ngridx, indy, ngridy);
-        printf("    xcm2 = %lf, 2*amax = %lf,  ycm2 = %lf, 2*bmin = %lf\n",
+        printf("    xcm3 = %lf, 2*amax = %lf,  ycm3 = %lf, 2*bmin = %lf\n",
                xcm3 + amax / 2.0, 2 * amax, ycm3 + bmin / 2.0, 2 * bmin);
       }
 
@@ -455,11 +458,20 @@ int main()
   if (imov == 1)
   {
     fclose(fpmov);
+<<<<<<< HEAD:linkCheck.c
     end = clock();
 
     double duration = ((double)(end - start)) / CLOCKS_PER_SEC;
 
     printf("The program completed in %lf seconds.\n", duration);
+=======
+
+    end = clock();
+
+    double duration = (double)(end - start) / CLOCKS_PER_SEC;
+
+    printf("Program finished in %lf seconds\n", duration);
+>>>>>>> polymerOmit:doublePlasmid.c
   }
 }
 
@@ -875,7 +887,16 @@ int check_accept(void)
 
     for (kk = 0; kk < nseg1 + nseg2 + nseg3; kk++)
     {
+<<<<<<< HEAD:linkCheck.c
       if (kk < nseg1)
+=======
+      // Check if nseg=3 plasmid overlaps with linear polymer
+      dx = r3x[k] - r1x[kk];
+      dy = r3y[k] - r1y[kk];
+      dz = r3z[k] - r1z[kk];
+      dr2 = dx * dx + dy * dy + dz * dz;
+      if (dr2 < 1.0)
+>>>>>>> polymerOmit:doublePlasmid.c
       {
         // Check if nseg=3 plasmid overlaps with linear polymer
         dx = r3x[k] - r1x[kk];
@@ -1656,13 +1677,13 @@ int check_shift_chain2()
 
   for (i = 0; i < nseg2; i++)
   {
+    if (squareEllipse(r2x[i], r2y[i], r2z[i]) == reject)
+    {
+      return (reject);
+    }
+
     for (kk = 0; kk < nseg1; kk++)
     {
-      if (squareEllipse(r2x[kk], r2y[kk], r2z[kk]) == reject)
-      {
-        return (reject);
-      }
-
       dx = r2x[i] - r1x[kk];
       dy = r2y[i] - r1y[kk];
       dz = r2z[i] - r1z[kk];
@@ -1696,13 +1717,13 @@ int check_shift_chain3()
 
   for (i = 0; i < nseg3; i++)
   {
+    if (squareEllipse(r3x[i], r3y[i], r3z[i]) == reject)
+    {
+      return (reject);
+    }
+
     for (kk = 0; kk < nseg1; kk++)
     {
-      if (squareEllipse(r3x[kk], r3y[kk], r3z[kk]) == reject)
-      {
-        return (reject);
-      }
-
       dx = r3x[i] - r1x[kk];
       dy = r3y[i] - r1y[kk];
       dz = r3z[i] - r1z[kk];
@@ -2093,7 +2114,7 @@ void calc_delta_xyz()
     }
   }
 
-  else
+  else if (ichain == 3)
   {
     if (irep == 0)
     {
@@ -2156,9 +2177,9 @@ int check_accept_reptation(long krep)
 
   if (ichain == 1)
   {
-    for (kk = 0; kk < nseg1; kk++)
+    for (kk = 0; kk < nseg1 + nseg2 + nseg3; kk++)
     {
-      if (squareEllipse(r1x[kk], r1y[kk], r1z[kk]) == reject)
+      if (squareEllipse(r1x[kk], r1y[kk], r1z[kk]) == reject && kk < nseg1)
       {
         return (reject);
       }
@@ -2205,7 +2226,7 @@ int check_accept_reptation(long krep)
   }
   else if (ichain == 2)
   { // plasmid 2
-    for (kk = 0; kk < nseg1; kk++)
+    for (kk = 0; kk < nseg1 + nseg2 + nseg3; kk++)
     {
       dz = r2z[krep] - r1z[kk];
       if (fabs(dz) < 1.0)
@@ -2263,18 +2284,21 @@ int check_accept_reptation(long krep)
 
   else
   {
-    for (kk = 0; kk < nseg1; kk++)
+    for (kk = 0; kk < nseg1 + nseg2 + nseg3; kk++)
     {
-      dz = r2z[krep] - r1z[kk];
-      if (fabs(dz) < 1.0)
+      if (kk < nseg1)
       {
-        dx = r3x[krep] - r1x[kk];
-        dy = r3y[krep] - r1y[kk];
-        dr2 = dx * dx + dy * dy + dz * dz;
-
-        if (dr2 < 1.0)
+        dz = r2z[krep] - r1z[kk];
+        if (fabs(dz) < 1.0)
         {
-          return (reject);
+          dx = r3x[krep] - r1x[kk];
+          dy = r3y[krep] - r1y[kk];
+          dr2 = dx * dx + dy * dy + dz * dz;
+
+          if (dr2 < 1.0)
+          {
+            return (reject);
+          }
         }
       }
 
@@ -2627,9 +2651,9 @@ void crank_move_chain3()
   else if (k == 0)
   {
 
-    rx = r3x[k] - r2x[nseg3 - 1];
-    ry = r3y[k] - r2y[nseg3 - 1];
-    rz = r3z[k] - r2z[nseg3 - 1];
+    rx = r3x[k] - r3x[nseg3 - 1];
+    ry = r3y[k] - r3y[nseg3 - 1];
+    rz = r3z[k] - r3z[nseg3 - 1];
 
     Rx = r3x[k + 1] - r3x[nseg3 - 1];
     Ry = r3y[k + 1] - r3y[nseg3 - 1];

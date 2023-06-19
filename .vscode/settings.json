@@ -5,5 +5,12 @@
             "binaryPath": "/home/zach/Documents/doublePlasmid/mc.run",
             "binaryArgs": []
         }
+<<<<<<< HEAD
     ]
+=======
+    ],
+    "files.associations": {
+        "cmath": "c"
+    }
+>>>>>>> polymerOmit
 }
