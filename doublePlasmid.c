@@ -194,12 +194,6 @@ int main()
   nshift = 0;
   nrep = 0;
 
-  xp1 = fopen("xcm1.dat", "w");
-  xp2 = fopen("xcm2.dat", "w");
-  xp3 = fopen("xcm3.dat", "w");
-  yp1 = fopen("ycm1.dat", "w");
-  yp2 = fopen("ycm2.dat", "w");
-  yp3 = fopen("ycm3.dat", "w");
   x1x2 = fopen("cmDifference.dat", "w");
 
   for (ii = 0; ii < ncyc; ii++)
@@ -422,12 +416,6 @@ int main()
       double distSq = sqrt((xcm2 - xcm3) * (xcm2 - xcm3) + (ycm2 - ycm3) * (ycm2 - ycm3) + (zcm2 - zcm3) * (zcm2 - zcm3));
       // printf("%lf\n", rPlasmid2 + rPlasmid3);
 
-      fprintf(xp1, "%lf\n", xcm1);
-      fprintf(xp2, "%lf\n", xcm2);
-      fprintf(xp3, "%lf\n", xcm3);
-      fprintf(yp1, "%lf\n", ycm1);
-      fprintf(yp2, "%lf\n", ycm2);
-      fprintf(yp3, "%lf\n", ycm3);
       fprintf(x1x2, "%lf\n", distSq);
     }
 
@@ -454,13 +442,7 @@ int main()
       }
     }
   }
-
-  fclose(xp1);
-  fclose(xp2);
-  fclose(xp3);
-  fclose(yp1);
-  fclose(yp2);
-  fclose(yp3);
+  
   fclose(x1x2);
 
   printf("Acc. ratio = %lf\n", 1.0 * nacc / ((ncyc * (nseg1 + nseg2 + nseg3)) - nrep));
