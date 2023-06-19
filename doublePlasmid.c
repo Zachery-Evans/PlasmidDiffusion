@@ -21,6 +21,7 @@ int check_shift_chain3(void);
 int check_energy(void);
 double calc_cosine_chain1(int, int, int);
 double calc_cosine_chain2(int, int, int);
+double calc_cosine_chain3(int, int, int);
 
 double **dmatrix(long, long, long, long);
 void free_dmatrix(double **, long, long, long, long);
@@ -770,7 +771,6 @@ int check_accept(void)
 
     for (kk = 0; kk < nseg1; kk++)
     {
-
       // Check if nseg=3 plasmid overlaps with linear polymer
       dx = r3x[k] - r1x[kk];
       dy = r3y[k] - r1y[kk];
@@ -979,56 +979,56 @@ int check_energy(void)
   {
     if (k == 0)
     {
-      theta_new = calc_cosine_chain2(k, k + 1, k + 2);
-      theta_old = calc_cosine_chain2(-1, k + 1, k + 2);
+      theta_new = calc_cosine_chain3(k, k + 1, k + 2);
+      theta_old = calc_cosine_chain3(-1, k + 1, k + 2);
       energy_new[0] = kappa * (1.0 - theta_new);
       energy_old[0] = kappa * (1.0 - theta_old);
     }
     else if (k == nseg3 - 1)
     {
-      theta_new = calc_cosine_chain2(k - 2, k - 1, k);
-      theta_old = calc_cosine_chain2(k - 2, k - 1, -1);
+      theta_new = calc_cosine_chain3(k - 2, k - 1, k);
+      theta_old = calc_cosine_chain3(k - 2, k - 1, -1);
       energy_new[0] = kappa * (1.0 - theta_new);
       energy_old[0] = kappa * (1.0 - theta_old);
     }
     else if (k == 1)
     {
-      theta_new = calc_cosine_chain2(k - 1, k, k + 1);
-      theta_old = calc_cosine_chain2(k - 1, -1, k + 1);
+      theta_new = calc_cosine_chain3(k - 1, k, k + 1);
+      theta_old = calc_cosine_chain3(k - 1, -1, k + 1);
       energy_new[0] = kappa * (1.0 - theta_new);
       energy_old[0] = kappa * (1.0 - theta_old);
 
-      theta_new = calc_cosine_chain2(k, k + 1, k + 2);
-      theta_old = calc_cosine_chain2(-1, k + 1, k + 2);
+      theta_new = calc_cosine_chain3(k, k + 1, k + 2);
+      theta_old = calc_cosine_chain3(-1, k + 1, k + 2);
       energy_new[1] = kappa * (1.0 - theta_new);
       energy_old[1] = kappa * (1.0 - theta_old);
     }
     else if (k == nseg3 - 2)
     {
-      theta_new = calc_cosine_chain2(k - 2, k - 1, k);
-      theta_old = calc_cosine_chain2(k - 2, k - 1, -1);
+      theta_new = calc_cosine_chain3(k - 2, k - 1, k);
+      theta_old = calc_cosine_chain3(k - 2, k - 1, -1);
       energy_new[0] = kappa * (1.0 - theta_new);
       energy_old[0] = kappa * (1.0 - theta_old);
 
-      theta_new = calc_cosine_chain2(k - 1, k, k + 1);
-      theta_old = calc_cosine_chain2(k - 1, -1, k + 1);
+      theta_new = calc_cosine_chain3(k - 1, k, k + 1);
+      theta_old = calc_cosine_chain3(k - 1, -1, k + 1);
       energy_new[1] = kappa * (1.0 - theta_new);
       energy_old[1] = kappa * (1.0 - theta_old);
     }
     else
     {
-      theta_new = calc_cosine_chain2(k - 2, k - 1, k);
-      theta_old = calc_cosine_chain2(k - 2, k - 1, -1);
+      theta_new = calc_cosine_chain3(k - 2, k - 1, k);
+      theta_old = calc_cosine_chain3(k - 2, k - 1, -1);
       energy_new[0] = kappa * (1.0 - theta_new);
       energy_old[0] = kappa * (1.0 - theta_old);
 
-      theta_new = calc_cosine_chain2(k - 1, k, k + 1);
-      theta_old = calc_cosine_chain2(k - 1, -1, k + 1);
+      theta_new = calc_cosine_chain3(k - 1, k, k + 1);
+      theta_old = calc_cosine_chain3(k - 1, -1, k + 1);
       energy_new[1] = kappa * (1.0 - theta_new);
       energy_old[1] = kappa * (1.0 - theta_old);
 
-      theta_new = calc_cosine_chain2(k, k + 1, k + 2);
-      theta_old = calc_cosine_chain2(-1, k + 1, k + 2);
+      theta_new = calc_cosine_chain3(k, k + 1, k + 2);
+      theta_old = calc_cosine_chain3(-1, k + 1, k + 2);
       energy_new[2] = kappa * (1.0 - theta_new);
       energy_old[2] = kappa * (1.0 - theta_old);
     }
@@ -1585,8 +1585,9 @@ int check_shift_chain3()
   int accept = 0;
   int reject = 1;
 
-  for (i = 0; i < nseg3; i++)
+  for (i = 0; i < nseg1 + nseg2 + nseg3; i++)
   {
+    
     if (squareEllipse(r3x[i], r3y[i], r3z[i]) == reject)
     {
       return (reject);
@@ -2045,9 +2046,9 @@ int check_accept_reptation(long krep)
 
   if (ichain == 1)
   {
-    for (kk = 0; kk < nseg1; kk++)
+    for (kk = 0; kk < nseg1 + nseg2 + nseg3; kk++)
     {
-      if (squareEllipse(r1x[kk], r1y[kk], r1z[kk]) == reject)
+      if (squareEllipse(r1x[kk], r1y[kk], r1z[kk]) == reject && kk < nseg1)
       {
         return (reject);
       }
@@ -2094,7 +2095,7 @@ int check_accept_reptation(long krep)
   }
   else if (ichain == 2)
   { // plasmid 2
-    for (kk = 0; kk < nseg1; kk++)
+    for (kk = 0; kk < nseg1 + nseg2 + nseg3; kk++)
     {
       dz = r2z[krep] - r1z[kk];
       if (fabs(dz) < 1.0)
@@ -2152,18 +2153,21 @@ int check_accept_reptation(long krep)
 
   else
   {
-    for (kk = 0; kk < nseg1; kk++)
+    for (kk = 0; kk < nseg1 + nseg2 + nseg3; kk++)
     {
-      dz = r2z[krep] - r1z[kk];
-      if (fabs(dz) < 1.0)
+      if (kk < nseg1)
       {
-        dx = r3x[krep] - r1x[kk];
-        dy = r3y[krep] - r1y[kk];
-        dr2 = dx * dx + dy * dy + dz * dz;
-
-        if (dr2 < 1.0)
+        dz = r2z[krep] - r1z[kk];
+        if (fabs(dz) < 1.0)
         {
-          return (reject);
+          dx = r3x[krep] - r1x[kk];
+          dy = r3y[krep] - r1y[kk];
+          dr2 = dx * dx + dy * dy + dz * dz;
+
+          if (dr2 < 1.0)
+          {
+            return (reject);
+          }
         }
       }
 
