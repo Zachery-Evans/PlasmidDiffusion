@@ -95,9 +95,7 @@ int main()
   long imon, indx, indy;
   double xcm1, ycm1, xcm2, ycm2, xcm3, ycm3;
   clock_t start, end;
-
   FILE *xp1, *yp1, *xp2, *yp2, *xp3, *yp3, *x1x2;
-  clock_t start, end;
 
   input();
 
@@ -445,7 +443,7 @@ int main()
       }
     }
   }
-  
+
   fclose(x1x2);
 
   printf("Acc. ratio = %lf\n", 1.0 * nacc / ((ncyc * (nseg1 + nseg2 + nseg3)) - nrep));
@@ -458,20 +456,12 @@ int main()
   if (imov == 1)
   {
     fclose(fpmov);
-<<<<<<< HEAD:linkCheck.c
-    end = clock();
-
-    double duration = ((double)(end - start)) / CLOCKS_PER_SEC;
-
-    printf("The program completed in %lf seconds.\n", duration);
-=======
 
     end = clock();
 
     double duration = (double)(end - start) / CLOCKS_PER_SEC;
 
     printf("Program finished in %lf seconds\n", duration);
->>>>>>> polymerOmit:doublePlasmid.c
   }
 }
 
@@ -887,16 +877,7 @@ int check_accept(void)
 
     for (kk = 0; kk < nseg1 + nseg2 + nseg3; kk++)
     {
-<<<<<<< HEAD:linkCheck.c
       if (kk < nseg1)
-=======
-      // Check if nseg=3 plasmid overlaps with linear polymer
-      dx = r3x[k] - r1x[kk];
-      dy = r3y[k] - r1y[kk];
-      dz = r3z[k] - r1z[kk];
-      dr2 = dx * dx + dy * dy + dz * dz;
-      if (dr2 < 1.0)
->>>>>>> polymerOmit:doublePlasmid.c
       {
         // Check if nseg=3 plasmid overlaps with linear polymer
         dx = r3x[k] - r1x[kk];
