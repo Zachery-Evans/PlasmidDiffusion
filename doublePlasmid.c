@@ -376,7 +376,7 @@ int main()
       if (indx >= ngridx || indy >= ngridy)
       {
         printf("3:  indx = %ld/%ld, indy = %ld/%ld\n", indx, ngridx, indy, ngridy);
-        printf("    xcm2 = %lf, 2*amax = %lf,  ycm2 = %lf, 2*bmin = %lf\n",
+        printf("    xcm3 = %lf, 2*amax = %lf,  ycm3 = %lf, 2*bmin = %lf\n",
                xcm3 + amax / 2.0, 2 * amax, ycm3 + bmin / 2.0, 2 * bmin);
       }
 
@@ -1585,9 +1585,8 @@ int check_shift_chain3()
   int accept = 0;
   int reject = 1;
 
-  for (i = 0; i < nseg1 + nseg2 + nseg3; i++)
+  for (i = 0; i < nseg3; i++)
   {
-    
     if (squareEllipse(r3x[i], r3y[i], r3z[i]) == reject)
     {
       return (reject);
@@ -1595,7 +1594,6 @@ int check_shift_chain3()
 
     for (kk = 0; kk < nseg1; kk++)
     {
-
       dx = r3x[i] - r1x[kk];
       dy = r3y[i] - r1y[kk];
       dz = r3z[i] - r1z[kk];
@@ -2465,9 +2463,9 @@ void crank_move_chain3()
   else if (k == 0)
   {
 
-    rx = r3x[k] - r2x[nseg3 - 1];
-    ry = r3y[k] - r2y[nseg3 - 1];
-    rz = r3z[k] - r2z[nseg3 - 1];
+    rx = r3x[k] - r3x[nseg3 - 1];
+    ry = r3y[k] - r3y[nseg3 - 1];
+    rz = r3z[k] - r3z[nseg3 - 1];
 
     Rx = r3x[k + 1] - r3x[nseg3 - 1];
     Ry = r3y[k + 1] - r3y[nseg3 - 1];
