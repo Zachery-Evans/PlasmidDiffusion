@@ -812,7 +812,7 @@ int check_accept(void)
     }
     // Check if polymer and plasmid overlap
   }
-  return (check_energy());
+  return (check_energy()); // apply rigidity
 }
 
 // ----------------------------------------------------------------------
@@ -1299,7 +1299,7 @@ void init_pos(void)
       }
       xadd *= -1.0;
     }
-    r1z[i] = 1.0;
+    r1z[i] = 0.0;
   }
 
   double theta_plasmid = 2.0 * PI / nseg2;
