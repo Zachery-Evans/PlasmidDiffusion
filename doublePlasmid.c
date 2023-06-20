@@ -441,11 +441,8 @@ int main()
   if (imov == 1)
   {
     fclose(fpmov);
-
     end = clock();
-
     double duration = (double)(end - start) / CLOCKS_PER_SEC;
-
     printf("Program finished in %lf seconds\n", duration);
   }
 }
@@ -815,15 +812,7 @@ int check_accept(void)
     }
     // Check if polymer and plasmid overlap
   }
-
-  if (ichain == 1)
-  {
-    return (check_energy());
-  }
-  else
-  {
-    return (accept);
-  }
+  return (check_energy());
 }
 
 // ----------------------------------------------------------------------
