@@ -29,6 +29,7 @@ void free_dmatrix(double **, long, long, long, long);
 void reptation_move_chain1(void);
 void reptation_move_chain2(void);
 void reptation_move_chain3(void);
+void fold_move(void); // This function is the purpose of this branch
 void shift_move_chain(void);
 void shift_move_chain2(void);
 void shift_move_chain3(void);
@@ -2537,6 +2538,17 @@ void crank_move_chain3()
     r3y[k] = r3y[k - 1] + ry;
     r3z[k] = r3z[k - 1] + rz;
   }
+}
+/*
+ * fold_move function in an attempt to fix a possible issue where the plasmids do not seem to
+ * rotate into the z direction while undergoing random movement. This could be an effect of the z height of the 
+ * geometry not allowing for movement, or may be an unphysical result.
+ * 
+ * 
+ *
+ */
+void fold_move(void)
+{
 }
 
 double **dmatrix(long nrl, long nrh, long ncl, long nch)
