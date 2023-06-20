@@ -1,9 +1,3 @@
-#include <math.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <time.h>
-
 #define PI 3.141592653589793
 
 void input(void);
@@ -51,7 +45,7 @@ int main(void)
     FILE *gp;
     if ((gp = fopen("geometry.xyz", "w")) == NULL)
     { // reading mc.inp
-        printf("Cannot open file: geometry.dat\n");
+        printf("Cannot open file: geometry.xyz\n");
     }
     else
     {
