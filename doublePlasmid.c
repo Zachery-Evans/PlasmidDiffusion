@@ -116,11 +116,11 @@ int main()
   xBoxMaxd2 = xBoxMax / 2.0;
 
   //  printf("%lf \t %lf\n", amax, bmin);
-  // printf("Length of the box: %lf\n", xBoxMax);
+  //  printf("Length of the box: %lf\n", xBoxMax);
   //  printf("1/2 Length of the box: %lf\n", xBoxMaxd2);
   //  printf("Semi-major axis: %lf\n", amax);
   //  printf("Semi-minor axis: %lf\n", bmin);
-  // printf("Height of box: %lf\n", yBoxMax);
+  //  printf("Height of box: %lf\n", yBoxMax);
   Hd2 = H / 2.0;
 
   ngridx = 2.0 * (amax + xBoxMaxd2) / gridspace + 0.00001;
