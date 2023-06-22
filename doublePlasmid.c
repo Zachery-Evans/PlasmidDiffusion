@@ -2086,16 +2086,19 @@ int check_accept_reptation(long krep)
   { // plasmid 2
     for (kk = 0; kk < nseg1 + nseg2 + nseg3; kk++)
     {
-      dz = r2z[krep] - r1z[kk];
-      if (fabs(dz) < 1.0)
+      if (kk < nseg1)
       {
-        dx = r2x[krep] - r1x[kk];
-        dy = r2y[krep] - r1y[kk];
-        dr2 = dx * dx + dy * dy + dz * dz;
-
-        if (dr2 < 1.0)
+        dz = r2z[krep] - r1z[kk];
+        if (fabs(dz) < 1.0)
         {
-          return (reject);
+          dx = r2x[krep] - r1x[kk];
+          dy = r2y[krep] - r1y[kk];
+          dr2 = dx * dx + dy * dy + dz * dz;
+
+          if (dr2 < 1.0)
+          {
+            return (reject);
+          }
         }
       }
 
