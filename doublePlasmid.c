@@ -703,16 +703,19 @@ int check_accept(void)
       khigh = k + 1;
     }
 
-    for (kk = 0; kk < nseg1; kk++)
+    for (kk = 0; kk < nseg1 + nseg2 + nseg3; kk++)
     {
-      // Check if polymer and plasmid overlap
-      dx = r2x[k] - r1x[kk];
-      dy = r2y[k] - r1y[kk];
-      dz = r2z[k] - r1z[kk];
-      dr2 = dx * dx + dy * dy + dz * dz;
-      if (dr2 < 1.0)
+      if (kk < nseg1)
       {
-        return (reject);
+        // Check if polymer and plasmid overlap
+        dx = r2x[k] - r1x[kk];
+        dy = r2y[k] - r1y[kk];
+        dz = r2z[k] - r1z[kk];
+        dr2 = dx * dx + dy * dy + dz * dz;
+        if (dr2 < 1.0)
+        {
+          return (reject);
+        }
       }
 
       // Check if nseg=2 plasmid escapes squareEllipse or overlaps
@@ -768,16 +771,19 @@ int check_accept(void)
       khigh = k + 1;
     }
 
-    for (kk = 0; kk < nseg1; kk++)
+    for (kk = 0; kk < nseg1 + nseg2 + nseg3; kk++)
     {
-      // Check if nseg=3 plasmid overlaps with linear polymer
-      dx = r3x[k] - r1x[kk];
-      dy = r3y[k] - r1y[kk];
-      dz = r3z[k] - r1z[kk];
-      dr2 = dx * dx + dy * dy + dz * dz;
-      if (dr2 < 1.0)
+      if (kk < nseg1)
       {
-        return (reject);
+        // Check if nseg=3 plasmid overlaps with linear polymer
+        dx = r3x[k] - r1x[kk];
+        dy = r3y[k] - r1y[kk];
+        dz = r3z[k] - r1z[kk];
+        dr2 = dx * dx + dy * dy + dz * dz;
+        if (dr2 < 1.0)
+        {
+          return (reject);
+        }
       }
 
       // Check if plasmids overlap
@@ -814,7 +820,14 @@ int check_accept(void)
     }
     // Check if polymer and plasmid overlap
   }
-  return (check_energy()); // apply rigidity
+  if (ichain == 1)
+  {
+    return (check_energy()); // apply rigidity
+  }
+  else
+  {
+    return accept;
+  }
 }
 
 // ----------------------------------------------------------------------
@@ -1448,19 +1461,16 @@ void shift_move_chain2()
   double ysold[5000];
   double zsold[5000];
 
-  for (i = 0; i < nseg2; i++)
-  {
-    xsold[i] = r2x[i];
-    ysold[i] = r2y[i];
-    zsold[i] = r2z[i];
-  }
-
   delrx = rshift_max * (2.0 * ran3() - 1.0);
   delry = rshift_max * (2.0 * ran3() - 1.0);
   delrz = rshift_max * (2.0 * ran3() - 1.0);
 
   for (i = 0; i < nseg2; i++)
   {
+    xsold[i] = r2x[i];
+    ysold[i] = r2y[i];
+    zsold[i] = r2z[i];
+
     r2x[i] += delrx;
     r2y[i] += delry;
     r2z[i] += delrz;
@@ -1494,19 +1504,16 @@ void shift_move_chain3()
   double ysold[5000];
   double zsold[5000];
 
-  for (i = 0; i < nseg3; i++)
-  {
-    xsold[i] = r3x[i];
-    ysold[i] = r3y[i];
-    zsold[i] = r3z[i];
-  }
-
   delrx = rshift_max * (2.0 * ran3() - 1.0);
   delry = rshift_max * (2.0 * ran3() - 1.0);
   delrz = rshift_max * (2.0 * ran3() - 1.0);
 
   for (i = 0; i < nseg3; i++)
   {
+    xsold[i] = r3x[i];
+    ysold[i] = r3y[i];
+    zsold[i] = r3z[i];
+
     r3x[i] += delrx;
     r3y[i] += delry;
     r3z[i] += delrz;
