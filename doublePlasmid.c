@@ -636,23 +636,25 @@ int check_accept(void)
 
   if (ichain == 1)
   {
-
     // Checking if the T4 polymer overlaps with itself
-    for (kk = 0; kk < nseg1; kk++)
+    for (kk = 0; kk < nseg1 + nseg2 + nseg3; kk++)
     {
-      if (squareEllipse(r1x[kk], r1y[kk], r1z[kk]) == reject)
+      if (kk < nseg1)
       {
-        return (reject);
-      }
-      if (kk < k - 1 || kk > k + 1)
-      {
-        dx = r1x[k] - r1x[kk];
-        dy = r1y[k] - r1y[kk];
-        dz = r1z[k] - r1z[kk];
-        dr2 = dx * dx + dy * dy + dz * dz;
-        if (dr2 < 1.0)
+        if (squareEllipse(r1x[kk], r1y[kk], r1z[kk]) == reject)
         {
           return (reject);
+        }
+        if (kk < k - 1 || kk > k + 1)
+        {
+          dx = r1x[k] - r1x[kk];
+          dy = r1y[k] - r1y[kk];
+          dz = r1z[k] - r1z[kk];
+          dr2 = dx * dx + dy * dy + dz * dz;
+          if (dr2 < 1.0)
+          {
+            return (reject);
+          }
         }
       }
 
