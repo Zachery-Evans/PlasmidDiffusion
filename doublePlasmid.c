@@ -1302,20 +1302,22 @@ void init_pos(void)
     r1z[i] = 0.0;
   }
 
-  double theta_plasmid = 2.0 * PI / nseg2;
-  double Rplasmid = 0.5 / tan(theta_plasmid / 2.0);
+  double theta_plasmid2 = 2.0 * PI / nseg2;
+  double Rplasmid2 = 0.5 / tan(theta_plasmid2 / 2.0);
+  double theta_plasmid3 = 2.0 * PI / nseg3;
+  double Rplasmid3 = 0.5 / tan(theta_plasmid3 / 2.0);
   for (i = 0; i < nseg2; i++)
   {
     r2z[i] = -2.0;
-    r2x[i] = Rplasmid * cos(i * theta_plasmid);
-    r2y[i] = Rplasmid * sin(i * theta_plasmid);
+    r2x[i] = Rplasmid2 * cos(i * theta_plasmid2);
+    r2y[i] = Rplasmid2 * sin(i * theta_plasmid2);
   }
 
   for (i = 0; i < nseg3; i++)
   {
     r3z[i] = 2.0; // Initialized just above the first plasmid
-    r3x[i] = Rplasmid * cos(i * theta_plasmid);
-    r3y[i] = Rplasmid * sin(i * theta_plasmid);
+    r3x[i] = Rplasmid3 * cos(i * theta_plasmid3);
+    r3y[i] = Rplasmid3 * sin(i * theta_plasmid3);
   }
 }
 
