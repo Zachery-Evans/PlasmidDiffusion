@@ -1616,7 +1616,6 @@ int check_shift_chain3()
       }
     }
   }
-
   return (accept);
 }
 
