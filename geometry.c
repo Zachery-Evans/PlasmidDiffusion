@@ -1,8 +1,11 @@
+#include <stdio.h>
+#include <math.h>
+
 #define PI 3.141592653589793
 
 void input(void);
 
-long nseg1, nseg2, nseg3, nbin, i, j, k, ii, ncyc, overlap, nacc, kk, itest, iseed;
+long nseg1, nseg2, nseg3, ncyc, overlap, nacc, kk, itest, iseed;
 long neq, nbintot, ibin, ichain, nsamp, nacc_shift, nshift;
 long imov, kmaxtest, freq_samp, cmFreqSamp, freq_mon, freq_mov, ncmt, ngridx, ngridy;
 
@@ -13,16 +16,6 @@ double xBoxMaxd2, yBoxMaxd2;
 double kappa, xold, yold, zold, delphi_max;
 double z1min, z1max, z2min, z2max, zcm1, zcm2, z1bcm, z2bcm;
 double **prob1, **prob2, **prob3, **probmon;
-
-double x1, x2, x3, yone, y2, y3, z1, z2, z3;
-double vax, vay, vaz, vbx, vby, vbz;
-double va_sq, vb_sq;
-double va_dot_vb;
-double theta_old, theta_new;
-double energy_new[3];
-double energy_old[3];
-double E_new, E_old;
-double delta_E;
 
 long ind;
 
@@ -40,7 +33,7 @@ double u, uxy;
 
 int main(void)
 {
-    input();
+    input(); // Read data given in the input file
 
     FILE *gp;
     if ((gp = fopen("geometry.xyz", "w")) == NULL)
@@ -57,34 +50,31 @@ int main(void)
         xBoxMaxd2 = xBoxMax / 2.0;
         Hd2 = H / 2.0;
 
-        fprintf(gp, "%ld\n", 50716);
+        fprintf(gp, "%ld\n", 2524);
         fprintf(gp, "Surface:  %ld\n", 0);
 
-        for (double i = 0.0; i < xBoxMax; i+=0.5)
+        for (double ii = 0.0; ii < xBoxMax; ii += 0.5)
         {
-            for (double j = 0.0; j < H; j += 0.5)
-            {
-                fprintf(gp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 + i, bmin, -Hd2 + j);
-                fprintf(gp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 + i, -bmin, -Hd2 + j);
-            }
-
-            fprintf(gp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 + i, bmin, -Hd2);
-            fprintf(gp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 + i, -bmin, -Hd2);
+            fprintf(gp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 + ii, bmin, Hd2);
+            fprintf(gp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 + ii, -bmin, Hd2);
         }
 
-        for (double i = -PI / 2; i < PI / 2; i += 0.01)
+        for (double ii = -PI / 2; ii < PI / 2; ii += 0.01)
         {
+            fprintf(gp, "N    %lf  %lf  %lf\n", xBoxMaxd2 + amax * cos(ii), bmin + bmin * sin(ii) - bmin, Hd2);
+            fprintf(gp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 - amax * cos(ii), -bmin + bmin * sin(ii) + bmin, Hd2);
+        }
 
-            for (double j = 0.0; j < H; j += 0.5)
+        double angle = -PI / 2.0;
+        for (double jj = -yBoxMaxd2; jj < yBoxMaxd2; jj += 0.2)
+        {
+            angle += 0.04;
+            for (double ii = -xBoxMaxd2 - amax; ii < xBoxMaxd2 + amax; ii += 0.2)
             {
-                fprintf(gp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 - amax * cos(i), bmin + bmin * sin(i) - bmin, -Hd2 + j);
-                fprintf(gp, "N    %lf  %lf  %lf\n", xBoxMaxd2 + amax * cos(i), bmin + bmin * sin(i) - bmin, -Hd2 + j);
-            }
-
-            for (double i = PI / 2; i > -PI / 2; i -= 0.1)
-            {
-                fprintf(gp, "N    %lf  %lf  %lf\n", xBoxMaxd2 + amax * cos(i), bmin + bmin * sin(i) - bmin, Hd2);
-                fprintf(gp, "N    %lf  %lf  %lf\n", xBoxMaxd2 + amax * cos(i), -bmin + bmin * sin(i) + bmin, -Hd2);
+                if (ii < amax * sqrt(1 - jj * jj / bmin * bmin) && ii > -amax * sqrt(1 - jj * jj / bmin * bmin))
+                {
+                    fprintf(gp, "N    %lf  %lf  %lf\n", ii, jj, Hd2);
+                }
             }
         }
     }
