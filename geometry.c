@@ -33,6 +33,7 @@ double u, uxy;
 
 int main(void)
 {
+    double ii, jj, kk;
     input(); // Read data given in the input file
 
     FILE *gp;
@@ -50,7 +51,7 @@ int main(void)
         xBoxMaxd2 = xBoxMax / 2.0;
         Hd2 = H / 2.0;
 
-        fprintf(gp, "%ld\n", 2524);
+        fprintf(gp, "%ld\n", 57634);
         fprintf(gp, "Surface:  %ld\n", 0);
 
         for (double ii = 0.0; ii < xBoxMax; ii += 0.5)
@@ -68,12 +69,36 @@ int main(void)
         double angle = -PI / 2.0;
         for (double jj = -yBoxMaxd2; jj < yBoxMaxd2; jj += 0.2)
         {
-            angle += 0.04;
-            for (double ii = -xBoxMaxd2 - amax; ii < xBoxMaxd2 + amax; ii += 0.2)
+            for (double ii = -xBoxMaxd2 - amax; ii < amax + xBoxMaxd2; ii += 0.2)
             {
-                if (ii < amax * sqrt(1 - jj * jj / bmin * bmin) && ii > -amax * sqrt(1 - jj * jj / bmin * bmin))
+                if (xPos > xBoxMaxd2)
+                { // If the polymer is outside of the leftmost semi-ellipse, reject
+                    if ((xPos - xBoxMaxd2) * (xPos - xBoxMaxd2) > amax2 * (1 - (yPos * yPos) / bmin2))
+                    {
+                        return reject;
+                    }
+                    if (yPos * yPos > bmin2 * (1 - (xPos - xBoxMaxd2) * (xPos - xBoxMaxd2) / amax2))
+                    {
+                        return reject;
+                    }
+
+                    echeck = (((xPos - xBoxMaxd2) * (xPos - xBoxMaxd2)) / amax2) + ((yPos * yPos) / bmin2);
+
+                    if (echeck > 1.0)
+                    {
+                        return (reject);
+                    }
+                }
+                if (ii < xBoxMaxd2 && ii > -xBoxMaxd2)
                 {
-                    fprintf(gp, "N    %lf  %lf  %lf\n", ii, jj, Hd2);
+                    fprintf(gp, "N  %lf  %lf  %lf\n", ii, jj, Hd2);
+                }
+                else
+                {
+                    if (jj < bmin * bmin * (1 - (ii + xBoxMaxd2) * (ii + xBoxMaxd2) / amax * amax) && jj < bmin * bmin * (1 - (ii - xBoxMaxd2) * (ii - xBoxMaxd2) / amax * amax))
+                    {
+                        fprintf(gp, "N  %lf  %lf  %lf\n", ii, jj, Hd2);
+                    }
                 }
             }
         }
