@@ -38,7 +38,7 @@ void crank_move_chain1(void);
 void crank_move_chain2(void);
 void crank_move_chain3(void);
 
-long nseg1, nseg2, nseg3, nbin, i, j, k, ii, ncyc, overlap, nacc, kk, itest, iseed;
+long nseg1, nseg2, nseg3, nseg4, nbin, i, j, k, ii, ncyc, overlap, nacc, kk, itest, iseed;
 long neq, nbintot, ibin, ichain, nsamp, nacc_shift, nshift;
 long imov, kmaxtest, freq_samp, cmFreqSamp, freq_mon, freq_mov, ncmt, ngridx, ngridy;
 
@@ -48,7 +48,7 @@ double amax, bmin, amax2, bmin2, ecc, Area, rectangleArea, rectangleXYRatio, xBo
 double xBoxMaxd2, yBoxMaxd2;
 double kappa, xold, yold, zold, delphi_max;
 double z1min, z1max, z2min, z2max, zcm1, zcm2, z1bcm, z2bcm;
-double **prob1, **prob2, **prob3, **probmon;
+double **prob1, **prob2, **prob3, **prob4, **probmon;
 
 FILE *fpmov;
 
@@ -61,6 +61,9 @@ double r2z[5000];
 double r3x[5000];
 double r3y[5000];
 double r3z[5000];
+double r4x[5000];
+double r4y[5000];
+double r4z[5000];
 
 double x1, x2, x3, yone, y2, y3, z1, z2, z3;
 double vax, vay, vaz, vbx, vby, vbz;
@@ -92,7 +95,7 @@ double u, uxy;
 int main()
 {
   long imon, indx, indy;
-  double xcm1, ycm1, xcm2, ycm2, xcm3, ycm3;
+  double xcm1, ycm1, xcm2, ycm2, xcm3, ycm3, xcm4, ycm4;
   clock_t start, end;
 
   FILE *xp1, *yp1, *xp2, *yp2, *xp3, *yp3, *x1x2;
@@ -132,6 +135,7 @@ int main()
   prob1 = dmatrix(0, ngridx - 1, 0, ngridy - 1);
   prob2 = dmatrix(0, ngridx - 1, 0, ngridy - 1);
   prob3 = dmatrix(0, ngridx - 1, 0, ngridy - 1);
+  prob3 = dmatrix(0, ngridx - 1, 0, ngridy - 1);
   probmon = dmatrix(0, ngridx - 1, 0, ngridy - 1);
 
   for (i = 0; i < ngridx; i++)
@@ -141,6 +145,7 @@ int main()
       prob1[i][j] = 0.0;
       prob2[i][j] = 0.0;
       prob3[i][j] = 0.0;
+      prob4[i][j] = 0.0;
       probmon[i][j] = 0.0;
     }
   }
@@ -185,6 +190,11 @@ int main()
       {
         fprintf(fpmov, "F    %lf  %lf  %lf\n", r3x[i], r3y[i], r3z[i]);
       }
+
+      for (i = 0; i < nseg4; i++)
+      {
+        fprintf(fpmov, "F    %lf  %lf  %lf\n", r4x[i], r4y[i], r4z[i]);
+      }
     }
   }
 
@@ -206,23 +216,23 @@ int main()
   {
     // if (ii % 100 == 0) printf("ii = %ld\n",ii);
 
-    for (j = 0; j < nseg1 + nseg2 + nseg3; j++)
+    for (j = 0; j < nseg1 + nseg2 + nseg3 + nseg4; j++)
     {
-      k = (nseg1 + nseg2 + nseg3) * ran3();
+      k = (nseg1 + nseg2 + nseg3 + nseg4) * ran3();
 
       if (k < nseg1)
       {
         ichain = 1;
         kmaxtest = nseg1 - 2;
       }
-      else if (nseg1 < k && k < (nseg1 + nseg2))
+      else if (nseg1 < k && k < (nseg2 + nseg3))
       {
         ichain = 2;
         k -= nseg1;
         kmaxtest = nseg2 - 2;
       }
 
-      else if (k > (nseg1 + nseg2))
+      else if ((nseg1 + nseg2) < k && k < (nseg3))
       {
         ichain = 3;
         k -= nseg1;
@@ -281,6 +291,12 @@ int main()
             r3y[k] = yold;
             r3z[k] = zold;
           }
+          else if (ichain == 4)
+          {
+            r4x[k] = xold;
+            r4y[k] = yold;
+            r4z[k] = zold;
+          }
         }
       }
       else
@@ -297,6 +313,10 @@ int main()
         else if (ichain == 3)
         {
           shift_move_chain3();
+        }
+        else if (ichain == 4)
+        {
+          shift_move_chain4();
         }
       }
     }
@@ -403,7 +423,7 @@ int main()
     {
       if (ii % freq_mov == 0 && ii > -1)
       {
-        fprintf(fpmov, "%ld\n", nseg1 + nseg2 + nseg3);
+        fprintf(fpmov, "%ld\n", nseg1 + nseg2 + nseg3 + nseg4);
         fprintf(fpmov, "Polymer:  %ld\n", ii);
 
         for (i = 0; i < nseg1; i++)
@@ -418,6 +438,11 @@ int main()
         for (i = 0; i < nseg3; i++)
         {
           fprintf(fpmov, "F    %lf  %lf  %lf\n", r3x[i], r3y[i], r3z[i]);
+        }
+
+        for (i = 0; i < nseg4; i++)
+        {
+          fprintf(fpmov, "F    %lf  %lf  %lf\n", r4x[i], r4y[i], r4z[i]);
         }
       }
     }
@@ -1314,6 +1339,7 @@ void init_pos(void)
   double Rplasmid2 = 0.5 / tan(theta_plasmid2 / 2.0);
   double theta_plasmid3 = 2.0 * PI / nseg3;
   double Rplasmid3 = 0.5 / tan(theta_plasmid3 / 2.0);
+  double theta_plasmid4 = 2.0 * PI / nseg4;
   for (i = 0; i < nseg2; i++)
   {
     r2z[i] = 2.0;
