@@ -215,14 +215,14 @@ int main()
         ichain = 1;
         kmaxtest = nseg1 - 2;
       }
-      else if (nseg1 < k && k < (nseg1 + nseg2))
+      else if (nseg1 < k && k < (nseg3 + nseg2))
       {
         ichain = 2;
         k -= nseg1;
         kmaxtest = nseg2 - 2;
       }
 
-      else if (k > (nseg1 + nseg2))
+      else if (k > (nseg3 + nseg2))
       {
         ichain = 3;
         k -= nseg1;
