@@ -61,9 +61,6 @@ double r2z[5000];
 double r3x[5000];
 double r3y[5000];
 double r3z[5000];
-double r4x[5000];
-double r4y[5000];
-double r4z[5000];
 
 double x1, x2, x3, yone, y2, y3, z1, z2, z3;
 double vax, vay, vaz, vbx, vby, vbz;
@@ -285,12 +282,6 @@ int main()
             r3x[k] = xold;
             r3y[k] = yold;
             r3z[k] = zold;
-          }
-          else if (ichain == 4)
-          {
-            r4x[k] = xold;
-            r4y[k] = yold;
-            r4z[k] = zold;
           }
         }
       }
