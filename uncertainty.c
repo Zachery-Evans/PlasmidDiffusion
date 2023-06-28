@@ -1,7 +1,16 @@
 /*
-*   Program to calculate the uncertainty of a single column of data. 
+*   Program to calculate the total average and uncertainty of a single column of data. 
 *   Written by Zach Evans 28 June 2023
 *   zdjevans@protonmail.com
+*
+*
+*   Program should be compiled to a run file by: cc -lm -O3 uncertainty.c -o unc.run 
+*   or similar. 
+*
+*   The program should then be run as: ./unc.run < data_file.dat
+*   The program will then output a file with the total average in the first column, and the uncertainty
+*   of the average in the second column. 
+*
 */
 
 #include <math.h>
