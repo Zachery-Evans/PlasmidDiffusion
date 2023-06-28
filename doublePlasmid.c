@@ -820,14 +820,7 @@ int check_accept(void)
     }
     // Check if polymer and plasmid overlap
   }
-  if (ichain == 1)
-  {
-    return (check_energy()); // apply rigidity
-  }
-  else
-  {
-    return accept;
-  }
+  return (check_energy()); // apply rigidity
 }
 
 // ----------------------------------------------------------------------
@@ -1323,16 +1316,16 @@ void init_pos(void)
   double Rplasmid3 = 0.5 / tan(theta_plasmid3 / 2.0);
   for (i = 0; i < nseg2; i++)
   {
-    r2z[i] = -2.0;
-    r2x[i] = Rplasmid2 * cos(i * theta_plasmid2);
-    r2y[i] = Rplasmid2 * sin(i * theta_plasmid2);
+    r2z[i] = 2.0;
+    r2x[i] = Rplasmid2 * cos(i * theta_plasmid2) - xBoxMaxd2;
+    r2y[i] = Rplasmid2 * sin(i * theta_plasmid2) - Rplasmid2 / 2.0;
   }
 
   for (i = 0; i < nseg3; i++)
   {
     r3z[i] = 2.0; // Initialized just above the first plasmid
-    r3x[i] = Rplasmid3 * cos(i * theta_plasmid3);
-    r3y[i] = Rplasmid3 * sin(i * theta_plasmid3);
+    r3x[i] = Rplasmid3 * cos(i * theta_plasmid3) + xBoxMaxd2;
+    r3y[i] = Rplasmid3 * sin(i * theta_plasmid3) - Rplasmid3 / 2.0;
   }
 }
 
