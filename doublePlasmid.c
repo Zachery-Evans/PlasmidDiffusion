@@ -190,11 +190,6 @@ int main()
       {
         fprintf(fpmov, "F    %lf  %lf  %lf\n", r3x[i], r3y[i], r3z[i]);
       }
-
-      for (i = 0; i < nseg4; i++)
-      {
-        fprintf(fpmov, "F    %lf  %lf  %lf\n", r4x[i], r4y[i], r4z[i]);
-      }
     }
   }
 
@@ -216,9 +211,9 @@ int main()
   {
     // if (ii % 100 == 0) printf("ii = %ld\n",ii);
 
-    for (j = 0; j < nseg1 + nseg2 + nseg3 + nseg4; j++)
+    for (j = 0; j < nseg1 + nseg2 + nseg3; j++)
     {
-      k = (nseg1 + nseg2 + nseg3 + nseg4) * ran3();
+      k = (nseg1 + nseg2 + nseg3) * ran3();
 
       if (k < nseg1)
       {
@@ -423,7 +418,7 @@ int main()
     {
       if (ii % freq_mov == 0 && ii > -1)
       {
-        fprintf(fpmov, "%ld\n", nseg1 + nseg2 + nseg3 + nseg4);
+        fprintf(fpmov, "%ld\n", nseg1 + nseg2 + nseg3);
         fprintf(fpmov, "Polymer:  %ld\n", ii);
 
         for (i = 0; i < nseg1; i++)
@@ -438,11 +433,6 @@ int main()
         for (i = 0; i < nseg3; i++)
         {
           fprintf(fpmov, "F    %lf  %lf  %lf\n", r3x[i], r3y[i], r3z[i]);
-        }
-
-        for (i = 0; i < nseg4; i++)
-        {
-          fprintf(fpmov, "F    %lf  %lf  %lf\n", r4x[i], r4y[i], r4z[i]);
         }
       }
     }
@@ -1339,7 +1329,8 @@ void init_pos(void)
   double Rplasmid2 = 0.5 / tan(theta_plasmid2 / 2.0);
   double theta_plasmid3 = 2.0 * PI / nseg3;
   double Rplasmid3 = 0.5 / tan(theta_plasmid3 / 2.0);
-  double theta_plasmid4 = 2.0 * PI / nseg4;
+  // double theta_plasmid4 = 2.0 * PI / nseg4;
+  // double Rplasmid4 = 0.5 / tan(theta_plasmid4 / 2.0);
   for (i = 0; i < nseg2; i++)
   {
     r2z[i] = 2.0;
