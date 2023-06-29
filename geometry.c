@@ -51,7 +51,7 @@ int main(void)
         xBoxMaxd2 = xBoxMax / 2.0;
         Hd2 = H / 2.0;
 
-        fprintf(gp, "%ld\n", 15180);
+        fprintf(gp, "%ld\n", 14475);
         fprintf(gp, "Surface:  %ld\n", 0);
 
         for (double ii = 0.0; ii < xBoxMax; ii += 0.5)

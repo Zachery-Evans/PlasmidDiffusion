@@ -105,7 +105,7 @@ int main()
   double xcm1, ycm1, xcm2, ycm2, xcm3, ycm3, xcm4, ycm4;
   clock_t start, end;
 
-  FILE *xp1, *yp1, *xp2, *yp2, *xp3, *yp3, *x1x2;
+  FILE *xp1, *xp2, *xp3, *xp4, *x1x2, *x2x3, *x1x3;
 
   input();
 
@@ -214,9 +214,9 @@ int main()
   xp1 = fopen("xcm1.dat", "w");
   xp2 = fopen("xcm2.dat", "w");
   xp3 = fopen("xcm3.dat", "w");
-  yp1 = fopen("ycm1.dat", "w");
-  yp2 = fopen("ycm2.dat", "w");
-  yp3 = fopen("ycm3.dat", "w");
+  xp4 = fopen("xcm4.dat", "w");
+  x2x3 = fopen("x3x4cm.dat", "w");
+  x1x3 = fopen("x2x4cm.dat", "w");
   x1x2 = fopen("x2x3cm.dat", "w");
 
   for (ii = 0; ii < ncyc; ii++)
@@ -461,9 +461,9 @@ int main()
       fprintf(xp1, "%lf\n", xcm1);
       fprintf(xp2, "%lf\n", xcm2);
       fprintf(xp3, "%lf\n", xcm3);
-      fprintf(yp1, "%lf\n", ycm1);
-      fprintf(yp2, "%lf\n", ycm2);
-      fprintf(yp3, "%lf\n", ycm3);
+      fprintf(xp4, "%lf\n", xcm4);
+      fprintf(x2x3, "%lf\n", xcm3 * xcm4);
+      fprintf(x1x3, "%lf\n", xcm2 * xcm4);
       fprintf(x1x2, "%lf\n", xcm2 * xcm3);
     }
 
@@ -499,9 +499,9 @@ int main()
   fclose(xp1);
   fclose(xp2);
   fclose(xp3);
-  fclose(yp1);
-  fclose(yp2);
-  fclose(yp3);
+  fclose(xp4);
+  fclose(x2x3);
+  fclose(x1x3);
   fclose(x1x2);
 
   printf("Acc. ratio = %lf\n", 1.0 * nacc / ((ncyc * (nseg1 + nseg2 + nseg3 + nseg4)) - nrep));
