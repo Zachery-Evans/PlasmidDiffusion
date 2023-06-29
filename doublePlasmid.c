@@ -17,11 +17,13 @@ void input(void);
 int check_accept(void);
 int check_shift_chain2(void);
 int check_shift_chain3(void);
+int check_shift_chain4(void);
 
 int check_energy(void);
 double calc_cosine_chain1(int, int, int);
 double calc_cosine_chain2(int, int, int);
 double calc_cosine_chain3(int, int, int);
+double calc_cosine_chain4(int, int, int);
 
 double **dmatrix(long, long, long, long);
 void free_dmatrix(double **, long, long, long, long);
@@ -29,12 +31,15 @@ void free_dmatrix(double **, long, long, long, long);
 void reptation_move_chain1(void);
 void reptation_move_chain2(void);
 void reptation_move_chain3(void);
+
 void shift_move_chain(void);
 void shift_move_chain2(void);
 void shift_move_chain3(void);
 void shift_move_chain4(void);
+
 int check_accept_reptation(long);
 void calc_delta_xyz(void);
+
 void crank_move_chain1(void);
 void crank_move_chain2(void);
 void crank_move_chain3(void);
@@ -176,7 +181,7 @@ int main()
   {
     if (ii % freq_mov == 0 && ii > neq)
     {
-      fprintf(fpmov, "%ld\n", nseg1 + nseg2 + nseg3);
+      fprintf(fpmov, "%ld\n", nseg1 + nseg2 + nseg3 + nseg4);
       fprintf(fpmov, "Polymer:  %ld\n", ii);
 
       for (i = 0; i < nseg1; i++)
@@ -466,7 +471,7 @@ int main()
     {
       if (ii % freq_mov == 0 && ii > -1)
       {
-        fprintf(fpmov, "%ld\n", nseg1 + nseg2 + nseg + nseg4);
+        fprintf(fpmov, "%ld\n", nseg1 + nseg2 + nseg3 + nseg4);
         fprintf(fpmov, "Polymer:  %ld\n", ii);
 
         for (i = 0; i < nseg1; i++)
@@ -926,7 +931,15 @@ int check_accept(void)
     }
     // Check if polymer and plasmid overlap
   }
-  return (check_energy()); // apply rigidity
+
+  if (ichain == 1)
+  {
+    return (check_energy());
+  } // apply rigidity
+  else
+  {
+    return accept;
+  }
 }
 
 // ----------------------------------------------------------------------
@@ -2682,22 +2695,6 @@ int check_accept_reptation(long krep)
             {
               return (reject);
             }
-          }
-        }
-      }
-
-      if (kk < nseg4)
-      {
-        dz = r4z[krep] - r4z[kk];
-        if (fabs(dz) < 1.0)
-        {
-          dx = r4x[krep] - r4x[kk];
-          dy = r4y[krep] - r4y[kk];
-          dr2 = dx * dx + dy * dy + dz * dz;
-
-          if (dr2 < 1.0)
-          {
-            return (reject);
           }
         }
       }

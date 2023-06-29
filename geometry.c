@@ -5,7 +5,7 @@
 
 void input(void);
 
-long nseg1, nseg2, nseg3, ncyc, overlap, nacc, kk, itest, iseed;
+long nseg1, nseg2, nseg3, nseg4, ncyc, overlap, nacc, kk, itest, iseed;
 long neq, nbintot, ibin, ichain, nsamp, nacc_shift, nshift;
 long imov, kmaxtest, freq_samp, cmFreqSamp, freq_mon, freq_mov, ncmt, ngridx, ngridy;
 
@@ -51,7 +51,7 @@ int main(void)
         xBoxMaxd2 = xBoxMax / 2.0;
         Hd2 = H / 2.0;
 
-        fprintf(gp, "%ld\n", 14475);
+        fprintf(gp, "%ld\n", 15180);
         fprintf(gp, "Surface:  %ld\n", 0);
 
         for (double ii = 0.0; ii < xBoxMax; ii += 0.5)
@@ -117,6 +117,7 @@ void input(void)
         fscanf(fp, "%ld%*s", &nseg1);
         fscanf(fp, "%ld%*s", &nseg2);
         fscanf(fp, "%ld%*s", &nseg3);
+        fscanf(fp, "%ld%*s", &nseg4);
         fscanf(fp, "%lf%*s", &Area);
         fscanf(fp, "%lf%*s", &bmin);
         fscanf(fp, "%lf%*s", &ecc);
