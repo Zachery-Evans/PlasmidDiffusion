@@ -38,7 +38,7 @@ void crank_move_chain1(void);
 void crank_move_chain2(void);
 void crank_move_chain3(void);
 
-long nseg1, nseg2, nseg3, nseg4, nbin, i, j, k, ii, ncyc, overlap, nacc, kk, itest, iseed;
+long nseg1, nseg2, nseg3, nbin, i, j, k, ii, ncyc, overlap, nacc, kk, itest, iseed;
 long neq, nbintot, ibin, ichain, nsamp, nacc_shift, nshift;
 long imov, kmaxtest, freq_samp, cmFreqSamp, freq_mon, freq_mov, ncmt, ngridx, ngridy;
 
@@ -48,7 +48,7 @@ double amax, bmin, amax2, bmin2, ecc, Area, rectangleArea, rectangleXYRatio, xBo
 double xBoxMaxd2, yBoxMaxd2;
 double kappa, xold, yold, zold, delphi_max;
 double z1min, z1max, z2min, z2max, zcm1, zcm2, z1bcm, z2bcm;
-double **prob1, **prob2, **prob3, **prob4, **probmon;
+double **prob1, **prob2, **prob3, **probmon;
 
 FILE *fpmov;
 
@@ -92,7 +92,7 @@ double u, uxy;
 int main()
 {
   long imon, indx, indy;
-  double xcm1, ycm1, xcm2, ycm2, xcm3, ycm3, xcm4, ycm4;
+  double xcm1, ycm1, xcm2, ycm2, xcm3, ycm3;
   clock_t start, end;
 
   FILE *xp1, *yp1, *xp2, *yp2, *xp3, *yp3, *x1x2;
@@ -142,7 +142,6 @@ int main()
       prob1[i][j] = 0.0;
       prob2[i][j] = 0.0;
       prob3[i][j] = 0.0;
-      prob4[i][j] = 0.0;
       probmon[i][j] = 0.0;
     }
   }
@@ -217,14 +216,14 @@ int main()
         ichain = 1;
         kmaxtest = nseg1 - 2;
       }
-      else if (nseg1 < k && k < (nseg2 + nseg3))
+      else if (nseg1 < k && k < (nseg1 + nseg2))
       {
         ichain = 2;
         k -= nseg1;
         kmaxtest = nseg2 - 2;
       }
 
-      else if ((nseg1 + nseg2) < k && k < (nseg3))
+      else if ((nseg1 + nseg2) < k)
       {
         ichain = 3;
         k -= nseg1;
@@ -299,10 +298,6 @@ int main()
         else if (ichain == 3)
         {
           shift_move_chain3();
-        }
-        else if (ichain == 4)
-        {
-          shift_move_chain4();
         }
       }
     }
