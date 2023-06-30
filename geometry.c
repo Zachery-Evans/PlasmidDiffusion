@@ -51,7 +51,7 @@ int main(void)
         xBoxMaxd2 = xBoxMax / 2.0;
         Hd2 = H / 2.0;
 
-        fprintf(gp, "%ld\n", 14475);
+        fprintf(gp, "%ld\n", 12948);
         fprintf(gp, "Surface:  %ld\n", 0);
 
         for (double ii = 0.0; ii < xBoxMax; ii += 0.5)
@@ -80,7 +80,7 @@ int main(void)
                     }
                 }
 
-                if (ii < xBoxMaxd2)
+                if (ii < -xBoxMaxd2)
                 { // If the polymer is outside of the leftmost semi-ellipse, reject
                     if ((ii + xBoxMaxd2) * (ii + xBoxMaxd2) < amax2 * (1 - (jj * jj) / bmin2) && jj < bmin2 * (1 - (ii + xBoxMaxd2) * (ii + xBoxMaxd2) / amax2))
                     {

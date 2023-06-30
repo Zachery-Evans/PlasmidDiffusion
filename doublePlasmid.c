@@ -932,14 +932,7 @@ int check_accept(void)
     // Check if polymer and plasmid overlap
   }
 
-  if (ichain == 1)
-  {
-    return (check_energy());
-  } // apply rigidity
-  else
-  {
-    return accept;
-  }
+  return (check_energy()); // apply rigidity
 }
 
 // ----------------------------------------------------------------------
@@ -1555,10 +1548,13 @@ void init_pos(void)
 
   double theta_plasmid2 = 2.0 * PI / nseg2;
   double Rplasmid2 = 0.5 / tan(theta_plasmid2 / 2.0);
+
   double theta_plasmid3 = 2.0 * PI / nseg3;
   double Rplasmid3 = 0.5 / tan(theta_plasmid3 / 2.0);
+
   double theta_plasmid4 = 2.0 * PI / nseg3;
   double Rplasmid4 = 0.5 / tan(theta_plasmid4 / 2.0);
+  
   for (i = 0; i < nseg2; i++)
   {
     r2z[i] = 2.0;

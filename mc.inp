@@ -1,10 +1,10 @@
-0                 nseg1
-25                nseg2
-25                nseg3
-0                 nseg4
+2000                 nseg1
+50                nseg2
+50                 nseg3
+50                 nseg4
 3000.0            Area
 12.0              bmin
-0.8               ecc
+0.0               ecc
 15.0              H
 6.36              kappa
 0.9               drmin
