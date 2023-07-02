@@ -20,7 +20,6 @@ int check_shift_chain(double[], double[], double[], long);
 
 int check_energy(void);
 double calc_cosine_chain1(int, int, int);
-double calc_cosine_chain2(int, int, int);
 double calc_cosine_plasmid(int, int, int, double[], double[], double[]);
 
 double **dmatrix(long, long, long, long);
@@ -31,7 +30,6 @@ void reptation_move_chain2(void);
 void reptation_move_chain3(void);
 
 void shift_move_chain(void);
-void shift_move_chain2(void);
 void shift_move_plasmid(double[], double[], double[], long);
 
 int check_accept_reptation(long);
@@ -1895,50 +1893,7 @@ double ran3()
   ma[inext] = mj;
   return (double)mj / mbig;
 }
-/*
-void shift_move_chain2()
-{
-  double delrx, delry, delrz;
-  double xsold[5000];
-  double ysold[5000];
-  double zsold[5000];
 
-  delrx = rshift_max * (2.0 * ran3() - 1.0);
-  delry = rshift_max * (2.0 * ran3() - 1.0);
-  delrz = rshift_max * (2.0 * ran3() - 1.0);
-
-  for (i = 0; i < nseg2; i++)
-  {
-    xsold[i] = r2x[i];
-    ysold[i] = r2y[i];
-    zsold[i] = r2z[i];
-
-    r2x[i] += delrx;
-    r2y[i] += delry;
-    r2z[i] += delrz;
-  }
-
-  // printf("delrx = %lf, delry = %lf, delrz = %lf\n",delrx,delry,delrz);
-
-  overlap = check_shift_chain2();
-
-  nshift += 1;
-  if (overlap == 0)
-  {
-    nacc += 1;
-    nacc_shift += 1;
-  }
-  else if (overlap == 1)
-  {
-    for (i = 0; i < nseg2; i++)
-    {
-      r2x[i] = xsold[i];
-      r2y[i] = ysold[i];
-      r2z[i] = zsold[i];
-    }
-  }
-}
-*/
 void shift_move_plasmid(double rx[5000], double ry[5000], double rz[5000], long nseg)
 {
   double delrx, delry, delrz;
@@ -1950,7 +1905,7 @@ void shift_move_plasmid(double rx[5000], double ry[5000], double rz[5000], long 
   delry = rshift_max * (2.0 * ran3() - 1.0);
   delrz = rshift_max * (2.0 * ran3() - 1.0);
 
-  for (i = 0; i < nseg3; i++)
+  for (i = 0; i < nseg; i++)
   {
     xsold[i] = rx[i];
     ysold[i] = ry[i];
@@ -1973,7 +1928,7 @@ void shift_move_plasmid(double rx[5000], double ry[5000], double rz[5000], long 
   }
   else if (overlap == 1)
   {
-    for (i = 0; i < nseg4; i++)
+    for (i = 0; i < nseg; i++)
     {
       rx[i] = xsold[i];
       ry[i] = ysold[i];
@@ -1981,60 +1936,6 @@ void shift_move_plasmid(double rx[5000], double ry[5000], double rz[5000], long 
     }
   }
 }
-
-/*
-int check_shift_chain2()
-{
-  int accept = 0;
-  int reject = 1;
-
-  for (i = 0; i < nseg2; i++)
-  {
-    if (squareEllipse(r2x[i], r2y[i], r2z[i]) == reject)
-    {
-      return (reject);
-    }
-
-    for (kk = 0; kk < nseg1; kk++)
-    {
-      dx = r2x[i] - r1x[kk];
-      dy = r2y[i] - r1y[kk];
-      dz = r2z[i] - r1z[kk];
-      dr2 = dx * dx + dy * dy + dz * dz;
-      if (dr2 < 1.0)
-      {
-        return (reject);
-      }
-    }
-
-    for (kk = 0; kk < nseg3; kk++)
-    {
-      dx = r2x[i] - r3x[kk];
-      dy = r2y[i] - r3y[kk];
-      dz = r2z[i] - r3z[kk];
-      dr2 = dx * dx + dy * dy + dz * dz;
-      if (dr2 < 1.0)
-      {
-        return (reject);
-      }
-    }
-
-    for (kk = 0; kk < nseg4; kk++)
-    {
-      dx = r2x[i] - r4x[kk];
-      dy = r2y[i] - r4y[kk];
-      dz = r2z[i] - r4z[kk];
-      dr2 = dx * dx + dy * dy + dz * dz;
-      if (dr2 < 1.0)
-      {
-        return (reject);
-      }
-    }
-  }
-
-  return (accept);
-}
-*/
 
 int check_shift_chain(double rx[5000], double ry[5000], double rz[5000], long nseg)
 {
