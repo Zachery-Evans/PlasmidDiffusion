@@ -99,7 +99,7 @@ int main()
   double xcm1, ycm1, xcm2, ycm2, xcm3, ycm3, xcm4, ycm4;
   clock_t start, end;
 
-  FILE *xp1, *xp2, *xp3, *xp4, *x1x2, *x2x3, *x1x3;
+  FILE *xp1, *xp2, *xp3, *xp4, *x3x4, *x2x3, *x2x4;
 
   input();
 
@@ -210,8 +210,8 @@ int main()
   xp3 = fopen("xcm3.dat", "w");
   xp4 = fopen("xcm4.dat", "w");
   x2x3 = fopen("x3x4cm.dat", "w");
-  x1x3 = fopen("x2x4cm.dat", "w");
-  x1x2 = fopen("x2x3cm.dat", "w");
+  x2x4 = fopen("x2x4cm.dat", "w");
+  x3x4 = fopen("x2x3cm.dat", "w");
 
   for (ii = 0; ii < ncyc; ii++)
   {
@@ -457,8 +457,8 @@ int main()
       fprintf(xp3, "%lf\n", xcm3);
       fprintf(xp4, "%lf\n", xcm4);
       fprintf(x2x3, "%lf\n", xcm3 * xcm4);
-      fprintf(x1x3, "%lf\n", xcm2 * xcm4);
-      fprintf(x1x2, "%lf\n", xcm2 * xcm3);
+      fprintf(x2x4, "%lf\n", xcm2 * xcm4);
+      fprintf(x3x4, "%lf\n", xcm2 * xcm3);
     }
 
     if (imov == 1)
@@ -495,8 +495,8 @@ int main()
   fclose(xp3);
   fclose(xp4);
   fclose(x2x3);
-  fclose(x1x3);
-  fclose(x1x2);
+  fclose(x2x4);
+  fclose(x3x4);
 
   printf("Acc. ratio = %lf\n", 1.0 * nacc / ((ncyc * (nseg1 + nseg2 + nseg3 + nseg4)) - nrep));
   printf("Number of reptation attempts = %ld\n", nrep);
