@@ -1812,7 +1812,7 @@ void shift_move_plasmid(double rx[5000], double ry[5000], double rz[5000], long 
   delry = rshift_max * (2.0 * ran3() - 1.0);
   delrz = rshift_max * (2.0 * ran3() - 1.0);
 
-  for (i = 0; i < nseg3; i++)
+  for (i = 0; i < nseg; i++)
   {
     xsold[i] = rx[i];
     ysold[i] = ry[i];
