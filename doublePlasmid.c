@@ -30,7 +30,6 @@ int check_accept(void);
 int check_shift_chain(double[], double[], double[], long);
 
 int check_energy(double[], double[], double[]);
-double calc_cosine_chain1(int, int, int);
 double calc_cosine(int, int, int, double[], double[], double[]);
 
 double **dmatrix(long, long, long, long);
@@ -1963,7 +1962,7 @@ int check_accept_reptation(double rx[5000], double ry[5000], double rz[5000], lo
             }
           }
         }
-        else
+        else if (ichain != 2)
         {
           dz = rz[krep] - r2z[kk];
           if (fabs(dz) < 1.0)
@@ -1997,7 +1996,7 @@ int check_accept_reptation(double rx[5000], double ry[5000], double rz[5000], lo
             }
           }
         }
-        else
+        else if (ichain != 3)
         {
           dz = rz[krep] - r3z[kk];
           if (fabs(dz) < 1.0)
@@ -2031,7 +2030,7 @@ int check_accept_reptation(double rx[5000], double ry[5000], double rz[5000], lo
             }
           }
         }
-        else
+        else if (ichain != 4)
         {
           dz = rz[krep] - r4z[kk];
           if (fabs(dz) < 1.0)
