@@ -105,8 +105,10 @@ int main()
 
   // Requires that the y direction of the box is the same height as the semi-minor
   // axis of the ellipse.
-
-  amax = bmin / sqrt(1 - ecc * ecc);
+  if (ecc < 1.0)
+  {
+    amax = bmin / sqrt(1 - ecc * ecc);
+  }
   amax2 = amax * amax;
   bmin2 = bmin * bmin;
   rectangleArea = Area - PI * amax * bmin;
@@ -1612,22 +1614,22 @@ void init_pos(void)
 
   for (i = 0; i < nseg2; i++)
   {
-    r2z[i] = 2.0;
-    r2x[i] = Rplasmid2 * cos(i * theta_plasmid2) - xBoxMaxd2;
+    r2z[i] = 4.0;
+    r2x[i] = Rplasmid2 * cos(i * theta_plasmid2);
     r2y[i] = Rplasmid2 * sin(i * theta_plasmid2) - Rplasmid2 / 2.0;
   }
 
   for (i = 0; i < nseg3; i++)
   {
     r3z[i] = 2.0; // Initialized just above the first plasmid
-    r3x[i] = Rplasmid3 * cos(i * theta_plasmid3) + xBoxMaxd2;
+    r3x[i] = Rplasmid3 * cos(i * theta_plasmid3);
     r3y[i] = Rplasmid3 * sin(i * theta_plasmid3) - Rplasmid3 / 2.0;
   }
 
   for (i = 0; i < nseg4; i++)
   {
     r4z[i] = -2.0; // Initialized just above the first plasmid
-    r4x[i] = Rplasmid4 * cos(i * theta_plasmid4) + xBoxMaxd2;
+    r4x[i] = Rplasmid4 * cos(i * theta_plasmid4);
     r4y[i] = Rplasmid4 * sin(i * theta_plasmid4) - Rplasmid4 / 2.0;
   }
 }

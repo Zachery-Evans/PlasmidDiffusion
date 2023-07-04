@@ -43,7 +43,14 @@ int main(void)
     }
     else
     {
-        amax = bmin / sqrt(1 - ecc * ecc);
+        if (ecc < 1.0)
+        {
+            amax = bmin / sqrt(1 - ecc * ecc);
+        }
+        else
+        {
+            amax = bmin;
+        }
         rectangleArea = Area - PI * amax * bmin;
         yBoxMax = 2.0 * bmin;
         yBoxMaxd2 = bmin; // Width of the rectangle section equivalent to the semi-minor axis
@@ -68,6 +75,7 @@ int main(void)
 
         double amax2 = amax * amax, bmin2 = bmin * bmin;
         double angle = -PI / 2.0;
+
         for (double jj = -yBoxMaxd2; jj < yBoxMaxd2; jj += 0.5)
         {
             for (double ii = -xBoxMaxd2 - amax; ii < amax + xBoxMaxd2; ii += 0.5)
