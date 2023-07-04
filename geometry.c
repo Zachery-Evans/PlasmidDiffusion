@@ -14,22 +14,6 @@ double qmin, qmax, re2av, re2, drmin, drmax, gridspace, gridspacex_real, gridspa
 double amax, bmin, amax2, bmin2, ecc, Area, rectangleArea, rectangleXYRatio, xBoxMax, yBoxMax, rshift_max;
 double xBoxMaxd2, yBoxMaxd2;
 double kappa, xold, yold, zold, delphi_max;
-double z1min, z1max, z2min, z2max, zcm1, zcm2, z1bcm, z2bcm;
-double **prob1, **prob2, **prob3, **probmon;
-
-long ind;
-
-long irep;
-double rep_prob;
-long nacc_rep;
-long nrep;
-double phi_prime, costheta_prime, dr_prime;
-double dx_prime, dy_prime, dz_prime;
-double dx_fixed, dy_fixed, dz_fixed;
-double alpha, beta;
-double cos_alpha, cos_beta, sin_alpha, sin_beta;
-double ux, uy, uz;
-double u, uxy;
 
 int main(void)
 {
