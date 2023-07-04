@@ -1,16 +1,17 @@
 1000              nseg1
-50                nseg2
-50                nseg3
+25                nseg2
+0                 nseg3
+0                 nseg4
 3000.0            Area
 12.0              bmin
-0.8               ecc
+0.0               ecc
 15.0              H
 6.36              kappa
 0.9               drmin
 1.1               drmax
 1.0               gridspace
 
-50000            ncyc
+50000             ncyc
 10000             neq
 0.14              rmax
 3.14159           delphi_max
