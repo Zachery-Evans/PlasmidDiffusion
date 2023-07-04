@@ -4,9 +4,9 @@ This code was written by Dr. James Polson, it has been edited and modified by Za
 Email: zdjevans@protonmail.com
 
 This program was written to study the equilibrium behaviour of plasmids confined to a dual pit geometry of an elliptically capped rectangle interacting with
-T4 polymer (Much longer linear polymer). 
+T4 polymer (Much longer linear polymer).
 
-This program was built with the Compute Canada clusters, as such it has included an input file that 
+This program was built with the Compute Canada clusters, as such it has included an input file that
 
 */
 
@@ -30,6 +30,7 @@ int check_accept(void);
 int check_shift_chain(double[], double[], double[], long);
 
 int check_energy(void);
+int check_energy2(double[], double[], double[]);
 double calc_cosine_chain1(int, int, int);
 double calc_cosine_plasmid(int, int, int, double[], double[], double[]);
 
@@ -1058,14 +1059,7 @@ int check_accept(void)
     // Check if polymer and plasmid overlap
   }
 
-  if (ichain == 1)
-  {
-    return (check_energy()); // apply rigidity
-  }
-  else
-  {
-    return (accept);
-  }
+  return (check_energy()); // apply rigidity
 }
 
 // ----------------------------------------------------------------------
@@ -1364,6 +1358,116 @@ int check_energy(void)
   }
 }
 
+int check_energy2(double rx[5000], double ry[5000], double rz[5000])
+{
+  int accept, reject; // will return either accept or reject at end of function
+
+  accept = 0;
+  reject = 1;
+
+  // reset energy for all of, up to three angles being considered
+  for (ind = 0; ind < 3; ind++)
+  {
+    energy_new[ind] = 0.0;
+    energy_old[ind] = 0.0;
+  }
+
+  // reset total energies:
+  E_new = 0.0;
+  E_old = 0.0;
+
+  // The following 5 blocks consider the possible scenarios of monomer
+  // movement: 1.) first monomer, 2.) last monomer, 3.) second monomer,
+  // 4.) second last monomer, and 5.) any other monomer
+  //
+  // shifting monomers at the ends requires only one change in angle
+  // and thus energy. Monomers second from the end require two, and
+  // all the rest require three.
+  if (k == 0)
+  {
+    theta_new = calc_cosine_plasmid(k, k + 1, k + 2, rx, ry, rz);
+    theta_old = calc_cosine_plasmid(-1, k + 1, k + 2, rx, ry, rz);
+    energy_new[0] = kappa * (1.0 - theta_new);
+    energy_old[0] = kappa * (1.0 - theta_old);
+  }
+  else if (k == nseg4 - 1)
+  {
+    theta_new = calc_cosine_plasmid(k - 2, k - 1, k, rx, ry, rz);
+    theta_old = calc_cosine_plasmid(k - 2, k - 1, -1, rx, ry, rz);
+    energy_new[0] = kappa * (1.0 - theta_new);
+    energy_old[0] = kappa * (1.0 - theta_old);
+  }
+  else if (k == 1)
+  {
+    theta_new = calc_cosine_plasmid(k - 1, k, k + 1, rx, ry, rz);
+    theta_old = calc_cosine_plasmid(k - 1, -1, k + 1, rx, ry, rz);
+    energy_new[0] = kappa * (1.0 - theta_new);
+    energy_old[0] = kappa * (1.0 - theta_old);
+
+    theta_new = calc_cosine_plasmid(k, k + 1, k + 2, rx, ry, rz);
+    theta_old = calc_cosine_plasmid(-1, k + 1, k + 2, rx, ry, rz);
+    energy_new[1] = kappa * (1.0 - theta_new);
+    energy_old[1] = kappa * (1.0 - theta_old);
+  }
+  else if (k == nseg4 - 2)
+  {
+    theta_new = calc_cosine_plasmid(k - 2, k - 1, k, rx, ry, rz);
+    theta_old = calc_cosine_plasmid(k - 2, k - 1, -1, rx, ry, rz);
+    energy_new[0] = kappa * (1.0 - theta_new);
+    energy_old[0] = kappa * (1.0 - theta_old);
+
+    theta_new = calc_cosine_plasmid(k - 1, k, k + 1, rx, ry, rz);
+    theta_old = calc_cosine_plasmid(k - 1, -1, k + 1, rx, ry, rz);
+    energy_new[1] = kappa * (1.0 - theta_new);
+    energy_old[1] = kappa * (1.0 - theta_old);
+  }
+  else
+  {
+    theta_new = calc_cosine_plasmid(k - 2, k - 1, k, rx, ry, rz);
+    theta_old = calc_cosine_plasmid(k - 2, k - 1, -1, rx, ry, rz);
+    energy_new[0] = kappa * (1.0 - theta_new);
+    energy_old[0] = kappa * (1.0 - theta_old);
+
+    theta_new = calc_cosine_plasmid(k - 1, k, k + 1, rx, ry, rz);
+    theta_old = calc_cosine_plasmid(k - 1, -1, k + 1, rx, ry, rz);
+    energy_new[1] = kappa * (1.0 - theta_new);
+    energy_old[1] = kappa * (1.0 - theta_old);
+
+    theta_new = calc_cosine_plasmid(k, k + 1, k + 2, rx, ry, rz);
+    theta_old = calc_cosine_plasmid(-1, k + 1, k + 2, rx, ry, rz);
+    energy_new[2] = kappa * (1.0 - theta_new);
+    energy_old[2] = kappa * (1.0 - theta_old);
+  }
+
+  // Get the total new and and old energies of the bond angles affected
+  // by the move
+  for (ind = 0; ind < 3; ind++)
+  {
+    E_new += energy_new[ind];
+    E_old += energy_old[ind];
+  }
+
+  delta_E = E_new - E_old;
+
+  // If change in energy is negative, accept the move. If positive, must do a
+  // comparison of the change in energy (multiplied by Boltzmann factor and placed
+  // in an exponential, with a random value [0,1] to determine if move is
+  // accepted or rejected. (Higher delta_E leads to reduced chance of accepted move)
+  if (delta_E <= 0)
+    return (accept);
+  else
+  {
+    if (ran3() <= exp(-1.0 * delta_E))
+    {
+      return (accept);
+    }
+    else
+    {
+      return (reject);
+    }
+  }
+}
+
 // ----------------------------------------------------------------------
 // Calculate the cosine of theta between two bonds (vectors) that connect
 // three sequential monomers within the first polymer chain.
@@ -1496,6 +1600,11 @@ double calc_cosine_chain2(int i1, int i2, int i3)
     z3 = r2z[i3];
   }
 
+  // va is vector A, connects the first two monomers being considered.
+  // vb is vector B, connects the second two monomers being considered.
+  // Use rules of dot products to calculate the cosine of the angle between
+  // vectors A and B, and return this value.
+
   vax = x2 - x1;
   vay = y2 - yone;
   vaz = z2 - z1;
@@ -1519,8 +1628,17 @@ double calc_cosine_chain2(int i1, int i2, int i3)
  * zdjevans@protonmail.com
  */
 
+// ----------------------------------------------------------------------
+// Calculate the cosine of theta between two bonds (vectors) that connect
+// three sequential monomers within the first polymer chain.
+// ----------------------------------------------------------------------
 double calc_cosine_plasmid(int i1, int i2, int i3, double rx[5000], double ry[5000], double rz[5000])
 {
+  // determine which of the indices is negative (if any). The negative index
+  // corresponds to the old position of the monomer. Set x, y, and z values of
+  // each of the three monomers accordingly. Note y1 is an implicit variable
+  // name in some stlib function, so use yone instead.
+
   if (i1 < 0)
   {
     x1 = xold;
