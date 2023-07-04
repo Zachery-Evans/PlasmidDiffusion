@@ -58,7 +58,7 @@ int main(void)
         xBoxMaxd2 = xBoxMax / 2.0;
         Hd2 = H / 2.0;
 
-        fprintf(gp, "%ld\n", 12948);
+        fprintf(gp, "%ld\n", 12997);
         fprintf(gp, "Surface:  %ld\n", 0);
 
         for (double ii = 0.0; ii < xBoxMax; ii += 0.5)
@@ -76,35 +76,38 @@ int main(void)
         double amax2 = amax * amax, bmin2 = bmin * bmin;
         double angle = -PI / 2.0;
 
-        for (double jj = -yBoxMaxd2; jj < yBoxMaxd2; jj += 0.5)
+        if (ecc >= 1.0)
         {
-            for (double ii = -xBoxMaxd2 - amax; ii < amax + xBoxMaxd2; ii += 0.5)
+            for (double jj = -yBoxMaxd2; jj < yBoxMaxd2; jj += 0.5)
             {
-                if (ii > xBoxMaxd2)
-                { // If the polymer is outside of the leftmost semi-ellipse, reject
-                    if ((ii - xBoxMaxd2) * (ii - xBoxMaxd2) < amax2 * (1 - (jj * jj) / bmin2) && jj < bmin2 * (1 - (ii - xBoxMaxd2) * (ii - xBoxMaxd2) / amax2))
+                for (double ii = -xBoxMaxd2 - amax; ii < amax + xBoxMaxd2; ii += 0.5)
+                {
+                    if (ii > xBoxMaxd2)
+                    { // If the polymer is outside of the leftmost semi-ellipse, reject
+                        if ((ii - xBoxMaxd2) * (ii - xBoxMaxd2) < amax2 * (1 - (jj * jj) / bmin2) && jj < bmin2 * (1 - (ii - xBoxMaxd2) * (ii - xBoxMaxd2) / amax2))
+                        {
+                            fprintf(gp, "N  %lf  %lf  %lf\n", ii, jj, Hd2);
+                        }
+                    }
+
+                    if (ii < -xBoxMaxd2)
+                    { // If the polymer is outside of the leftmost semi-ellipse, reject
+                        if ((ii + xBoxMaxd2) * (ii + xBoxMaxd2) < amax2 * (1 - (jj * jj) / bmin2) && jj < bmin2 * (1 - (ii + xBoxMaxd2) * (ii + xBoxMaxd2) / amax2))
+                        {
+                            fprintf(gp, "N  %lf  %lf  %lf\n", ii, jj, Hd2);
+                        }
+                    }
+
+                    if (ii < xBoxMaxd2 && ii > -xBoxMaxd2)
                     {
                         fprintf(gp, "N  %lf  %lf  %lf\n", ii, jj, Hd2);
                     }
-                }
-
-                if (ii < -xBoxMaxd2)
-                { // If the polymer is outside of the leftmost semi-ellipse, reject
-                    if ((ii + xBoxMaxd2) * (ii + xBoxMaxd2) < amax2 * (1 - (jj * jj) / bmin2) && jj < bmin2 * (1 - (ii + xBoxMaxd2) * (ii + xBoxMaxd2) / amax2))
+                    else
                     {
-                        fprintf(gp, "N  %lf  %lf  %lf\n", ii, jj, Hd2);
-                    }
-                }
-
-                if (ii < xBoxMaxd2 && ii > -xBoxMaxd2)
-                {
-                    fprintf(gp, "N  %lf  %lf  %lf\n", ii, jj, Hd2);
-                }
-                else
-                {
-                    if (jj < bmin * bmin * (1 - (ii + xBoxMaxd2) * (ii + xBoxMaxd2) / amax * amax) && jj < bmin * bmin * (1 - (ii - xBoxMaxd2) * (ii - xBoxMaxd2) / amax * amax))
-                    {
-                        fprintf(gp, "N  %lf  %lf  %lf\n", ii, jj, Hd2);
+                        if (jj < bmin * bmin * (1 - (ii + xBoxMaxd2) * (ii + xBoxMaxd2) / amax * amax) && jj < bmin * bmin * (1 - (ii - xBoxMaxd2) * (ii - xBoxMaxd2) / amax * amax))
+                        {
+                            fprintf(gp, "N  %lf  %lf  %lf\n", ii, jj, Hd2);
+                        }
                     }
                 }
             }
