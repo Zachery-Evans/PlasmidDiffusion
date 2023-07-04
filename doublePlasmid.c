@@ -613,7 +613,7 @@ void write_log(void)
   printf("\n");
 
   printf("imov     %ld\n", imov);
-  printf("imov     %ld\n", plasRigid);
+  printf("plasRigid     %ld\n", plasRigid);
   printf("\n");
 }
 
@@ -1493,50 +1493,7 @@ double ran3()
   ma[inext] = mj;
   return (double)mj / mbig;
 }
-/*
-void shift_move_chain2()
-{
-  double delrx, delry, delrz;
-  double xsold[5000];
-  double ysold[5000];
-  double zsold[5000];
 
-  delrx = rshift_max * (2.0 * ran3() - 1.0);
-  delry = rshift_max * (2.0 * ran3() - 1.0);
-  delrz = rshift_max * (2.0 * ran3() - 1.0);
-
-  for (i = 0; i < nseg2; i++)
-  {
-    xsold[i] = r2x[i];
-    ysold[i] = r2y[i];
-    zsold[i] = r2z[i];
-
-    r2x[i] += delrx;
-    r2y[i] += delry;
-    r2z[i] += delrz;
-  }
-
-  // printf("delrx = %lf, delry = %lf, delrz = %lf\n",delrx,delry,delrz);
-
-  overlap = check_shift_chain2();
-
-  nshift += 1;
-  if (overlap == 0)
-  {
-    nacc += 1;
-    nacc_shift += 1;
-  }
-  else if (overlap == 1)
-  {
-    for (i = 0; i < nseg2; i++)
-    {
-      r2x[i] = xsold[i];
-      r2y[i] = ysold[i];
-      r2z[i] = zsold[i];
-    }
-  }
-}
-*/
 void shift_move_plasmid(double rx[5000], double ry[5000], double rz[5000], long nseg)
 {
   double delrx, delry, delrz;
@@ -1991,13 +1948,28 @@ int check_accept_reptation(double rx[5000], double ry[5000], double rz[5000], lo
 
       if (kk < nseg2)
       {
-        if (kk < krep - 1 || kk > krep + 1)
+        if ((kk < krep - 1 || kk > krep + 1) && ichain == 2)
         {
-          dz = r2z[krep] - r2z[kk];
+          dz = rz[krep] - r2z[kk];
           if (fabs(dz) < 1.0)
           {
-            dx = r2x[krep] - r2x[kk];
-            dy = r2y[krep] - r2y[kk];
+            dx = rx[krep] - r2x[kk];
+            dy = ry[krep] - r2y[kk];
+            dr2 = dx * dx + dy * dy + dz * dz;
+
+            if (dr2 < 1.0)
+            {
+              return (reject);
+            }
+          }
+        }
+        else
+        {
+          dz = rz[krep] - r2z[kk];
+          if (fabs(dz) < 1.0)
+          {
+            dx = rx[krep] - r2x[kk];
+            dy = ry[krep] - r2y[kk];
             dr2 = dx * dx + dy * dy + dz * dz;
 
             if (dr2 < 1.0)
@@ -2010,32 +1982,68 @@ int check_accept_reptation(double rx[5000], double ry[5000], double rz[5000], lo
 
       if (kk < nseg3)
       {
-        dz = r2z[krep] - r3z[kk];
-        if (fabs(dz) < 1.0)
+        if ((kk < krep - 1 || kk > krep + 1) && ichain == 3)
         {
-          dx = r2x[krep] - r3x[kk];
-          dy = r2y[krep] - r3y[kk];
-          dr2 = dx * dx + dy * dy + dz * dz;
-
-          if (dr2 < 1.0)
+          dz = rz[krep] - r3z[kk];
+          if (fabs(dz) < 1.0)
           {
-            return (reject);
+            dx = rx[krep] - r3x[kk];
+            dy = ry[krep] - r3y[kk];
+            dr2 = dx * dx + dy * dy + dz * dz;
+
+            if (dr2 < 1.0)
+            {
+              return (reject);
+            }
+          }
+        }
+        else
+        {
+          dz = rz[krep] - r3z[kk];
+          if (fabs(dz) < 1.0)
+          {
+            dx = rx[krep] - r3x[kk];
+            dy = ry[krep] - r3y[kk];
+            dr2 = dx * dx + dy * dy + dz * dz;
+
+            if (dr2 < 1.0)
+            {
+              return (reject);
+            }
           }
         }
       }
 
       if (kk < nseg4)
       {
-        dz = r2z[krep] - r4z[kk];
-        if (fabs(dz) < 1.0)
+        if ((kk < krep - 1 || kk > krep + 1) && ichain == 4)
         {
-          dx = r2x[krep] - r4x[kk];
-          dy = r2y[krep] - r4y[kk];
-          dr2 = dx * dx + dy * dy + dz * dz;
-
-          if (dr2 < 1.0)
+          dz = rz[krep] - r4z[kk];
+          if (fabs(dz) < 1.0)
           {
-            return (reject);
+            dx = rx[krep] - r4x[kk];
+            dy = ry[krep] - r4y[kk];
+            dr2 = dx * dx + dy * dy + dz * dz;
+
+            if (dr2 < 1.0)
+            {
+              return (reject);
+            }
+          }
+        }
+        else
+        {
+          dz = rz[krep] - r4z[kk];
+          if (fabs(dz) < 1.0)
+          {
+            dx = rx[krep] - r4x[kk];
+            dy = ry[krep] - r4y[kk];
+            dr2 = dx * dx + dy * dy + dz * dz;
+
+            if (dr2 < 1.0)
+            {
+              return (reject);
+            }
           }
         }
       }
@@ -2044,7 +2052,6 @@ int check_accept_reptation(double rx[5000], double ry[5000], double rz[5000], lo
 
   return (accept);
 }
-
 void crank_move_chain1()
 {
 
