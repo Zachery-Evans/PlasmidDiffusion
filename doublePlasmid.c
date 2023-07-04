@@ -29,8 +29,7 @@ void input(void);
 int check_accept(void);
 int check_shift_chain(double[], double[], double[], long);
 
-int check_energy(void);
-int check_energy2(double[], double[], double[]);
+int check_energy(double[], double[], double[]);
 double calc_cosine_chain1(int, int, int);
 double calc_cosine_plasmid(int, int, int, double[], double[], double[]);
 
@@ -50,7 +49,7 @@ void crank_move_plasmid(double[], double[], double[], long);
 
 long nseg1, nseg2, nseg3, nseg4, nbin, i, j, k, ii, ncyc, overlap, nacc, kk, itest, iseed;
 long neq, nbintot, ibin, ichain, nsamp, nacc_shift, nshift;
-long imov, kmaxtest, freq_samp, cmFreqSamp, freq_mon, freq_mov, ncmt, ngridx, ngridy;
+long imov, plasRigid, kmaxtest, freq_samp, cmFreqSamp, freq_mon, freq_mov, ncmt, ngridx, ngridy;
 
 double L, H, Ld2, Hd2, rmax, xt, yt, zt, dx, dy, dz, re, dr2, drxy2, dr2min, dr2max;
 double qmin, qmax, re2av, re2, drmin, drmax, gridspace, gridspacex_real, gridspacey_real;
@@ -565,6 +564,7 @@ void input(void)
     fscanf(fp, "\n%ld%*s", &freq_mov);
 
     fscanf(fp, "\n%ld%*s", &imov);
+    fscanf(fp, "\n%ld%*s", &plasRigid);
   }
 
   fclose(fp);
@@ -613,6 +613,7 @@ void write_log(void)
   printf("\n");
 
   printf("imov     %ld\n", imov);
+  printf("imov     %ld\n", plasRigid);
   printf("\n");
 }
 
@@ -793,6 +794,14 @@ int check_accept(void)
         }
       }
     }
+    if (plasRigid == 1)
+    {
+      return (check_energy(r1x, r1y, r1z)); // apply rigidity
+    }
+    else
+    {
+      return (accept);
+    }
   }
   else if (ichain == 2)
   {
@@ -879,6 +888,14 @@ int check_accept(void)
           return (reject);
         }
       }
+    }
+    if (plasRigid == 1)
+    {
+      return (check_energy(r2x, r2y, r2z)); // apply rigidity
+    }
+    else
+    {
+      return accept;
     }
   }
 
@@ -969,6 +986,14 @@ int check_accept(void)
       }
     }
     // Check if polymer and plasmid overlap
+    if (plasRigid == 1)
+    {
+      return (check_energy(r3x, r3y, r3z)); // apply rigidity
+    }
+    else
+    {
+      return accept;
+    }
   }
 
   else if (ichain == 4)
@@ -1057,9 +1082,15 @@ int check_accept(void)
       }
     }
     // Check if polymer and plasmid overlap
+    if (plasRigid == 1)
+    {
+      return (check_energy(r4x, r4y, r4z)); // apply rigidity
+    }
+    else
+    {
+      return accept;
+    }
   }
-
-  return (check_energy()); // apply rigidity
 }
 
 // ----------------------------------------------------------------------
@@ -1067,298 +1098,7 @@ int check_accept(void)
 // based on considerations of polymer chain energy related to the
 // move. See comments within the function for details.
 // ----------------------------------------------------------------------
-int check_energy(void)
-{
-  int accept, reject; // will return either accept or reject at end of function
-
-  accept = 0;
-  reject = 1;
-
-  // reset energy for all of, up to three angles being considered
-  for (ind = 0; ind < 3; ind++)
-  {
-    energy_new[ind] = 0.0;
-    energy_old[ind] = 0.0;
-  }
-
-  // reset total energies:
-  E_new = 0.0;
-  E_old = 0.0;
-
-  // if considering a movement in the first chain
-  if (ichain == 1)
-  {
-    // The following 5 blocks consider the possible scenarios of monomer
-    // movement: 1.) first monomer, 2.) last monomer, 3.) second monomer,
-    // 4.) second last monomer, and 5.) any other monomer
-    //
-    // shifting monomers at the ends requires only one change in angle
-    // and thus energy. Monomers second from the end require two, and
-    // all the rest require three.
-    if (k == 0)
-    {
-      theta_new = calc_cosine_chain1(k, k + 1, k + 2);
-      theta_old = calc_cosine_chain1(-1, k + 1, k + 2);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-    }
-    else if (k == nseg1 - 1)
-    {
-      theta_new = calc_cosine_chain1(k - 2, k - 1, k);
-      theta_old = calc_cosine_chain1(k - 2, k - 1, -1);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-    }
-    else if (k == 1)
-    {
-      theta_new = calc_cosine_chain1(k - 1, k, k + 1);
-      theta_old = calc_cosine_chain1(k - 1, -1, k + 1);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_chain1(k, k + 1, k + 2);
-      theta_old = calc_cosine_chain1(-1, k + 1, k + 2);
-      energy_new[1] = kappa * (1.0 - theta_new);
-      energy_old[1] = kappa * (1.0 - theta_old);
-    }
-    else if (k == nseg1 - 2)
-    {
-      theta_new = calc_cosine_chain1(k - 2, k - 1, k);
-      theta_old = calc_cosine_chain1(k - 2, k - 1, -1);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_chain1(k - 1, k, k + 1);
-      theta_old = calc_cosine_chain1(k - 1, -1, k + 1);
-      energy_new[1] = kappa * (1.0 - theta_new);
-      energy_old[1] = kappa * (1.0 - theta_old);
-    }
-    else
-    {
-      theta_new = calc_cosine_chain1(k - 2, k - 1, k);
-      theta_old = calc_cosine_chain1(k - 2, k - 1, -1);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_chain1(k - 1, k, k + 1);
-      theta_old = calc_cosine_chain1(k - 1, -1, k + 1);
-      energy_new[1] = kappa * (1.0 - theta_new);
-      energy_old[1] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_chain1(k, k + 1, k + 2);
-      theta_old = calc_cosine_chain1(-1, k + 1, k + 2);
-      energy_new[2] = kappa * (1.0 - theta_new);
-      energy_old[2] = kappa * (1.0 - theta_old);
-    }
-  }
-  // if considering a movement in the second chain:
-  else if (ichain == 2)
-  {
-    if (k == 0)
-    {
-      theta_new = calc_cosine_plasmid(k, k + 1, k + 2, r2x, r2y, r2z);
-      theta_old = calc_cosine_plasmid(-1, k + 1, k + 2, r2x, r2y, r2z);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-    }
-    else if (k == nseg2 - 1)
-    {
-      theta_new = calc_cosine_plasmid(k - 2, k - 1, k, r2x, r2y, r2z);
-      theta_old = calc_cosine_plasmid(k - 2, k - 1, -1, r2x, r2y, r2z);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-    }
-    else if (k == 1)
-    {
-      theta_new = calc_cosine_plasmid(k - 1, k, k + 1, r2x, r2y, r2z);
-      theta_old = calc_cosine_plasmid(k - 1, -1, k + 1, r2x, r2y, r2z);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_plasmid(k, k + 1, k + 2, r2x, r2y, r2z);
-      theta_old = calc_cosine_plasmid(-1, k + 1, k + 2, r2x, r2y, r2z);
-      energy_new[1] = kappa * (1.0 - theta_new);
-      energy_old[1] = kappa * (1.0 - theta_old);
-    }
-    else if (k == nseg2 - 2)
-    {
-      theta_new = calc_cosine_plasmid(k - 2, k - 1, k, r2x, r2y, r2z);
-      theta_old = calc_cosine_plasmid(k - 2, k - 1, -1, r2x, r2y, r2z);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_plasmid(k - 1, k, k + 1, r2x, r2y, r2z);
-      theta_old = calc_cosine_plasmid(k - 1, -1, k + 1, r2x, r2y, r2z);
-      energy_new[1] = kappa * (1.0 - theta_new);
-      energy_old[1] = kappa * (1.0 - theta_old);
-    }
-    else
-    {
-      theta_new = calc_cosine_plasmid(k - 2, k - 1, k, r2x, r2y, r2z);
-      theta_old = calc_cosine_plasmid(k - 2, k - 1, -1, r2x, r2y, r2z);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_plasmid(k - 1, k, k + 1, r2x, r2y, r2z);
-      theta_old = calc_cosine_plasmid(k - 1, -1, k + 1, r2x, r2y, r2z);
-      energy_new[1] = kappa * (1.0 - theta_new);
-      energy_old[1] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_plasmid(k, k + 1, k + 2, r2x, r2y, r2z);
-      theta_old = calc_cosine_plasmid(-1, k + 1, k + 2, r2x, r2y, r2z);
-      energy_new[2] = kappa * (1.0 - theta_new);
-      energy_old[2] = kappa * (1.0 - theta_old);
-    }
-  }
-
-  else if (ichain == 3)
-  {
-    if (k == 0)
-    {
-      theta_new = calc_cosine_plasmid(k, k + 1, k + 2, r3x, r3y, r3z);
-      theta_old = calc_cosine_plasmid(-1, k + 1, k + 2, r3x, r3y, r3z);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-    }
-    else if (k == nseg3 - 1)
-    {
-      theta_new = calc_cosine_plasmid(k - 2, k - 1, k, r3x, r3y, r3z);
-      theta_old = calc_cosine_plasmid(k - 2, k - 1, -1, r3x, r3y, r3z);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-    }
-    else if (k == 1)
-    {
-      theta_new = calc_cosine_plasmid(k - 1, k, k + 1, r3x, r3y, r3z);
-      theta_old = calc_cosine_plasmid(k - 1, -1, k + 1, r3x, r3y, r3z);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_plasmid(k, k + 1, k + 2, r3x, r3y, r3z);
-      theta_old = calc_cosine_plasmid(-1, k + 1, k + 2, r3x, r3y, r3z);
-      energy_new[1] = kappa * (1.0 - theta_new);
-      energy_old[1] = kappa * (1.0 - theta_old);
-    }
-    else if (k == nseg3 - 2)
-    {
-      theta_new = calc_cosine_plasmid(k - 2, k - 1, k, r3x, r3y, r3z);
-      theta_old = calc_cosine_plasmid(k - 2, k - 1, -1, r3x, r3y, r3z);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_plasmid(k - 1, k, k + 1, r3x, r3y, r3z);
-      theta_old = calc_cosine_plasmid(k - 1, -1, k + 1, r3x, r3y, r3z);
-      energy_new[1] = kappa * (1.0 - theta_new);
-      energy_old[1] = kappa * (1.0 - theta_old);
-    }
-    else
-    {
-      theta_new = calc_cosine_plasmid(k - 2, k - 1, k, r3x, r3y, r3z);
-      theta_old = calc_cosine_plasmid(k - 2, k - 1, -1, r3x, r3y, r3z);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_plasmid(k - 1, k, k + 1, r3x, r3y, r3z);
-      theta_old = calc_cosine_plasmid(k - 1, -1, k + 1, r3x, r3y, r3z);
-      energy_new[1] = kappa * (1.0 - theta_new);
-      energy_old[1] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_plasmid(k, k + 1, k + 2, r3x, r3y, r3z);
-      theta_old = calc_cosine_plasmid(-1, k + 1, k + 2, r3x, r3y, r3z);
-      energy_new[2] = kappa * (1.0 - theta_new);
-      energy_old[2] = kappa * (1.0 - theta_old);
-    }
-  }
-
-  else if (ichain == 4)
-  {
-    if (k == 0)
-    {
-      theta_new = calc_cosine_plasmid(k, k + 1, k + 2, r4x, r4y, r4z);
-      theta_old = calc_cosine_plasmid(-1, k + 1, k + 2, r4x, r4y, r4z);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-    }
-    else if (k == nseg4 - 1)
-    {
-      theta_new = calc_cosine_plasmid(k - 2, k - 1, k, r4x, r4y, r4z);
-      theta_old = calc_cosine_plasmid(k - 2, k - 1, -1, r4x, r4y, r4z);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-    }
-    else if (k == 1)
-    {
-      theta_new = calc_cosine_plasmid(k - 1, k, k + 1, r4x, r4y, r4z);
-      theta_old = calc_cosine_plasmid(k - 1, -1, k + 1, r4x, r4y, r4z);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_plasmid(k, k + 1, k + 2, r4x, r4y, r4z);
-      theta_old = calc_cosine_plasmid(-1, k + 1, k + 2, r4x, r4y, r4z);
-      energy_new[1] = kappa * (1.0 - theta_new);
-      energy_old[1] = kappa * (1.0 - theta_old);
-    }
-    else if (k == nseg4 - 2)
-    {
-      theta_new = calc_cosine_plasmid(k - 2, k - 1, k, r4x, r4y, r4z);
-      theta_old = calc_cosine_plasmid(k - 2, k - 1, -1, r4x, r4y, r4z);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_plasmid(k - 1, k, k + 1, r4x, r4y, r4z);
-      theta_old = calc_cosine_plasmid(k - 1, -1, k + 1, r4x, r4y, r4z);
-      energy_new[1] = kappa * (1.0 - theta_new);
-      energy_old[1] = kappa * (1.0 - theta_old);
-    }
-    else
-    {
-      theta_new = calc_cosine_plasmid(k - 2, k - 1, k, r4x, r4y, r4z);
-      theta_old = calc_cosine_plasmid(k - 2, k - 1, -1, r4x, r4y, r4z);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_plasmid(k - 1, k, k + 1, r4x, r4y, r4z);
-      theta_old = calc_cosine_plasmid(k - 1, -1, k + 1, r4x, r4y, r4z);
-      energy_new[1] = kappa * (1.0 - theta_new);
-      energy_old[1] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_plasmid(k, k + 1, k + 2, r4x, r4y, r4z);
-      theta_old = calc_cosine_plasmid(-1, k + 1, k + 2, r4x, r4y, r4z);
-      energy_new[2] = kappa * (1.0 - theta_new);
-      energy_old[2] = kappa * (1.0 - theta_old);
-    }
-  }
-
-  // Get the total new and and old energies of the bond angles affected
-  // by the move
-  for (ind = 0; ind < 3; ind++)
-  {
-    E_new += energy_new[ind];
-    E_old += energy_old[ind];
-  }
-
-  delta_E = E_new - E_old;
-
-  // If change in energy is negative, accept the move. If positive, must do a
-  // comparison of the change in energy (multiplied by Boltzmann factor and placed
-  // in an exponential, with a random value [0,1] to determine if move is
-  // accepted or rejected. (Higher delta_E leads to reduced chance of accepted move)
-  if (delta_E <= 0)
-    return (accept);
-  else
-  {
-    if (ran3() <= exp(-1.0 * delta_E))
-    {
-      return (accept);
-    }
-    else
-    {
-      return (reject);
-    }
-  }
-}
-
-int check_energy2(double rx[5000], double ry[5000], double rz[5000])
+int check_energy(double rx[5000], double ry[5000], double rz[5000])
 {
   int accept, reject; // will return either accept or reject at end of function
 
