@@ -1,3 +1,15 @@
+/*
+This code was written by Dr. James Polson, it has been edited and modified by Zach Evans during the summer of 2023
+
+Email: zdjevans@protonmail.com
+
+This program was written to study the equilibrium behaviour of plasmids confined to a dual pit geometry of an elliptically capped rectangle interacting with
+T4 polymer (Much longer linear polymer). 
+
+This program was built with the Compute Canada clusters, as such it has included an input file that 
+
+*/
+
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -477,12 +489,12 @@ int main()
 
         for (i = 0; i < nseg3; i++)
         {
-          fprintf(fpmov, "F    %lf  %lf  %lf\n", r3x[i], r3y[i], r3z[i]);
+          fprintf(fpmov, "O    %lf  %lf  %lf\n", r3x[i], r3y[i], r3z[i]);
         }
 
         for (i = 0; i < nseg4; i++)
         {
-          fprintf(fpmov, "B    %lf  %lf  %lf\n", r4x[i], r4y[i], r4z[i]);
+          fprintf(fpmov, "O    %lf  %lf  %lf\n", r4x[i], r4y[i], r4z[i]);
         }
       }
     }
@@ -1046,7 +1058,14 @@ int check_accept(void)
     // Check if polymer and plasmid overlap
   }
 
-  return (check_energy()); // apply rigidity
+  if (ichain == 1)
+  {
+    return (check_energy()); // apply rigidity
+  }
+  else
+  {
+    return (accept);
+  }
 }
 
 // ----------------------------------------------------------------------
