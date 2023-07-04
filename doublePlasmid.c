@@ -620,7 +620,15 @@ int checkEllipse(double xPos, double yPos, double zPos)
     return reject;
   }
 
-  if (xPos > xBoxMaxd2)
+  if (ecc >= 1.0)
+  {
+    if (xPos > xBoxMaxd2 || xPos < -xBoxMaxd2)
+    {
+      return (reject);
+    }
+  }
+
+  if (xPos > xBoxMaxd2 && ecc < 1.0)
   { // If the polymer is outside of the leftmost semi-ellipse, reject
     if ((xPos - xBoxMaxd2) * (xPos - xBoxMaxd2) > amax2 * (1 - (yPos * yPos) / bmin2))
     {
@@ -639,7 +647,7 @@ int checkEllipse(double xPos, double yPos, double zPos)
     }
   }
 
-  else if (xPos < -xBoxMaxd2)
+  else if (xPos < -xBoxMaxd2 && ecc < 1.0)
   { // Checking if outside of left elliptical end
     if ((xPos + xBoxMaxd2) * (xPos + xBoxMaxd2) > amax2 * (1 - (yPos * yPos) / bmin2))
     {
@@ -1852,7 +1860,7 @@ int check_shift_chain(double rx[5000], double ry[5000], double rz[5000], long ns
 
   for (i = 0; i < nseg; i++)
   {
-    
+
     if (squareEllipse(rx[i], ry[i], rz[i]) == reject)
     {
       return (reject);
