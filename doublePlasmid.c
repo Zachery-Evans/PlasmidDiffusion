@@ -120,6 +120,10 @@ int main()
   {
     amax = bmin / sqrt(1 - ecc * ecc);
   }
+  else
+  {
+    amax = bmin;
+  }
   amax2 = amax * amax;
   bmin2 = bmin * bmin;
   rectangleArea = Area - PI * amax * bmin;
