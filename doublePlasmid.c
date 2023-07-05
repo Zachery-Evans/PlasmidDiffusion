@@ -6,7 +6,19 @@ Email: zdjevans@protonmail.com
 This program was written to study the equilibrium behaviour of plasmids confined to a dual pit geometry of an elliptically capped rectangle interacting with
 T4 polymer (Much longer linear polymer).
 
-This program was built with the Compute Canada clusters, as such it has included an input file that
+This program was built with the Compute Canada clusters, as such it should include an input file whose contents are read from the function "void input(void)". 
+
+There are some pecularities that were implemented into this program in order to be most effective for file management as well as ease of use: 
+  1) If the variable "ecc" (eccentricity of the elliptical caps) is greater than or equal to 1.0, then the geometry is changed into a rectangle. 
+
+  2) There is a variable called "plasRigid" that controls whether or not the plasmids have the ridigity of the linear polymer. If plasRigid == 1 then the plasmiids
+     have rigidity. They have zero rigidity otherwise. 
+  
+  3) The variable imov determines whether or not the "xyz" files used for VMD visualizations are printed to a file. It should be noted that this variable needs to be 
+     set to 0 if doing any work in the Compute Canada clusters, as there is not enough storage in the cloud to support printing these files anywhere but on the local
+     computer. 
+  
+  4) 
 
 */
 
