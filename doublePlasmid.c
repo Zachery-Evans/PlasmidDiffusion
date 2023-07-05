@@ -120,7 +120,7 @@ int main()
   {
     amax = bmin / sqrt(1 - ecc * ecc);
   }
-  
+
   amax2 = amax * amax;
   bmin2 = bmin * bmin;
   rectangleArea = Area - PI * amax * bmin;
@@ -1310,6 +1310,7 @@ void init_pos(void)
   {
     r1x[i] = r1x[i - 1] + xadd;
     r1y[i] = r1y[i - 1];
+    r1z[i] = 1.0;
     xmax = xBoxMaxd2; // Changed to be inside of the rectangle structure
     // xmax = amax * sqrt(1.0 - pow(r1y[i] / bmin, 2.0)) - 3.0;
     if (r1x[i] > xmax || r1x[i] < -xmax)
@@ -1325,7 +1326,13 @@ void init_pos(void)
       }
       xadd *= -1.0;
     }
-    r1z[i] = 0.0;
+
+    if (r1y[i] + 1.0 > ymax || r1y[i] - 1.0 < -ymax)
+    {
+      r1z[i] -= 1.0;
+      xadd *= -1.0;
+      yadd *= -1.0;
+    }
   }
 
   double theta_plasmid2 = 2.0 * PI / nseg2;
@@ -1340,21 +1347,21 @@ void init_pos(void)
   for (i = 0; i < nseg2; i++)
   {
     r2z[i] = 4.0;
-    r2x[i] = Rplasmid2 * cos(i * theta_plasmid2);
+    r2x[i] = Rplasmid2 * cos(i * theta_plasmid2) - xBoxMaxd2 + Rplasmid2;
     r2y[i] = Rplasmid2 * sin(i * theta_plasmid2) - Rplasmid2 / 2.0;
   }
 
   for (i = 0; i < nseg3; i++)
   {
     r3z[i] = 2.0; // Initialized just above the first plasmid
-    r3x[i] = Rplasmid3 * cos(i * theta_plasmid3);
+    r3x[i] = Rplasmid3 * cos(i * theta_plasmid3) - xBoxMaxd2 + Rplasmid3;
     r3y[i] = Rplasmid3 * sin(i * theta_plasmid3) - Rplasmid3 / 2.0;
   }
 
   for (i = 0; i < nseg4; i++)
   {
-    r4z[i] = -2.0; // Initialized just above the first plasmid
-    r4x[i] = Rplasmid4 * cos(i * theta_plasmid4);
+    r4z[i] = -4.0; // Initialized just above the first plasmid
+    r4x[i] = Rplasmid4 * cos(i * theta_plasmid4) + xBoxMaxd2 - Rplasmid4;
     r4y[i] = Rplasmid4 * sin(i * theta_plasmid4) - Rplasmid4 / 2.0;
   }
 }
