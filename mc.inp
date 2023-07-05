@@ -4,7 +4,7 @@
 10                nseg4
 3000.0            Area
 12.0              bmin
-0.8               ecc
+1.0               ecc
 15.0              H
 6.36              kappa
 0.9               drmin
