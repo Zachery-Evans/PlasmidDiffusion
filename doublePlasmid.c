@@ -29,10 +29,8 @@ void input(void);
 int check_accept(void);
 int check_shift_chain(double[], double[], double[], long);
 
-int check_energy(void);
-int check_energy2(double[], double[], double[]);
-double calc_cosine_chain1(int, int, int);
-double calc_cosine_plasmid(int, int, int, double[], double[], double[]);
+int check_energy(double[], double[], double[]);
+double calc_cosine(int, int, int, double[], double[], double[]);
 
 double **dmatrix(long, long, long, long);
 void free_dmatrix(double **, long, long, long, long);
@@ -42,15 +40,15 @@ void reptation_move_chain1(void);
 void shift_move_chain(void);
 void shift_move_plasmid(double[], double[], double[], long);
 
-int check_accept_reptation(long);
+int check_accept_reptation(double[], double[], double[], long, long);
 void calc_delta_xyz(void);
 
-void crank_move_chain1(void);
+void crank_move_polymer(double[], double[], double[]);
 void crank_move_plasmid(double[], double[], double[], long);
 
 long nseg1, nseg2, nseg3, nseg4, nbin, i, j, k, ii, ncyc, overlap, nacc, kk, itest, iseed;
 long neq, nbintot, ibin, ichain, nsamp, nacc_shift, nshift;
-long imov, kmaxtest, freq_samp, cmFreqSamp, freq_mon, freq_mov, ncmt, ngridx, ngridy;
+long imov, plasRigid, kmaxtest, freq_samp, cmFreqSamp, freq_mon, freq_mov, ncmt, ngridx, ngridy;
 
 double L, H, Ld2, Hd2, rmax, xt, yt, zt, dx, dy, dz, re, dr2, drxy2, dr2min, dr2max;
 double qmin, qmax, re2av, re2, drmin, drmax, gridspace, gridspacex_real, gridspacey_real;
@@ -122,6 +120,7 @@ int main()
   {
     amax = bmin / sqrt(1 - ecc * ecc);
   }
+
   amax2 = amax * amax;
   bmin2 = bmin * bmin;
   rectangleArea = Area - PI * amax * bmin;
@@ -269,7 +268,7 @@ int main()
           xold = r1x[k];
           yold = r1y[k];
           zold = r1z[k];
-          crank_move_chain1();
+          crank_move_polymer(r1x, r1y, r1z);
         }
         else if (ichain == 2)
         {
@@ -490,12 +489,12 @@ int main()
 
         for (i = 0; i < nseg3; i++)
         {
-          fprintf(fpmov, "O    %lf  %lf  %lf\n", r3x[i], r3y[i], r3z[i]);
+          fprintf(fpmov, "F    %lf  %lf  %lf\n", r3x[i], r3y[i], r3z[i]);
         }
 
         for (i = 0; i < nseg4; i++)
         {
-          fprintf(fpmov, "O    %lf  %lf  %lf\n", r4x[i], r4y[i], r4z[i]);
+          fprintf(fpmov, "B    %lf  %lf  %lf\n", r4x[i], r4y[i], r4z[i]);
         }
       }
     }
@@ -565,6 +564,7 @@ void input(void)
     fscanf(fp, "\n%ld%*s", &freq_mov);
 
     fscanf(fp, "\n%ld%*s", &imov);
+    fscanf(fp, "\n%ld%*s", &plasRigid);
   }
 
   fclose(fp);
@@ -613,6 +613,7 @@ void write_log(void)
   printf("\n");
 
   printf("imov     %ld\n", imov);
+  printf("plasRigid     %ld\n", plasRigid);
   printf("\n");
 }
 
@@ -793,6 +794,14 @@ int check_accept(void)
         }
       }
     }
+    if (plasRigid == 1)
+    {
+      return (check_energy(r1x, r1y, r1z)); // apply rigidity
+    }
+    else
+    {
+      return (accept);
+    }
   }
   else if (ichain == 2)
   {
@@ -879,6 +888,14 @@ int check_accept(void)
           return (reject);
         }
       }
+    }
+    if (plasRigid == 1)
+    {
+      return (check_energy(r2x, r2y, r2z)); // apply rigidity
+    }
+    else
+    {
+      return accept;
     }
   }
 
@@ -969,6 +986,14 @@ int check_accept(void)
       }
     }
     // Check if polymer and plasmid overlap
+    if (plasRigid == 1)
+    {
+      return (check_energy(r3x, r3y, r3z)); // apply rigidity
+    }
+    else
+    {
+      return accept;
+    }
   }
 
   else if (ichain == 4)
@@ -1057,9 +1082,15 @@ int check_accept(void)
       }
     }
     // Check if polymer and plasmid overlap
+    if (plasRigid == 1)
+    {
+      return (check_energy(r4x, r4y, r4z)); // apply rigidity
+    }
+    else
+    {
+      return accept;
+    }
   }
-
-  return (check_energy()); // apply rigidity
 }
 
 // ----------------------------------------------------------------------
@@ -1067,298 +1098,7 @@ int check_accept(void)
 // based on considerations of polymer chain energy related to the
 // move. See comments within the function for details.
 // ----------------------------------------------------------------------
-int check_energy(void)
-{
-  int accept, reject; // will return either accept or reject at end of function
-
-  accept = 0;
-  reject = 1;
-
-  // reset energy for all of, up to three angles being considered
-  for (ind = 0; ind < 3; ind++)
-  {
-    energy_new[ind] = 0.0;
-    energy_old[ind] = 0.0;
-  }
-
-  // reset total energies:
-  E_new = 0.0;
-  E_old = 0.0;
-
-  // if considering a movement in the first chain
-  if (ichain == 1)
-  {
-    // The following 5 blocks consider the possible scenarios of monomer
-    // movement: 1.) first monomer, 2.) last monomer, 3.) second monomer,
-    // 4.) second last monomer, and 5.) any other monomer
-    //
-    // shifting monomers at the ends requires only one change in angle
-    // and thus energy. Monomers second from the end require two, and
-    // all the rest require three.
-    if (k == 0)
-    {
-      theta_new = calc_cosine_chain1(k, k + 1, k + 2);
-      theta_old = calc_cosine_chain1(-1, k + 1, k + 2);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-    }
-    else if (k == nseg1 - 1)
-    {
-      theta_new = calc_cosine_chain1(k - 2, k - 1, k);
-      theta_old = calc_cosine_chain1(k - 2, k - 1, -1);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-    }
-    else if (k == 1)
-    {
-      theta_new = calc_cosine_chain1(k - 1, k, k + 1);
-      theta_old = calc_cosine_chain1(k - 1, -1, k + 1);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_chain1(k, k + 1, k + 2);
-      theta_old = calc_cosine_chain1(-1, k + 1, k + 2);
-      energy_new[1] = kappa * (1.0 - theta_new);
-      energy_old[1] = kappa * (1.0 - theta_old);
-    }
-    else if (k == nseg1 - 2)
-    {
-      theta_new = calc_cosine_chain1(k - 2, k - 1, k);
-      theta_old = calc_cosine_chain1(k - 2, k - 1, -1);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_chain1(k - 1, k, k + 1);
-      theta_old = calc_cosine_chain1(k - 1, -1, k + 1);
-      energy_new[1] = kappa * (1.0 - theta_new);
-      energy_old[1] = kappa * (1.0 - theta_old);
-    }
-    else
-    {
-      theta_new = calc_cosine_chain1(k - 2, k - 1, k);
-      theta_old = calc_cosine_chain1(k - 2, k - 1, -1);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_chain1(k - 1, k, k + 1);
-      theta_old = calc_cosine_chain1(k - 1, -1, k + 1);
-      energy_new[1] = kappa * (1.0 - theta_new);
-      energy_old[1] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_chain1(k, k + 1, k + 2);
-      theta_old = calc_cosine_chain1(-1, k + 1, k + 2);
-      energy_new[2] = kappa * (1.0 - theta_new);
-      energy_old[2] = kappa * (1.0 - theta_old);
-    }
-  }
-  // if considering a movement in the second chain:
-  else if (ichain == 2)
-  {
-    if (k == 0)
-    {
-      theta_new = calc_cosine_plasmid(k, k + 1, k + 2, r2x, r2y, r2z);
-      theta_old = calc_cosine_plasmid(-1, k + 1, k + 2, r2x, r2y, r2z);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-    }
-    else if (k == nseg2 - 1)
-    {
-      theta_new = calc_cosine_plasmid(k - 2, k - 1, k, r2x, r2y, r2z);
-      theta_old = calc_cosine_plasmid(k - 2, k - 1, -1, r2x, r2y, r2z);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-    }
-    else if (k == 1)
-    {
-      theta_new = calc_cosine_plasmid(k - 1, k, k + 1, r2x, r2y, r2z);
-      theta_old = calc_cosine_plasmid(k - 1, -1, k + 1, r2x, r2y, r2z);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_plasmid(k, k + 1, k + 2, r2x, r2y, r2z);
-      theta_old = calc_cosine_plasmid(-1, k + 1, k + 2, r2x, r2y, r2z);
-      energy_new[1] = kappa * (1.0 - theta_new);
-      energy_old[1] = kappa * (1.0 - theta_old);
-    }
-    else if (k == nseg2 - 2)
-    {
-      theta_new = calc_cosine_plasmid(k - 2, k - 1, k, r2x, r2y, r2z);
-      theta_old = calc_cosine_plasmid(k - 2, k - 1, -1, r2x, r2y, r2z);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_plasmid(k - 1, k, k + 1, r2x, r2y, r2z);
-      theta_old = calc_cosine_plasmid(k - 1, -1, k + 1, r2x, r2y, r2z);
-      energy_new[1] = kappa * (1.0 - theta_new);
-      energy_old[1] = kappa * (1.0 - theta_old);
-    }
-    else
-    {
-      theta_new = calc_cosine_plasmid(k - 2, k - 1, k, r2x, r2y, r2z);
-      theta_old = calc_cosine_plasmid(k - 2, k - 1, -1, r2x, r2y, r2z);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_plasmid(k - 1, k, k + 1, r2x, r2y, r2z);
-      theta_old = calc_cosine_plasmid(k - 1, -1, k + 1, r2x, r2y, r2z);
-      energy_new[1] = kappa * (1.0 - theta_new);
-      energy_old[1] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_plasmid(k, k + 1, k + 2, r2x, r2y, r2z);
-      theta_old = calc_cosine_plasmid(-1, k + 1, k + 2, r2x, r2y, r2z);
-      energy_new[2] = kappa * (1.0 - theta_new);
-      energy_old[2] = kappa * (1.0 - theta_old);
-    }
-  }
-
-  else if (ichain == 3)
-  {
-    if (k == 0)
-    {
-      theta_new = calc_cosine_plasmid(k, k + 1, k + 2, r3x, r3y, r3z);
-      theta_old = calc_cosine_plasmid(-1, k + 1, k + 2, r3x, r3y, r3z);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-    }
-    else if (k == nseg3 - 1)
-    {
-      theta_new = calc_cosine_plasmid(k - 2, k - 1, k, r3x, r3y, r3z);
-      theta_old = calc_cosine_plasmid(k - 2, k - 1, -1, r3x, r3y, r3z);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-    }
-    else if (k == 1)
-    {
-      theta_new = calc_cosine_plasmid(k - 1, k, k + 1, r3x, r3y, r3z);
-      theta_old = calc_cosine_plasmid(k - 1, -1, k + 1, r3x, r3y, r3z);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_plasmid(k, k + 1, k + 2, r3x, r3y, r3z);
-      theta_old = calc_cosine_plasmid(-1, k + 1, k + 2, r3x, r3y, r3z);
-      energy_new[1] = kappa * (1.0 - theta_new);
-      energy_old[1] = kappa * (1.0 - theta_old);
-    }
-    else if (k == nseg3 - 2)
-    {
-      theta_new = calc_cosine_plasmid(k - 2, k - 1, k, r3x, r3y, r3z);
-      theta_old = calc_cosine_plasmid(k - 2, k - 1, -1, r3x, r3y, r3z);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_plasmid(k - 1, k, k + 1, r3x, r3y, r3z);
-      theta_old = calc_cosine_plasmid(k - 1, -1, k + 1, r3x, r3y, r3z);
-      energy_new[1] = kappa * (1.0 - theta_new);
-      energy_old[1] = kappa * (1.0 - theta_old);
-    }
-    else
-    {
-      theta_new = calc_cosine_plasmid(k - 2, k - 1, k, r3x, r3y, r3z);
-      theta_old = calc_cosine_plasmid(k - 2, k - 1, -1, r3x, r3y, r3z);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_plasmid(k - 1, k, k + 1, r3x, r3y, r3z);
-      theta_old = calc_cosine_plasmid(k - 1, -1, k + 1, r3x, r3y, r3z);
-      energy_new[1] = kappa * (1.0 - theta_new);
-      energy_old[1] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_plasmid(k, k + 1, k + 2, r3x, r3y, r3z);
-      theta_old = calc_cosine_plasmid(-1, k + 1, k + 2, r3x, r3y, r3z);
-      energy_new[2] = kappa * (1.0 - theta_new);
-      energy_old[2] = kappa * (1.0 - theta_old);
-    }
-  }
-
-  else if (ichain == 4)
-  {
-    if (k == 0)
-    {
-      theta_new = calc_cosine_plasmid(k, k + 1, k + 2, r4x, r4y, r4z);
-      theta_old = calc_cosine_plasmid(-1, k + 1, k + 2, r4x, r4y, r4z);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-    }
-    else if (k == nseg4 - 1)
-    {
-      theta_new = calc_cosine_plasmid(k - 2, k - 1, k, r4x, r4y, r4z);
-      theta_old = calc_cosine_plasmid(k - 2, k - 1, -1, r4x, r4y, r4z);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-    }
-    else if (k == 1)
-    {
-      theta_new = calc_cosine_plasmid(k - 1, k, k + 1, r4x, r4y, r4z);
-      theta_old = calc_cosine_plasmid(k - 1, -1, k + 1, r4x, r4y, r4z);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_plasmid(k, k + 1, k + 2, r4x, r4y, r4z);
-      theta_old = calc_cosine_plasmid(-1, k + 1, k + 2, r4x, r4y, r4z);
-      energy_new[1] = kappa * (1.0 - theta_new);
-      energy_old[1] = kappa * (1.0 - theta_old);
-    }
-    else if (k == nseg4 - 2)
-    {
-      theta_new = calc_cosine_plasmid(k - 2, k - 1, k, r4x, r4y, r4z);
-      theta_old = calc_cosine_plasmid(k - 2, k - 1, -1, r4x, r4y, r4z);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_plasmid(k - 1, k, k + 1, r4x, r4y, r4z);
-      theta_old = calc_cosine_plasmid(k - 1, -1, k + 1, r4x, r4y, r4z);
-      energy_new[1] = kappa * (1.0 - theta_new);
-      energy_old[1] = kappa * (1.0 - theta_old);
-    }
-    else
-    {
-      theta_new = calc_cosine_plasmid(k - 2, k - 1, k, r4x, r4y, r4z);
-      theta_old = calc_cosine_plasmid(k - 2, k - 1, -1, r4x, r4y, r4z);
-      energy_new[0] = kappa * (1.0 - theta_new);
-      energy_old[0] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_plasmid(k - 1, k, k + 1, r4x, r4y, r4z);
-      theta_old = calc_cosine_plasmid(k - 1, -1, k + 1, r4x, r4y, r4z);
-      energy_new[1] = kappa * (1.0 - theta_new);
-      energy_old[1] = kappa * (1.0 - theta_old);
-
-      theta_new = calc_cosine_plasmid(k, k + 1, k + 2, r4x, r4y, r4z);
-      theta_old = calc_cosine_plasmid(-1, k + 1, k + 2, r4x, r4y, r4z);
-      energy_new[2] = kappa * (1.0 - theta_new);
-      energy_old[2] = kappa * (1.0 - theta_old);
-    }
-  }
-
-  // Get the total new and and old energies of the bond angles affected
-  // by the move
-  for (ind = 0; ind < 3; ind++)
-  {
-    E_new += energy_new[ind];
-    E_old += energy_old[ind];
-  }
-
-  delta_E = E_new - E_old;
-
-  // If change in energy is negative, accept the move. If positive, must do a
-  // comparison of the change in energy (multiplied by Boltzmann factor and placed
-  // in an exponential, with a random value [0,1] to determine if move is
-  // accepted or rejected. (Higher delta_E leads to reduced chance of accepted move)
-  if (delta_E <= 0)
-    return (accept);
-  else
-  {
-    if (ran3() <= exp(-1.0 * delta_E))
-    {
-      return (accept);
-    }
-    else
-    {
-      return (reject);
-    }
-  }
-}
-
-int check_energy2(double rx[5000], double ry[5000], double rz[5000])
+int check_energy(double rx[5000], double ry[5000], double rz[5000])
 {
   int accept, reject; // will return either accept or reject at end of function
 
@@ -1385,56 +1125,56 @@ int check_energy2(double rx[5000], double ry[5000], double rz[5000])
   // all the rest require three.
   if (k == 0)
   {
-    theta_new = calc_cosine_plasmid(k, k + 1, k + 2, rx, ry, rz);
-    theta_old = calc_cosine_plasmid(-1, k + 1, k + 2, rx, ry, rz);
+    theta_new = calc_cosine(k, k + 1, k + 2, rx, ry, rz);
+    theta_old = calc_cosine(-1, k + 1, k + 2, rx, ry, rz);
     energy_new[0] = kappa * (1.0 - theta_new);
     energy_old[0] = kappa * (1.0 - theta_old);
   }
   else if (k == nseg4 - 1)
   {
-    theta_new = calc_cosine_plasmid(k - 2, k - 1, k, rx, ry, rz);
-    theta_old = calc_cosine_plasmid(k - 2, k - 1, -1, rx, ry, rz);
+    theta_new = calc_cosine(k - 2, k - 1, k, rx, ry, rz);
+    theta_old = calc_cosine(k - 2, k - 1, -1, rx, ry, rz);
     energy_new[0] = kappa * (1.0 - theta_new);
     energy_old[0] = kappa * (1.0 - theta_old);
   }
   else if (k == 1)
   {
-    theta_new = calc_cosine_plasmid(k - 1, k, k + 1, rx, ry, rz);
-    theta_old = calc_cosine_plasmid(k - 1, -1, k + 1, rx, ry, rz);
+    theta_new = calc_cosine(k - 1, k, k + 1, rx, ry, rz);
+    theta_old = calc_cosine(k - 1, -1, k + 1, rx, ry, rz);
     energy_new[0] = kappa * (1.0 - theta_new);
     energy_old[0] = kappa * (1.0 - theta_old);
 
-    theta_new = calc_cosine_plasmid(k, k + 1, k + 2, rx, ry, rz);
-    theta_old = calc_cosine_plasmid(-1, k + 1, k + 2, rx, ry, rz);
+    theta_new = calc_cosine(k, k + 1, k + 2, rx, ry, rz);
+    theta_old = calc_cosine(-1, k + 1, k + 2, rx, ry, rz);
     energy_new[1] = kappa * (1.0 - theta_new);
     energy_old[1] = kappa * (1.0 - theta_old);
   }
   else if (k == nseg4 - 2)
   {
-    theta_new = calc_cosine_plasmid(k - 2, k - 1, k, rx, ry, rz);
-    theta_old = calc_cosine_plasmid(k - 2, k - 1, -1, rx, ry, rz);
+    theta_new = calc_cosine(k - 2, k - 1, k, rx, ry, rz);
+    theta_old = calc_cosine(k - 2, k - 1, -1, rx, ry, rz);
     energy_new[0] = kappa * (1.0 - theta_new);
     energy_old[0] = kappa * (1.0 - theta_old);
 
-    theta_new = calc_cosine_plasmid(k - 1, k, k + 1, rx, ry, rz);
-    theta_old = calc_cosine_plasmid(k - 1, -1, k + 1, rx, ry, rz);
+    theta_new = calc_cosine(k - 1, k, k + 1, rx, ry, rz);
+    theta_old = calc_cosine(k - 1, -1, k + 1, rx, ry, rz);
     energy_new[1] = kappa * (1.0 - theta_new);
     energy_old[1] = kappa * (1.0 - theta_old);
   }
   else
   {
-    theta_new = calc_cosine_plasmid(k - 2, k - 1, k, rx, ry, rz);
-    theta_old = calc_cosine_plasmid(k - 2, k - 1, -1, rx, ry, rz);
+    theta_new = calc_cosine(k - 2, k - 1, k, rx, ry, rz);
+    theta_old = calc_cosine(k - 2, k - 1, -1, rx, ry, rz);
     energy_new[0] = kappa * (1.0 - theta_new);
     energy_old[0] = kappa * (1.0 - theta_old);
 
-    theta_new = calc_cosine_plasmid(k - 1, k, k + 1, rx, ry, rz);
-    theta_old = calc_cosine_plasmid(k - 1, -1, k + 1, rx, ry, rz);
+    theta_new = calc_cosine(k - 1, k, k + 1, rx, ry, rz);
+    theta_old = calc_cosine(k - 1, -1, k + 1, rx, ry, rz);
     energy_new[1] = kappa * (1.0 - theta_new);
     energy_old[1] = kappa * (1.0 - theta_old);
 
-    theta_new = calc_cosine_plasmid(k, k + 1, k + 2, rx, ry, rz);
-    theta_old = calc_cosine_plasmid(-1, k + 1, k + 2, rx, ry, rz);
+    theta_new = calc_cosine(k, k + 1, k + 2, rx, ry, rz);
+    theta_old = calc_cosine(-1, k + 1, k + 2, rx, ry, rz);
     energy_new[2] = kappa * (1.0 - theta_new);
     energy_old[2] = kappa * (1.0 - theta_old);
   }
@@ -1468,161 +1208,9 @@ int check_energy2(double rx[5000], double ry[5000], double rz[5000])
   }
 }
 
-// ----------------------------------------------------------------------
-// Calculate the cosine of theta between two bonds (vectors) that connect
-// three sequential monomers within the first polymer chain.
-// ----------------------------------------------------------------------
-double calc_cosine_chain1(int i1, int i2, int i3)
-{
-  // determine which of the indices is negative (if any). The negative index
-  // corresponds to the old position of the monomer. Set x, y, and z values of
-  // each of the three monomers accordingly. Note y1 is an implicit variable
-  // name in some stlib function, so use yone instead.
-  if (i1 < 0)
-  {
-    x1 = xold;
-    yone = yold, z1 = zold;
-    x2 = r1x[i2];
-    y2 = r1y[i2];
-    z2 = r1z[i2];
-    x3 = r1x[i3];
-    y3 = r1y[i3];
-    z3 = r1z[i3];
-  }
-  else if (i2 < 0)
-  {
-    x1 = r1x[i1];
-    yone = r1y[i1];
-    z1 = r1z[i1];
-    x2 = xold;
-    y2 = yold;
-    z2 = zold;
-    x3 = r1x[i3];
-    y3 = r1y[i3];
-    z3 = r1z[i3];
-  }
-  else if (i3 < 0)
-  {
-    x1 = r1x[i1];
-    yone = r1y[i1];
-    z1 = r1z[i1];
-    x2 = r1x[i2];
-    y2 = r1y[i2];
-    z2 = r1z[i2];
-    x3 = xold;
-    y3 = yold;
-    z3 = zold;
-  }
-  else
-  {
-    x1 = r1x[i1];
-    yone = r1y[i1];
-    z1 = r1z[i1];
-    x2 = r1x[i2];
-    y2 = r1y[i2];
-    z2 = r1z[i2];
-    x3 = r1x[i3];
-    y3 = r1y[i3];
-    z3 = r1z[i3];
-  }
-
-  // va is vector A, connects the first two monomers being considered.
-  // vb is vector B, connects the second two monomers being considered.
-  // Use rules of dot products to calculate the cosine of the angle between
-  // vectors A and B, and return this value.
-
-  vax = x2 - x1;
-  vay = y2 - yone;
-  vaz = z2 - z1;
-  vbx = x3 - x2;
-  vby = y3 - y2;
-  vbz = z3 - z2;
-
-  va_sq = vax * vax + vay * vay + vaz * vaz;
-  vb_sq = vbx * vbx + vby * vby + vbz * vbz;
-
-  va_dot_vb = vax * vbx + vay * vby + vaz * vbz;
-
-  return (va_dot_vb / (sqrt(va_sq) * sqrt(vb_sq)));
-}
-
-// ----------------------------------------------------------------------
-// Calculate the cosine of theta between two bonds (vectors) that connect
-// three sequential monomers within the second polymer chain.
-// ----------------------------------------------------------------------
-double calc_cosine_chain2(int i1, int i2, int i3)
-{
-  if (i1 < 0)
-  {
-    x1 = xold;
-    yone = yold, z1 = zold;
-    x2 = r2x[i2];
-    y2 = r2y[i2];
-    z2 = r2z[i2];
-    x3 = r2x[i3];
-    y3 = r2y[i3];
-    z3 = r2z[i3];
-  }
-  else if (i2 < 0)
-  {
-    x1 = r2x[i1];
-    yone = r2y[i1];
-    z1 = r2z[i1];
-    x2 = xold;
-    y2 = yold;
-    z2 = zold;
-    x3 = r2x[i3];
-    y3 = r2y[i3];
-    z3 = r2z[i3];
-  }
-  else if (i3 < 0)
-  {
-    x1 = r2x[i1];
-    yone = r2y[i1];
-    z1 = r2z[i1];
-    x2 = r2x[i2];
-    y2 = r2y[i2];
-    z2 = r2z[i2];
-    x3 = xold;
-    y3 = yold;
-    z3 = zold;
-  }
-  else
-  {
-    x1 = r2x[i1];
-    yone = r2y[i1];
-    z1 = r2z[i1];
-    x2 = r2x[i2];
-    y2 = r2y[i2];
-    z2 = r2z[i2];
-    x3 = r2x[i3];
-    y3 = r2y[i3];
-    z3 = r2z[i3];
-  }
-
-  // va is vector A, connects the first two monomers being considered.
-  // vb is vector B, connects the second two monomers being considered.
-  // Use rules of dot products to calculate the cosine of the angle between
-  // vectors A and B, and return this value.
-
-  vax = x2 - x1;
-  vay = y2 - yone;
-  vaz = z2 - z1;
-  vbx = x3 - x2;
-  vby = y3 - y2;
-  vbz = z3 - z2;
-
-  va_sq = vax * vax + vay * vay + vaz * vaz;
-  vb_sq = vbx * vbx + vby * vby + vbz * vbz;
-
-  va_dot_vb = vax * vbx + vay * vby + vaz * vbz;
-
-  return (va_dot_vb / (sqrt(va_sq) * sqrt(vb_sq)));
-}
-
 /*
  * Generalized calc_cosine method in order to determine the angle between the links in the plasmids
- * to ensure that it maintains its ring structure.
+ * and the linear polymer for the purposes of rigidity or bending resistance of the polymers.
  *
  * Written by Zach Evans 2023 June 30
  * zdjevans@protonmail.com
@@ -1632,7 +1220,7 @@ double calc_cosine_chain2(int i1, int i2, int i3)
 // Calculate the cosine of theta between two bonds (vectors) that connect
 // three sequential monomers within the first polymer chain.
 // ----------------------------------------------------------------------
-double calc_cosine_plasmid(int i1, int i2, int i3, double rx[5000], double ry[5000], double rz[5000])
+double calc_cosine(int i1, int i2, int i3, double rx[5000], double ry[5000], double rz[5000])
 {
   // determine which of the indices is negative (if any). The negative index
   // corresponds to the old position of the monomer. Set x, y, and z values of
@@ -1710,26 +1298,36 @@ double calc_cosine_plasmid(int i1, int i2, int i3, double rx[5000], double ry[50
 void init_pos(void)
 {
 
-  double xadd, yadd, xmax, ymax;
+  double xadd, yadd, xmax, ymax, zplace;
 
   r1x[0] = -xBoxMaxd2;
-  r1y[0] = -yBoxMaxd2 + 1.0;
-  r1z[0] = 0.0;
+  r1y[0] = -yBoxMaxd2 + 2.0;
+  r1z[0] = 1.0;
   xadd = 1.0;
-  yadd = 1.02;
+  yadd = 1.0;
+  zplace = 1.0;
 
   for (i = 1; i < nseg1; i++)
   {
     r1x[i] = r1x[i - 1] + xadd;
     r1y[i] = r1y[i - 1];
+    r1z[i] = zplace;
     xmax = xBoxMaxd2; // Changed to be inside of the rectangle structure
     // xmax = amax * sqrt(1.0 - pow(r1y[i] / bmin, 2.0)) - 3.0;
+
     if (r1x[i] > xmax || r1x[i] < -xmax)
     {
+      if (r1y[i] + 2.0 > ymax || r1y[i] - 2.0 < -ymax)
+      {
+        zplace -= 1.0;
+        yadd = -1.0 * yadd;
+        //printf("%ld   %lf\n", i, yadd);
+      }
+
       r1x[i] -= xadd;
       r1y[i] = r1y[i] + yadd;
       ymax = yBoxMaxd2;
-      // ymax = bmin * sqrt(1.0 - pow(r1x[i] / amax, 2.0));
+
       if (r1y[i] > ymax || r1y[i] < -ymax)
       {
         printf("Can't place polymer... exiting...\n");
@@ -1737,7 +1335,6 @@ void init_pos(void)
       }
       xadd *= -1.0;
     }
-    r1z[i] = 0.0;
   }
 
   double theta_plasmid2 = 2.0 * PI / nseg2;
@@ -1752,21 +1349,21 @@ void init_pos(void)
   for (i = 0; i < nseg2; i++)
   {
     r2z[i] = 4.0;
-    r2x[i] = Rplasmid2 * cos(i * theta_plasmid2);
+    r2x[i] = Rplasmid2 * cos(i * theta_plasmid2) - xBoxMaxd2 + Rplasmid2;
     r2y[i] = Rplasmid2 * sin(i * theta_plasmid2) - Rplasmid2 / 2.0;
   }
 
   for (i = 0; i < nseg3; i++)
   {
     r3z[i] = 2.0; // Initialized just above the first plasmid
-    r3x[i] = Rplasmid3 * cos(i * theta_plasmid3);
+    r3x[i] = Rplasmid3 * cos(i * theta_plasmid3) - xBoxMaxd2 + Rplasmid3;
     r3y[i] = Rplasmid3 * sin(i * theta_plasmid3) - Rplasmid3 / 2.0;
   }
 
   for (i = 0; i < nseg4; i++)
   {
-    r4z[i] = -2.0; // Initialized just above the first plasmid
-    r4x[i] = Rplasmid4 * cos(i * theta_plasmid4);
+    r4z[i] = 4.0; // Initialized just above the first plasmid
+    r4x[i] = Rplasmid4 * cos(i * theta_plasmid4) + xBoxMaxd2 - Rplasmid4;
     r4y[i] = Rplasmid4 * sin(i * theta_plasmid4) - Rplasmid4 / 2.0;
   }
 }
@@ -1905,50 +1502,7 @@ double ran3()
   ma[inext] = mj;
   return (double)mj / mbig;
 }
-/*
-void shift_move_chain2()
-{
-  double delrx, delry, delrz;
-  double xsold[5000];
-  double ysold[5000];
-  double zsold[5000];
 
-  delrx = rshift_max * (2.0 * ran3() - 1.0);
-  delry = rshift_max * (2.0 * ran3() - 1.0);
-  delrz = rshift_max * (2.0 * ran3() - 1.0);
-
-  for (i = 0; i < nseg2; i++)
-  {
-    xsold[i] = r2x[i];
-    ysold[i] = r2y[i];
-    zsold[i] = r2z[i];
-
-    r2x[i] += delrx;
-    r2y[i] += delry;
-    r2z[i] += delrz;
-  }
-
-  // printf("delrx = %lf, delry = %lf, delrz = %lf\n",delrx,delry,delrz);
-
-  overlap = check_shift_chain2();
-
-  nshift += 1;
-  if (overlap == 0)
-  {
-    nacc += 1;
-    nacc_shift += 1;
-  }
-  else if (overlap == 1)
-  {
-    for (i = 0; i < nseg2; i++)
-    {
-      r2x[i] = xsold[i];
-      r2y[i] = ysold[i];
-      r2z[i] = zsold[i];
-    }
-  }
-}
-*/
 void shift_move_plasmid(double rx[5000], double ry[5000], double rz[5000], long nseg)
 {
   double delrx, delry, delrz;
@@ -2119,7 +1673,7 @@ void reptation_move_chain1()
     r1y[nseg1 - 1] = r1y[nseg1 - 2] + dy_fixed;
     r1z[nseg1 - 1] = r1z[nseg1 - 2] + dz_fixed;
 
-    overlap = check_accept_reptation(nseg1 - 1);
+    overlap = check_accept_reptation(r1x, r1y, r1z, nseg1, nseg1 - 1);
 
     if (overlap == 0)
     {
@@ -2152,7 +1706,7 @@ void reptation_move_chain1()
     r1y[0] = r1y[1] + dy_fixed;
     r1z[0] = r1z[1] + dz_fixed;
 
-    overlap = check_accept_reptation(0);
+    overlap = check_accept_reptation(r1x, r1y, r1z, nseg1, 0);
 
     if (overlap == 0)
     {
@@ -2282,7 +1836,7 @@ void calc_delta_xyz()
   dz_fixed = (cos_beta * dz_prime) - (sin_beta * dx_prime);
 }
 
-int check_accept_reptation(long krep)
+int check_accept_reptation(double rx[5000], double ry[5000], double rz[5000], long nseg, long krep)
 {
   int accept, reject; // will return either accept or reject at end of function
 
@@ -2301,18 +1855,18 @@ int check_accept_reptation(long krep)
         break;
       }
 
-      if (squareEllipse(r1x[kk], r1y[kk], r1z[kk]) == reject && kk < nseg1)
+      if (squareEllipse(rx[kk], ry[kk], rz[kk]) == reject && kk < nseg)
       {
         return (reject);
       }
 
-      if ((kk < krep - 1 || kk > krep + 1) && kk < nseg1)
+      if ((kk < krep - 1 || kk > krep + 1) && kk < nseg)
       {
-        dz = r1z[krep] - r1z[kk];
+        dz = rz[krep] - rz[kk];
         if (fabs(dz) < 1.0)
         {
-          dx = r1x[krep] - r1x[kk];
-          dy = r1y[krep] - r1y[kk];
+          dx = rx[krep] - rx[kk];
+          dy = ry[krep] - ry[kk];
           dr2 = dx * dx + dy * dy + dz * dz;
           if (dr2 < 1.0)
           {
@@ -2323,11 +1877,11 @@ int check_accept_reptation(long krep)
 
       if (kk < nseg2)
       {
-        dz = r1z[krep] - r2z[kk];
+        dz = rz[krep] - r2z[kk];
         if (fabs(dz) < 1.0)
         {
-          dx = r1x[krep] - r2x[kk];
-          dy = r1y[krep] - r2y[kk];
+          dx = rx[krep] - r2x[kk];
+          dy = ry[krep] - r2y[kk];
           dr2 = dx * dx + dy * dy + dz * dz;
           if (dr2 < 1.0)
             return (reject); // if overlap with monomer in other chain, reject
@@ -2336,11 +1890,11 @@ int check_accept_reptation(long krep)
 
       if (kk < nseg3)
       {
-        dz = r1z[krep] - r3z[kk];
+        dz = rz[krep] - r3z[kk];
         if (fabs(dz) < 1.0)
         {
-          dx = r1x[krep] - r3x[kk];
-          dy = r1y[krep] - r3y[kk];
+          dx = rx[krep] - r3x[kk];
+          dy = ry[krep] - r3y[kk];
           dr2 = dx * dx + dy * dy + dz * dz;
           if (dr2 < 1.0)
           {
@@ -2351,11 +1905,11 @@ int check_accept_reptation(long krep)
 
       if (kk < nseg4)
       {
-        dz = r1z[krep] - r4z[kk];
+        dz = rz[krep] - r4z[kk];
         if (fabs(dz) < 1.0)
         {
-          dx = r1x[krep] - r4x[kk];
-          dy = r1y[krep] - r4y[kk];
+          dx = rx[krep] - r4x[kk];
+          dy = ry[krep] - r4y[kk];
           dr2 = dx * dx + dy * dy + dz * dz;
           if (dr2 < 1.0)
           {
@@ -2365,8 +1919,8 @@ int check_accept_reptation(long krep)
       }
     }
   }
-  else if (ichain == 2)
-  { // plasmid 2
+  else
+  { // plasmids
     for (kk = 0; kk < nseg1 + nseg2 + nseg3 + nseg4; kk++)
     {
       // Check to see if iterative constant is greater than the size of all
@@ -2377,13 +1931,21 @@ int check_accept_reptation(long krep)
         break;
       }
 
+      if (kk < nseg)
+      {
+        if (squareEllipse(rx[kk], ry[kk], rz[kk]) == reject)
+        {
+          return (reject);
+        }
+      }
+
       if (kk < nseg1)
       {
-        dz = r2z[krep] - r1z[kk];
+        dz = rz[krep] - r1z[kk];
         if (fabs(dz) < 1.0)
         {
-          dx = r2x[krep] - r1x[kk];
-          dy = r2y[krep] - r1y[kk];
+          dx = rx[krep] - r1x[kk];
+          dy = ry[krep] - r1y[kk];
           dr2 = dx * dx + dy * dy + dz * dz;
 
           if (dr2 < 1.0)
@@ -2395,17 +1957,28 @@ int check_accept_reptation(long krep)
 
       if (kk < nseg2)
       {
-        if (squareEllipse(r2x[kk], r2y[kk], r2z[kk]) == reject)
+        if ((kk < krep - 1 || kk > krep + 1) && ichain == 2)
         {
-          return (reject);
-        }
-        if (kk < krep - 1 || kk > krep + 1)
-        {
-          dz = r2z[krep] - r2z[kk];
+          dz = rz[krep] - r2z[kk];
           if (fabs(dz) < 1.0)
           {
-            dx = r2x[krep] - r2x[kk];
-            dy = r2y[krep] - r2y[kk];
+            dx = rx[krep] - r2x[kk];
+            dy = ry[krep] - r2y[kk];
+            dr2 = dx * dx + dy * dy + dz * dz;
+
+            if (dr2 < 1.0)
+            {
+              return (reject);
+            }
+          }
+        }
+        else if (ichain != 2)
+        {
+          dz = rz[krep] - r2z[kk];
+          if (fabs(dz) < 1.0)
+          {
+            dx = rx[krep] - r2x[kk];
+            dy = ry[krep] - r2y[kk];
             dr2 = dx * dx + dy * dy + dz * dz;
 
             if (dr2 < 1.0)
@@ -2418,95 +1991,28 @@ int check_accept_reptation(long krep)
 
       if (kk < nseg3)
       {
-        dz = r2z[krep] - r3z[kk];
-        if (fabs(dz) < 1.0)
+        if ((kk < krep - 1 || kk > krep + 1) && ichain == 3)
         {
-          dx = r2x[krep] - r3x[kk];
-          dy = r2y[krep] - r3y[kk];
-          dr2 = dx * dx + dy * dy + dz * dz;
-
-          if (dr2 < 1.0)
-          {
-            return (reject);
-          }
-        }
-      }
-
-      if (kk < nseg4)
-      {
-        dz = r2z[krep] - r4z[kk];
-        if (fabs(dz) < 1.0)
-        {
-          dx = r2x[krep] - r4x[kk];
-          dy = r2y[krep] - r4y[kk];
-          dr2 = dx * dx + dy * dy + dz * dz;
-
-          if (dr2 < 1.0)
-          {
-            return (reject);
-          }
-        }
-      }
-    }
-  }
-
-  else if (ichain == 3)
-  {
-    for (kk = 0; kk < nseg1 + nseg2 + nseg3 + nseg4; kk++)
-    {
-      // Check to see if iterative constant is greater than the size of all
-      // polymers, if so, break inner loop and continue to next monomer in
-      // checked polymer.
-      if (kk > nseg1 && kk > nseg2 && kk > nseg3 && kk > nseg4)
-      {
-        break;
-      }
-
-      if (kk < nseg1)
-      {
-        dz = r3z[krep] - r1z[kk];
-        if (fabs(dz) < 1.0)
-        {
-          dx = r3x[krep] - r1x[kk];
-          dy = r3y[krep] - r1y[kk];
-          dr2 = dx * dx + dy * dy + dz * dz;
-
-          if (dr2 < 1.0)
-          {
-            return (reject);
-          }
-        }
-      }
-
-      if (kk < nseg2)
-      {
-        dz = r3z[krep] - r2z[kk];
-        if (fabs(dz) < 1.0)
-        {
-          dx = r3x[krep] - r2x[kk];
-          dy = r3y[krep] - r2y[kk];
-          dr2 = dx * dx + dy * dy + dz * dz;
-
-          if (dr2 < 1.0)
-          {
-            return (reject);
-          }
-        }
-      }
-
-      if (kk < nseg3)
-      {
-        if (squareEllipse(r3x[kk], r3y[kk], r3z[kk]) == reject)
-        {
-          return (reject);
-        }
-        if (kk < krep - 1 || kk > krep + 1)
-        {
-          dz = r3z[krep] - r3z[kk];
+          dz = rz[krep] - r3z[kk];
           if (fabs(dz) < 1.0)
           {
-            dx = r3x[krep] - r3x[kk];
-            dy = r3y[krep] - r3y[kk];
+            dx = rx[krep] - r3x[kk];
+            dy = ry[krep] - r3y[kk];
+            dr2 = dx * dx + dy * dy + dz * dz;
+
+            if (dr2 < 1.0)
+            {
+              return (reject);
+            }
+          }
+        }
+        else if (ichain != 3)
+        {
+          dz = rz[krep] - r3z[kk];
+          if (fabs(dz) < 1.0)
+          {
+            dx = rx[krep] - r3x[kk];
+            dy = ry[krep] - r3y[kk];
             dr2 = dx * dx + dy * dy + dz * dz;
 
             if (dr2 < 1.0)
@@ -2519,95 +2025,28 @@ int check_accept_reptation(long krep)
 
       if (kk < nseg4)
       {
-        dz = r3z[krep] - r4z[kk];
-        if (fabs(dz) < 1.0)
+        if ((kk < krep - 1 || kk > krep + 1) && ichain == 4)
         {
-          dx = r3x[krep] - r4x[kk];
-          dy = r3y[krep] - r4y[kk];
-          dr2 = dx * dx + dy * dy + dz * dz;
-
-          if (dr2 < 1.0)
-          {
-            return (reject);
-          }
-        }
-      }
-    }
-  }
-
-  else if (ichain == 4)
-  {
-    for (kk = 0; kk < nseg1 + nseg2 + nseg3 + nseg4; kk++)
-    {
-      // Check to see if iterative constant is greater than the size of all
-      // polymers, if so, break inner loop and continue to next monomer in
-      // checked polymer.
-      if (kk > nseg1 && kk > nseg2 && kk > nseg3 && kk > nseg4)
-      {
-        break;
-      }
-
-      if (kk < nseg1)
-      {
-        dz = r4z[krep] - r1z[kk];
-        if (fabs(dz) < 1.0)
-        {
-          dx = r4x[krep] - r1x[kk];
-          dy = r4y[krep] - r1y[kk];
-          dr2 = dx * dx + dy * dy + dz * dz;
-
-          if (dr2 < 1.0)
-          {
-            return (reject);
-          }
-        }
-      }
-
-      if (kk < nseg2)
-      {
-        dz = r4z[krep] - r2z[kk];
-        if (fabs(dz) < 1.0)
-        {
-          dx = r4x[krep] - r2x[kk];
-          dy = r4y[krep] - r2y[kk];
-          dr2 = dx * dx + dy * dy + dz * dz;
-
-          if (dr2 < 1.0)
-          {
-            return (reject);
-          }
-        }
-      }
-
-      if (kk < nseg3)
-      {
-        dz = r4z[krep] - r3z[kk];
-        if (fabs(dz) < 1.0)
-        {
-          dx = r4x[krep] - r3x[kk];
-          dy = r4y[krep] - r3y[kk];
-          dr2 = dx * dx + dy * dy + dz * dz;
-
-          if (dr2 < 1.0)
-          {
-            return (reject);
-          }
-        }
-      }
-
-      if (kk < nseg4)
-      {
-        if (squareEllipse(r4x[kk], r4y[kk], r4z[kk]) == reject)
-        {
-          return (reject);
-        }
-        if (kk < krep - 1 || kk > krep + 1)
-        {
-          dz = r4z[krep] - r3z[kk];
+          dz = rz[krep] - r4z[kk];
           if (fabs(dz) < 1.0)
           {
-            dx = r4x[krep] - r4x[kk];
-            dy = r4y[krep] - r4y[kk];
+            dx = rx[krep] - r4x[kk];
+            dy = ry[krep] - r4y[kk];
+            dr2 = dx * dx + dy * dy + dz * dz;
+
+            if (dr2 < 1.0)
+            {
+              return (reject);
+            }
+          }
+        }
+        else if (ichain != 4)
+        {
+          dz = rz[krep] - r4z[kk];
+          if (fabs(dz) < 1.0)
+          {
+            dx = rx[krep] - r4x[kk];
+            dy = ry[krep] - r4y[kk];
             dr2 = dx * dx + dy * dy + dz * dz;
 
             if (dr2 < 1.0)
@@ -2622,35 +2061,34 @@ int check_accept_reptation(long krep)
 
   return (accept);
 }
-
-void crank_move_chain1()
+void crank_move_polymer(double rx[5000], double ry[5000], double rz[5000])
 {
 
-  double rx, ry, rz, Rx, Ry, Rz, Rmag, rdotRn, Rnx, Rny, Rnz;
+  double delrx, delry, delrz, Rx, Ry, Rz, Rmag, rdotRn, Rnx, Rny, Rnz;
   double ux, uy, uz, vx, vy, vz, vmag, wx, wy, wz, wmag;
   double cosphi, sinphi, delphi;
 
-  rx = r1x[k] - r1x[k - 1];
-  ry = r1y[k] - r1y[k - 1];
-  rz = r1z[k] - r1z[k - 1];
+  delrx = rx[k] - rx[k - 1];
+  delry = ry[k] - ry[k - 1];
+  delrz = rz[k] - rz[k - 1];
 
-  Rx = r1x[k + 1] - r1x[k - 1];
-  Ry = r1y[k + 1] - r1y[k - 1];
-  Rz = r1z[k + 1] - r1z[k - 1];
+  Rx = rx[k + 1] - rx[k - 1];
+  Ry = ry[k + 1] - ry[k - 1];
+  Rz = rz[k + 1] - rz[k - 1];
   Rmag = sqrt(Rx * Rx + Ry * Ry + Rz * Rz);
 
   Rnx = Rx / Rmag;
   Rny = Ry / Rmag;
   Rnz = Rz / Rmag;
 
-  rdotRn = rx * Rnx + ry * Rny + rz * Rnz;
+  rdotRn = delrx * Rnx + delry * Rny + delrz * Rnz;
   ux = rdotRn * Rnx;
   uy = rdotRn * Rny;
   uz = rdotRn * Rnz;
 
-  vx = rx - ux;
-  vy = ry - uy;
-  vz = rz - uz;
+  vx = delrx - ux;
+  vy = delry - uy;
+  vz = delrz - uz;
   vmag = sqrt(vx * vx + vy * vy + vz * vz);
   // if (vmag < 0.00000001) printf("vmag = %lf\n",vmag);
 
@@ -2665,19 +2103,19 @@ void crank_move_chain1()
     cosphi = cos(delphi);
     sinphi = sin(delphi);
 
-    rx = ux + cosphi * vx + sinphi * vmag * wx / wmag;
-    ry = uy + cosphi * vy + sinphi * vmag * wy / wmag;
-    rz = uz + cosphi * vz + sinphi * vmag * wz / wmag;
+    delrx = ux + cosphi * vx + sinphi * vmag * wx / wmag;
+    delry = uy + cosphi * vy + sinphi * vmag * wy / wmag;
+    delrz = uz + cosphi * vz + sinphi * vmag * wz / wmag;
 
-    r1x[k] = r1x[k - 1] + rx;
-    r1y[k] = r1y[k - 1] + ry;
-    r1z[k] = r1z[k - 1] + rz;
+    rx[k] = rx[k - 1] + delrx;
+    ry[k] = ry[k - 1] + delry;
+    rz[k] = rz[k - 1] + delrz;
   }
   else
   { // bonds are parallel
-    r1x[k] = xold;
-    r1y[k] = yold;
-    r1z[k] = zold;
+    rx[k] = xold;
+    ry[k] = yold;
+    rz[k] = zold;
   }
 }
 
