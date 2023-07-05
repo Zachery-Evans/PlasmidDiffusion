@@ -43,7 +43,7 @@ void shift_move_plasmid(double[], double[], double[], long);
 int check_accept_reptation(double[], double[], double[], long, long);
 void calc_delta_xyz(void);
 
-void crank_move_chain1(void);
+void crank_move_polymer(double[], double[], double[]);
 void crank_move_plasmid(double[], double[], double[], long);
 
 long nseg1, nseg2, nseg3, nseg4, nbin, i, j, k, ii, ncyc, overlap, nacc, kk, itest, iseed;
@@ -267,7 +267,7 @@ int main()
           xold = r1x[k];
           yold = r1y[k];
           zold = r1z[k];
-          crank_move_chain1();
+          crank_move_polymer(r1x, r1y, r1z);
         }
         else if (ichain == 2)
         {
@@ -2051,34 +2051,34 @@ int check_accept_reptation(double rx[5000], double ry[5000], double rz[5000], lo
 
   return (accept);
 }
-void crank_move_chain1()
+void crank_move_polymer(double rx[5000], double ry[5000], double rz[5000])
 {
 
-  double rx, ry, rz, Rx, Ry, Rz, Rmag, rdotRn, Rnx, Rny, Rnz;
+  double delrx, delry, delrz, Rx, Ry, Rz, Rmag, rdotRn, Rnx, Rny, Rnz;
   double ux, uy, uz, vx, vy, vz, vmag, wx, wy, wz, wmag;
   double cosphi, sinphi, delphi;
 
-  rx = r1x[k] - r1x[k - 1];
-  ry = r1y[k] - r1y[k - 1];
-  rz = r1z[k] - r1z[k - 1];
+  delrx = rx[k] - rx[k - 1];
+  delry = ry[k] - ry[k - 1];
+  delrz = rz[k] - rz[k - 1];
 
-  Rx = r1x[k + 1] - r1x[k - 1];
-  Ry = r1y[k + 1] - r1y[k - 1];
-  Rz = r1z[k + 1] - r1z[k - 1];
+  Rx = rx[k + 1] - rx[k - 1];
+  Ry = ry[k + 1] - ry[k - 1];
+  Rz = rz[k + 1] - rz[k - 1];
   Rmag = sqrt(Rx * Rx + Ry * Ry + Rz * Rz);
 
   Rnx = Rx / Rmag;
   Rny = Ry / Rmag;
   Rnz = Rz / Rmag;
 
-  rdotRn = rx * Rnx + ry * Rny + rz * Rnz;
+  rdotRn = delrx * Rnx + delry * Rny + delrz * Rnz;
   ux = rdotRn * Rnx;
   uy = rdotRn * Rny;
   uz = rdotRn * Rnz;
 
-  vx = rx - ux;
-  vy = ry - uy;
-  vz = rz - uz;
+  vx = delrx - ux;
+  vy = delry - uy;
+  vz = delrz - uz;
   vmag = sqrt(vx * vx + vy * vy + vz * vz);
   // if (vmag < 0.00000001) printf("vmag = %lf\n",vmag);
 
@@ -2093,19 +2093,19 @@ void crank_move_chain1()
     cosphi = cos(delphi);
     sinphi = sin(delphi);
 
-    rx = ux + cosphi * vx + sinphi * vmag * wx / wmag;
-    ry = uy + cosphi * vy + sinphi * vmag * wy / wmag;
-    rz = uz + cosphi * vz + sinphi * vmag * wz / wmag;
+    delrx = ux + cosphi * vx + sinphi * vmag * wx / wmag;
+    delry = uy + cosphi * vy + sinphi * vmag * wy / wmag;
+    delrz = uz + cosphi * vz + sinphi * vmag * wz / wmag;
 
-    r1x[k] = r1x[k - 1] + rx;
-    r1y[k] = r1y[k - 1] + ry;
-    r1z[k] = r1z[k - 1] + rz;
+    rx[k] = rx[k - 1] + delrx;
+    ry[k] = ry[k - 1] + delry;
+    rz[k] = rz[k - 1] + delrz;
   }
   else
   { // bonds are parallel
-    r1x[k] = xold;
-    r1y[k] = yold;
-    r1z[k] = zold;
+    rx[k] = xold;
+    ry[k] = yold;
+    rz[k] = zold;
   }
 }
 
