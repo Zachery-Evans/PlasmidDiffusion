@@ -1,7 +1,7 @@
-3000              nseg1
-10                nseg2
-10                nseg3
-10                nseg4
+1000              nseg1
+25                nseg2
+25                nseg3
+25                 nseg4
 3000.0            Area
 12.0              bmin
 1.0               ecc

@@ -26,7 +26,7 @@ void init_pos(void);
 void write_log(void);
 void write_data(void);
 void input(void);
-int check_accept(void);
+int check_accept(double[], double[], double[], long);
 int check_shift_chain(double[], double[], double[], long);
 
 int check_energy(double[], double[], double[]);
@@ -269,6 +269,7 @@ int main()
           yold = r1y[k];
           zold = r1z[k];
           crank_move_polymer(r1x, r1y, r1z);
+          overlap = check_accept(r1x, r1y, r1z, nseg1);
         }
         else if (ichain == 2)
         {
@@ -276,6 +277,7 @@ int main()
           yold = r2y[k];
           zold = r2z[k];
           crank_move_plasmid(r2x, r2y, r2z, nseg2);
+          overlap = check_accept(r2x, r2y, r2z, nseg2);
         }
         else if (ichain == 3)
         {
@@ -283,6 +285,7 @@ int main()
           yold = r3y[k];
           zold = r3z[k];
           crank_move_plasmid(r3x, r3y, r3z, nseg3);
+          overlap = check_accept(r3x, r3y, r3z, nseg3);
         }
         else if (ichain == 4)
         {
@@ -290,9 +293,8 @@ int main()
           yold = r4y[k];
           zold = r4z[k];
           crank_move_plasmid(r4x, r4y, r4z, nseg4);
+          overlap = check_accept(r4x, r4y, r4z, nseg4);
         }
-
-        overlap = check_accept();
 
         if (overlap == 0)
         {
@@ -715,7 +717,7 @@ int squareEllipse(double xPos, double yPos, double zPos)
 // This function determines whether the move just performed in the main
 // function is permitted or not (checks overlap with a number of conditions)
 // ----------------------------------------------------------------------
-int check_accept(void)
+int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
 {
   int accept, reject;
   long klow, khigh;
@@ -728,7 +730,6 @@ int check_accept(void)
     // Checking if the T4 polymer overlaps with itself
     for (kk = 0; kk < nseg1 + nseg2 + nseg3 + nseg4; kk++)
     {
-
       // Check to see if iterative constant is greater than the size of all
       // polymers, if so, break inner loop and continue to next monomer in
       // checked polymer.
@@ -739,15 +740,15 @@ int check_accept(void)
 
       if (kk < nseg1)
       {
-        if (squareEllipse(r1x[kk], r1y[kk], r1z[kk]) == reject)
+        if (squareEllipse(rx[kk], ry[kk], rz[kk]) == reject)
         {
           return (reject);
         }
         if (kk < k - 1 || kk > k + 1)
         {
-          dx = r1x[k] - r1x[kk];
-          dy = r1y[k] - r1y[kk];
-          dz = r1z[k] - r1z[kk];
+          dx = rx[k] - rx[kk];
+          dy = ry[k] - ry[kk];
+          dz = rz[k] - rz[kk];
           dr2 = dx * dx + dy * dy + dz * dz;
           if (dr2 < 1.0)
           {
@@ -759,9 +760,9 @@ int check_accept(void)
       // Checking if the plasmid overlaps with the T4 polymer
       if (kk < nseg2)
       {
-        dx = r1x[k] - r2x[kk];
-        dy = r1y[k] - r2y[kk];
-        dz = r1z[k] - r2z[kk];
+        dx = rx[k] - r2x[kk];
+        dy = ry[k] - r2y[kk];
+        dz = rz[k] - r2z[kk];
         dr2 = dx * dx + dy * dy + dz * dz;
         if (dr2 < 1.0)
         {
@@ -772,9 +773,9 @@ int check_accept(void)
       // Checking if second plasmid overlaps with T4 polymer
       if (kk < nseg3)
       {
-        dx = r1x[k] - r3x[kk];
-        dy = r1y[k] - r3y[kk];
-        dz = r1z[k] - r3z[kk];
+        dx = rx[k] - r3x[kk];
+        dy = ry[k] - r3y[kk];
+        dz = rz[k] - r3z[kk];
         dr2 = dx * dx + dy * dy + dz * dz;
         if (dr2 < 1.0)
         {
@@ -784,9 +785,9 @@ int check_accept(void)
 
       if (kk < nseg4)
       {
-        dx = r1x[k] - r4x[kk];
-        dy = r1y[k] - r4y[kk];
-        dz = r1z[k] - r4z[kk];
+        dx = rx[k] - r4x[kk];
+        dy = ry[k] - r4y[kk];
+        dz = rz[k] - r4z[kk];
         dr2 = dx * dx + dy * dy + dz * dz;
         if (dr2 < 1.0)
         {
@@ -794,16 +795,11 @@ int check_accept(void)
         }
       }
     }
-    if (plasRigid == 1)
-    {
-      return (check_energy(r1x, r1y, r1z)); // apply rigidity
-    }
-    else
-    {
-      return (accept);
-    }
+
+    return (check_energy(rx, ry, rz)); // apply rigidity
   }
-  else if (ichain == 2)
+
+  else
   {
     if (k == 0)
     {
@@ -831,12 +827,32 @@ int check_accept(void)
         break;
       }
 
+      // Check if nseg=2 plasmid escapes squareEllipse or overlaps
+      if (kk < nseg)
+      {
+        if (squareEllipse(rx[kk], ry[kk], rz[kk]) == reject)
+        {
+          return (reject);
+        }
+        if (kk != k && kk != klow && kk != khigh)
+        {
+          dx = rx[k] - r2x[kk];
+          dy = ry[k] - r2y[kk];
+          dz = rz[k] - r2z[kk];
+          dr2 = dx * dx + dy * dy + dz * dz;
+          if (dr2 < 1.0)
+          {
+            return (reject);
+          }
+        }
+      }
+
       if (kk < nseg1)
       {
         // Check if polymer and plasmid overlap
-        dx = r2x[k] - r1x[kk];
-        dy = r2y[k] - r1y[kk];
-        dz = r2z[k] - r1z[kk];
+        dx = rx[k] - r1x[kk];
+        dy = ry[k] - r1y[kk];
+        dz = rz[k] - r1z[kk];
         dr2 = dx * dx + dy * dy + dz * dz;
         if (dr2 < 1.0)
         {
@@ -844,96 +860,12 @@ int check_accept(void)
         }
       }
 
-      // Check if nseg=2 plasmid escapes squareEllipse or overlaps
-      if (kk < nseg2)
+      if (kk < nseg2 && ichain != 2)
       {
-        if (squareEllipse(r2x[kk], r2y[kk], r2z[kk]) == reject)
-        {
-          return (reject);
-        }
-        if (kk != k && kk != klow && kk != khigh)
-        {
-          dx = r2x[k] - r2x[kk];
-          dy = r2y[k] - r2y[kk];
-          dz = r2z[k] - r2z[kk];
-          dr2 = dx * dx + dy * dy + dz * dz;
-          if (dr2 < 1.0)
-          {
-            return (reject);
-          }
-        }
-      }
-
-      // Check if plasmids overlap
-      if (kk < nseg3)
-      {
-        dx = r2x[k] - r3x[kk];
-        dy = r2y[k] - r3y[kk];
-        dz = r2z[k] - r3z[kk];
-        dr2 = dx * dx + dy * dy + dz * dz;
-        if (dr2 < 1.0)
-        {
-          return (reject);
-        }
-      }
-
-      if (kk < nseg4)
-      {
-        dx = r2x[k] - r4x[kk];
-        dy = r2y[k] - r4y[kk];
-        dz = r2z[k] - r4z[kk];
-        dr2 = dx * dx + dy * dy + dz * dz;
-        if (dr2 < 1.0)
-        {
-          return (reject);
-        }
-      }
-    }
-    if (plasRigid == 1)
-    {
-      return (check_energy(r2x, r2y, r2z)); // apply rigidity
-    }
-    else
-    {
-      return accept;
-    }
-  }
-
-  else if (ichain == 3)
-  {
-    if (k == 0)
-    {
-      klow = nseg3 - 1;
-      khigh = 1;
-    }
-    else if (k == nseg3 - 1)
-    {
-      klow = nseg3 - 2;
-      khigh = 0;
-    }
-    else
-    {
-      klow = k - 1;
-      khigh = k + 1;
-    }
-
-    for (kk = 0; kk < nseg1 + nseg2 + nseg3 + nseg4; kk++)
-    {
-
-      // Check to see if iterative constant is greater than the size of all
-      // polymers, if so, break inner loop and continue to next monomer in
-      // checked polymer.
-      if (kk > nseg1 && kk > nseg2 && kk > nseg3 && kk > nseg4)
-      {
-        break;
-      }
-
-      if (kk < nseg1)
-      {
-        // Check if nseg=3 plasmid overlaps with linear polymer
-        dx = r3x[k] - r1x[kk];
-        dy = r3y[k] - r1y[kk];
-        dz = r3z[k] - r1z[kk];
+        // Check if polymer and plasmid overlap
+        dx = rx[k] - r2x[kk];
+        dy = ry[k] - r2y[kk];
+        dz = rz[k] - r2z[kk];
         dr2 = dx * dx + dy * dy + dz * dz;
         if (dr2 < 1.0)
         {
@@ -942,11 +874,11 @@ int check_accept(void)
       }
 
       // Check if plasmids overlap
-      if (kk < nseg2)
+      if (kk < nseg3 && ichain != 3)
       {
-        dx = r3x[k] - r2x[kk];
-        dy = r3y[k] - r2y[kk];
-        dz = r3z[k] - r2z[kk];
+        dx = rx[k] - r3x[kk];
+        dy = ry[k] - r3y[kk];
+        dz = rz[k] - r3z[kk];
         dr2 = dx * dx + dy * dy + dz * dz;
         if (dr2 < 1.0)
         {
@@ -954,30 +886,11 @@ int check_accept(void)
         }
       }
 
-      if (kk < nseg3)
+      if (kk < nseg4 && ichain != 4)
       {
-        if (squareEllipse(r3x[kk], r3y[kk], r3z[kk]) == reject)
-        {
-          return (reject);
-        }
-        if (kk != k && kk != klow && kk != khigh)
-        {
-          dx = r3x[k] - r3x[kk];
-          dy = r3y[k] - r3y[kk];
-          dz = r3z[k] - r3z[kk];
-          dr2 = dx * dx + dy * dy + dz * dz;
-          if (dr2 < 1.0)
-          {
-            return (reject);
-          }
-        }
-      }
-
-      if (kk < nseg4)
-      {
-        dx = r3x[k] - r4x[kk];
-        dy = r3y[k] - r4y[kk];
-        dz = r3z[k] - r4z[kk];
+        dx = rx[k] - r4x[kk];
+        dy = ry[k] - r4y[kk];
+        dz = rz[k] - r4z[kk];
         dr2 = dx * dx + dy * dy + dz * dz;
         if (dr2 < 1.0)
         {
@@ -985,106 +898,10 @@ int check_accept(void)
         }
       }
     }
-    // Check if polymer and plasmid overlap
+
     if (plasRigid == 1)
     {
-      return (check_energy(r3x, r3y, r3z)); // apply rigidity
-    }
-    else
-    {
-      return accept;
-    }
-  }
-
-  else if (ichain == 4)
-  {
-    if (k == 0)
-    {
-      klow = nseg4 - 1;
-      khigh = 1;
-    }
-    else if (k == nseg4 - 1)
-    {
-      klow = nseg4 - 2;
-      khigh = 0;
-    }
-    else
-    {
-      klow = k - 1;
-      khigh = k + 1;
-    }
-
-    for (kk = 0; kk < nseg1 + nseg2 + nseg3 + nseg4; kk++)
-    {
-      // Check to see if iterative constant is greater than the size of all
-      // polymers, if so, break inner loop and continue to next monomer in
-      // checked polymer.
-      if (kk > nseg1 && kk > nseg2 && kk > nseg3 && kk > nseg4)
-      {
-        break;
-      }
-
-      if (kk < nseg1)
-      {
-        // Check if nseg=3 plasmid overlaps with linear polymer
-        dx = r4x[k] - r1x[kk];
-        dy = r4y[k] - r1y[kk];
-        dz = r4z[k] - r1z[kk];
-        dr2 = dx * dx + dy * dy + dz * dz;
-        if (dr2 < 1.0)
-        {
-          return (reject);
-        }
-      }
-
-      // Check if plasmids overlap
-      if (kk < nseg2)
-      {
-        dx = r4x[k] - r2x[kk];
-        dy = r4y[k] - r2y[kk];
-        dz = r4z[k] - r2z[kk];
-        dr2 = dx * dx + dy * dy + dz * dz;
-        if (dr2 < 1.0)
-        {
-          return (reject);
-        }
-      }
-
-      if (kk < nseg3)
-      {
-        dx = r4x[k] - r3x[kk];
-        dy = r4y[k] - r3y[kk];
-        dz = r4z[k] - r3z[kk];
-        dr2 = dx * dx + dy * dy + dz * dz;
-        if (dr2 < 1.0)
-        {
-          return (reject);
-        }
-      }
-
-      if (kk < nseg4)
-      {
-        if (squareEllipse(r4x[kk], r4y[kk], r4z[kk]) == reject)
-        {
-          return (reject);
-        }
-        if (kk != k && kk != klow && kk != khigh)
-        {
-          dx = r4x[k] - r4x[kk];
-          dy = r4y[k] - r4y[kk];
-          dz = r4z[k] - r4z[kk];
-          dr2 = dx * dx + dy * dy + dz * dz;
-          if (dr2 < 1.0)
-          {
-            return (reject);
-          }
-        }
-      }
-    }
-    // Check if polymer and plasmid overlap
-    if (plasRigid == 1)
-    {
-      return (check_energy(r4x, r4y, r4z)); // apply rigidity
+      return (check_energy(rx, ry, rz)); // apply rigidity
     }
     else
     {
@@ -1321,7 +1138,7 @@ void init_pos(void)
       {
         zplace -= 1.0;
         yadd = -1.0 * yadd;
-        //printf("%ld   %lf\n", i, yadd);
+        // printf("%ld   %lf\n", i, yadd);
       }
 
       r1x[i] -= xadd;
