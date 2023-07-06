@@ -1,8 +1,8 @@
-4000              nseg1
-25                nseg2
-25                nseg3
-25                nseg4
-3000.0            Area
+2000              nseg1
+50                nseg2
+50                nseg3
+50                nseg4
+4000.0            Area
 12.0              bmin
 1.0               ecc
 15.0              H
