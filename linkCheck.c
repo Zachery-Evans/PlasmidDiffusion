@@ -398,15 +398,14 @@ int main()
       nsamp += 1;
     }
 
-    if (ii % cmFreqSamp == 0 && ii > neq)
+    double theta_plasmid2 = 2.0 * PI / nseg2;
+    double theta_plasmid3 = 2.0 * PI / nseg3;
+    double rPlasmid2 = 0.5 / tan(theta_plasmid2 / 2.0);
+    double rPlasmid3 = 0.5 / tan(theta_plasmid3 / 2.0);
+    double distSq = sqrt((xcm2 - xcm3) * (xcm2 - xcm3) + (ycm2 - ycm3) * (ycm2 - ycm3) + (zcm2 - zcm3) * (zcm2 - zcm3));
+    // printf("%lf\n", rPlasmid2 + rPlasmid3);
+    if (distSq > rPlasmid2 + rPlasmid3 + 1.0)
     {
-      double theta_plasmid2 = 2.0 * PI / nseg2;
-      double theta_plasmid3 = 2.0 * PI / nseg3;
-      double rPlasmid2 = 0.5 / tan(theta_plasmid2 / 2.0);
-      double rPlasmid3 = 0.5 / tan(theta_plasmid3 / 2.0);
-      double distSq = sqrt((xcm2 - xcm3) * (xcm2 - xcm3) + (ycm2 - ycm3) * (ycm2 - ycm3) + (zcm2 - zcm3) * (zcm2 - zcm3));
-      // printf("%lf\n", rPlasmid2 + rPlasmid3);
-
       fprintf(x1x2, "%lf\n", distSq);
     }
 
@@ -546,7 +545,7 @@ void write_log(void)
 
 /*
  *  squareEllipse and checkEllipse Code written by Zach Evans to create geometry of rectangle between two halves of an ellipse
- *  
+ *
  */
 
 /*
