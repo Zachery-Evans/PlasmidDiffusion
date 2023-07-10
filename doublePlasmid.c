@@ -809,7 +809,7 @@ int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
       }
     }
 
-    return (check_polymer_energy(rx, ry, rz, nseg)); // apply rigidity
+    return (check_poly_energy(rx, ry, rz, nseg)); // apply rigidity
   }
 
   else
