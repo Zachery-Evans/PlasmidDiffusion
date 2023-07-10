@@ -6,19 +6,19 @@ Email: zdjevans@protonmail.com
 This program was written to study the equilibrium behaviour of plasmids confined to a dual pit geometry of an elliptically capped rectangle interacting with
 T4 polymer (Much longer linear polymer).
 
-This program was built with the Compute Canada clusters, as such it should include an input file whose contents are read from the function "void input(void)". 
+This program was built with the Compute Canada clusters, as such it should include an input file whose contents are read from the function "void input(void)".
 
-There are some pecularities that were implemented into this program in order to be most effective for file management as well as ease of use: 
-  1) If the variable "ecc" (eccentricity of the elliptical caps) is greater than or equal to 1.0, then the geometry is changed into a rectangle. 
+There are some pecularities that were implemented into this program in order to be most effective for file management as well as ease of use:
+  1) If the variable "ecc" (eccentricity of the elliptical caps) is greater than or equal to 1.0, then the geometry is changed into a rectangle.
 
   2) There is a variable called "plasRigid" that controls whether or not the plasmids have the ridigity of the linear polymer. If plasRigid == 1 then the plasmiids
-     have rigidity. They have zero rigidity otherwise. 
-  
-  3) The variable imov determines whether or not the "xyz" files used for VMD visualizations are printed to a file. It should be noted that this variable needs to be 
+     have rigidity. They have zero rigidity otherwise.
+
+  3) The variable imov determines whether or not the "xyz" files used for VMD visualizations are printed to a file. It should be noted that this variable needs to be
      set to 0 if doing any work in the Compute Canada clusters, as there is not enough storage in the cloud to support printing these files anywhere but on the local
-     computer. 
-  
-  4) 
+     computer.
+
+  4)
 
 */
 
@@ -41,7 +41,8 @@ void input(void);
 int check_accept(double[], double[], double[], long);
 int check_shift_chain(double[], double[], double[], long);
 
-int check_energy(double[], double[], double[]);
+int check_poly_energy(double[], double[], double[], long);
+int check_plasmid_energy(double[], double[], double[], long);
 double calc_cosine(int, int, int, double[], double[], double[]);
 
 double **dmatrix(long, long, long, long);
@@ -1087,7 +1088,7 @@ int check_plasmid_energy(double rx[5000], double ry[5000], double rz[5000], long
     energy_new[0] = kappa * (1.0 - theta_new);
     energy_old[0] = kappa * (1.0 - theta_old);
 
-    theta_new = calc_cosine(k - 1, 0, 0, rx, ry, rz);
+    theta_new = calc_cosine(k - 1, k, 0, rx, ry, rz);
     theta_old = calc_cosine(k - 1, -1, 0, rx, ry, rz);
     energy_new[1] = kappa * (1.0 - theta_new);
     energy_old[1] = kappa * (1.0 - theta_old);
@@ -1257,7 +1258,7 @@ double calc_cosine(int i1, int i2, int i3, double rx[5000], double ry[5000], dou
 
   va_dot_vb = vax * vbx + vay * vby + vaz * vbz;
 
-  return (va_dot_vb / (sqrt(va_sq) * sqrt(vb_sq)));
+  return (va_dot_vb / (sqrt(va_sq * vb_sq)));
 }
 
 // ----------------------------------------------------------------------
@@ -1319,79 +1320,22 @@ void init_pos(void)
   for (i = 0; i < nseg2; i++)
   {
     r2z[i] = 4.0;
-
-    if (i < nseg2 / 2)
-    {
-      r2x[i] = -i - xBoxMaxd2 + nseg2;
-      r2y[i] = 0.0;
-    }
-    if (i == nseg2 / 2 + 0.5 || i == nseg2 / 2)
-    {
-      r2x[i] = -i - xBoxMaxd2 + nseg2 + 1.0;
-      r2y[i] = -1.0;
-    }
-    if (i > nseg2 / 2 && i < nseg2 - 1)
-    {
-      r2x[i] = +i - nseg2 - xBoxMaxd2 + nseg2 + 1.0;
-      r2y[i] = -2.0;
-    }
-    if (i == nseg2 - 1)
-    {
-      r2x[i] = +i - nseg2 - xBoxMaxd2 + nseg2 + 1.0;
-      r2y[i] = -1.0;
-    }
+    r2x[i] = Rplasmid2 * cos(i * theta_plasmid2) - xBoxMaxd2 + Rplasmid2;
+    r2y[i] = Rplasmid2 * sin(i * theta_plasmid2) - Rplasmid2 / 2.0;
   }
 
   for (i = 0; i < nseg3; i++)
   {
-    r3z[i] = -2.0;
-
-    if (i < nseg3 / 2)
-    {
-      r3x[i] = -i - xBoxMaxd2 + nseg3;
-      r3y[i] = 0.0;
-    }
-    if (i == nseg3 / 2 + 0.5 || i == nseg3 / 2)
-    {
-      r3x[i] = -i - xBoxMaxd2 + nseg3 + 1.0;
-      r3y[i] = -1.0;
-    }
-    if (i > nseg3 / 2 && i < nseg3 - 1)
-    {
-      r3x[i] = +i - nseg3 - xBoxMaxd2 + nseg3 + 1.0;
-      r3y[i] = -2.0;
-    }
-    if (i == nseg3 - 1)
-    {
-      r3x[i] = +i - nseg3 - xBoxMaxd2 + nseg3 + 1.0;
-      r3y[i] = -1.0;
-    }
+    r3z[i] = 2.0; // Initialized just above the first plasmid
+    r3x[i] = Rplasmid3 * cos(i * theta_plasmid3) - xBoxMaxd2 + Rplasmid3;
+    r3y[i] = Rplasmid3 * sin(i * theta_plasmid3) - Rplasmid3 / 2.0;
   }
 
   for (i = 0; i < nseg4; i++)
   {
-    r4z[i] = 2.0;
-
-    if (i < nseg4 / 2)
-    {
-      r4x[i] = +i + xBoxMaxd2 - nseg4;
-      r4y[i] = 0.0;
-    }
-    if (i == nseg4 / 2 + 0.5 || i == nseg4 / 2)
-    {
-      r4x[i] = +i + xBoxMaxd2 - nseg4 - 1.0;
-      r4y[i] = -1.0;
-    }
-    if (i > nseg4 / 2 && i < nseg2 - 1)
-    {
-      r4x[i] = -i - nseg4 + xBoxMaxd2 + nseg4 - 1.0;
-      r4y[i] = -2.0;
-    }
-    if (i == nseg4 - 1)
-    {
-      r4x[i] = -i - nseg4 + xBoxMaxd2 + nseg4 - 1.0;
-      r4y[i] = -1.0;
-    }
+    r4z[i] = 4.0; // Initialized just above the first plasmid
+    r4x[i] = Rplasmid4 * cos(i * theta_plasmid4) + xBoxMaxd2 - Rplasmid4;
+    r4y[i] = Rplasmid4 * sin(i * theta_plasmid4) - Rplasmid4 / 2.0;
   }
 }
 
