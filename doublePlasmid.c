@@ -73,18 +73,11 @@ double **prob1, **prob2, **prob3, **prob4, **probmon;
 
 FILE *fpmov;
 
-double r1x[5000];
-double r1y[5000];
-double r1z[5000];
-double r2x[5000];
-double r2y[5000];
-double r2z[5000];
-double r3x[5000];
-double r3y[5000];
-double r3z[5000];
-double r4x[5000];
-double r4y[5000];
-double r4z[5000];
+double r1x[5000], r1y[5000], r1z[5000];
+double r2x[5000], r2y[5000], r2z[5000];
+double r3x[5000], r3y[5000], r3z[5000];
+double r4x[5000], r4y[5000], r4z[5000];
+double plas12[5000], plas23[5000], plas13[5000];
 
 double x1, x2, x3, yone, y2, y3, z1, z2, z3;
 double vax, vay, vaz, vbx, vby, vbz;
@@ -99,6 +92,7 @@ double delta_E;
 long ind;
 
 long irep;
+long iter = 0;
 double rep_prob;
 long nacc_rep;
 long nrep;
@@ -118,8 +112,6 @@ int main()
   long imon, indx, indy;
   double xcm1, ycm1, xcm2, ycm2, xcm3, ycm3, xcm4, ycm4;
   clock_t start, end;
-
-  FILE *xp1, *xp2, *xp3, *xp4, *x1x2, *x2x3, *x1x3;
 
   input();
 
@@ -228,14 +220,6 @@ int main()
   nacc_shift = 0;
   nshift = 0;
   nrep = 0;
-
-  xp1 = fopen("xcm1.dat", "w");
-  xp2 = fopen("xcm2.dat", "w");
-  xp3 = fopen("xcm3.dat", "w");
-  xp4 = fopen("xcm4.dat", "w");
-  x2x3 = fopen("x3x4cm.dat", "w");
-  x1x3 = fopen("x2x4cm.dat", "w");
-  x1x2 = fopen("x2x3cm.dat", "w");
 
   for (ii = 0; ii < ncyc; ii++)
   {
@@ -477,13 +461,11 @@ int main()
 
     if (ii % cmFreqSamp == 0 && ii > neq)
     {
-      fprintf(xp1, "%lf\n", xcm1);
-      fprintf(xp2, "%lf\n", xcm2);
-      fprintf(xp3, "%lf\n", xcm3);
-      fprintf(xp4, "%lf\n", xcm4);
-      fprintf(x2x3, "%lf\n", xcm3 * xcm4);
-      fprintf(x1x3, "%lf\n", xcm2 * xcm4);
-      fprintf(x1x2, "%lf\n", xcm2 * xcm3);
+      long thing = ii / cmFreqSamp;
+      iter++;
+      plas23[thing] = xcm3 * xcm4;
+      plas13[thing] = xcm2 * xcm4;
+      plas12[thing] = xcm2 * xcm3;
     }
 
     if (imov == 1)
@@ -514,14 +496,6 @@ int main()
       }
     }
   }
-
-  fclose(xp1);
-  fclose(xp2);
-  fclose(xp3);
-  fclose(xp4);
-  fclose(x2x3);
-  fclose(x1x3);
-  fclose(x1x2);
 
   printf("Acc. ratio = %lf\n", 1.0 * nacc / ((ncyc * (nseg1 + nseg2 + nseg3 + nseg4)) - nrep));
   printf("Number of reptation attempts = %ld\n", nrep);
@@ -1469,6 +1443,7 @@ void write_data(void)
   if ((fp = fopen("prob1.dat", "w")) == NULL)
   {
     printf("Cannot open file: prob1.dat\n");
+    exit(0);
   }
   else
   {
@@ -1486,6 +1461,7 @@ void write_data(void)
   if ((fp = fopen("prob2.dat", "w")) == NULL)
   {
     printf("Cannot open file: prob2.dat\n");
+    exit(0);
   }
   else
   {
@@ -1501,6 +1477,7 @@ void write_data(void)
   if ((fp = fopen("prob3.dat", "w")) == NULL)
   {
     printf("Cannot open file: prob3.dat\n");
+    exit(0);
   }
   else
   {
@@ -1518,6 +1495,7 @@ void write_data(void)
   if ((fp = fopen("prob4.dat", "w")) == NULL)
   {
     printf("Cannot open file: prob4.dat\n");
+    exit(0);
   }
   else
   {
@@ -1535,6 +1513,7 @@ void write_data(void)
   if ((fp = fopen("probmon.dat", "w")) == NULL)
   {
     printf("Cannot open file: probmon.dat\n");
+    exit(0);
   }
   else
   {
@@ -1544,6 +1523,51 @@ void write_data(void)
       {
         fprintf(fp, "%8.2lf  ", probmon[i][j]);
       }
+      fprintf(fp, "\n");
+    }
+    fclose(fp);
+  }
+
+  if ((fp = fopen("x2x3cm.dat", "w")) == NULL)
+  {
+    printf("Cannot open file: x2x3cm.dat\n");
+    exit(0);
+  }
+  else
+  {
+    for (j = neq / cmFreqSamp + 1; j < iter; j++)
+    {
+      fprintf(fp, "%8.2lf  ", plas12[j]);
+      fprintf(fp, "\n");
+    }
+    fclose(fp);
+  }
+
+  if ((fp = fopen("x2x4cm.dat", "w")) == NULL)
+  {
+    printf("Cannot open file: x2x4cm.dat\n");
+    exit(0);
+  }
+  else
+  {
+    for (j = neq / cmFreqSamp + 1; j < iter; j++)
+    {
+      fprintf(fp, "%8.2lf  ", plas13[j]);
+      fprintf(fp, "\n");
+    }
+    fclose(fp);
+  }
+
+  if ((fp = fopen("x3x4cm.dat", "w")) == NULL)
+  {
+    printf("Cannot open file: x3x4cm.dat\n");
+    exit(0);
+  }
+  else
+  {
+    for (j = neq / cmFreqSamp + 1; j < iter; j++)
+    {
+      fprintf(fp, "%8.2lf  ", plas23[j]);
       fprintf(fp, "\n");
     }
     fclose(fp);
