@@ -1365,7 +1365,6 @@ void init_pos(void)
 /* Circular init_pos
 void init_pos(void)
 {
-
   double xadd, yadd, xmax, ymax, zplace;
 
   r1x[0] = -xBoxMaxd2;
