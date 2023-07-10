@@ -1,4 +1,4 @@
-1000              nseg1
+0              nseg1
 25                nseg2
 25                nseg3
 0                nseg4
@@ -11,14 +11,14 @@
 1.1               drmax
 1.0               gridspace
 
-50000             ncyc
-10000             neq
+1000000             ncyc
+0000             neq
 0.14              rmax
 3.14159           delphi_max
 0.5               rshift_max
 1348378           iseed
 
-100                freq_samp
+100               freq_samp
 100               cmFreqSamp
 1000              freq_mon
 100               freq_mov

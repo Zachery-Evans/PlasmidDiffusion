@@ -1462,7 +1462,6 @@ void init_pos(void)
   }
 }
 */
-
 void write_data(void)
 {
   FILE *fp;
