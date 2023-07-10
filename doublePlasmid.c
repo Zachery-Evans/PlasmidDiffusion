@@ -1266,6 +1266,129 @@ double calc_cosine(int i1, int i2, int i3, double rx[5000], double ry[5000], dou
 //  unique window. Overlaps the polymers somewhere to match the current
 //  window.
 // ----------------------------------------------------------------------
+
+void init_pos(void)
+{
+
+  double xadd, yadd, xmax, ymax, zplace;
+
+  r1x[0] = -xBoxMaxd2;
+  r1y[0] = -yBoxMaxd2 + 2.0;
+  r1z[0] = 1.0;
+  xadd = 1.0;
+  yadd = 1.0;
+  zplace = 1.0;
+
+  for (i = 1; i < nseg1; i++)
+  {
+    r1x[i] = r1x[i - 1] + xadd;
+    r1y[i] = r1y[i - 1];
+    r1z[i] = zplace;
+    xmax = xBoxMaxd2; // Changed to be inside of the rectangle structure
+    // xmax = amax * sqrt(1.0 - pow(r1y[i] / bmin, 2.0)) - 3.0;
+
+    if (r1x[i] > xmax || r1x[i] < -xmax)
+    {
+      if (r1y[i] + 2.0 > ymax || r1y[i] - 2.0 < -ymax)
+      {
+        zplace -= 1.0;
+        yadd = -1.0 * yadd;
+        // printf("%ld   %lf\n", i, yadd);
+      }
+
+      r1x[i] -= xadd;
+      r1y[i] = r1y[i] + yadd;
+      ymax = yBoxMaxd2;
+
+      if (r1y[i] > ymax || r1y[i] < -ymax)
+      {
+        printf("Can't place polymer... exiting...\n");
+        exit(0);
+      }
+      xadd *= -1.0;
+    }
+  }
+
+  for (i = 0; i < nseg2; i++)
+  {
+    r2z[i] = 4.0;
+
+    if (i < nseg2 / 2)
+    {
+      r2x[i] = -i - xBoxMaxd2 + nseg2;
+      r2y[i] = 0.0;
+    }
+    if (i == nseg2 / 2 + 0.5 || i == nseg2 / 2)
+    {
+      r2x[i] = -i - xBoxMaxd2 + nseg2 + 1.0;
+      r2y[i] = -1.0;
+    }
+    if (i > nseg2 / 2 && i < nseg2 - 1)
+    {
+      r2x[i] = +i - nseg2 - xBoxMaxd2 + nseg2 + 1.0;
+      r2y[i] = -2.0;
+    }
+    if (i == nseg2 - 1)
+    {
+      r2x[i] = +i - nseg2 - xBoxMaxd2 + nseg2 + 1.0;
+      r2y[i] = -1.0;
+    }
+  }
+
+  for (i = 0; i < nseg3; i++)
+  {
+    r3z[i] = -2.0;
+
+    if (i < nseg3 / 2)
+    {
+      r3x[i] = -i - xBoxMaxd2 + nseg3;
+      r3y[i] = 0.0;
+    }
+    if (i == nseg3 / 2 + 0.5 || i == nseg3 / 2)
+    {
+      r3x[i] = -i - xBoxMaxd2 + nseg3 + 1.0;
+      r3y[i] = -1.0;
+    }
+    if (i > nseg3 / 2 && i < nseg3 - 1)
+    {
+      r3x[i] = +i - nseg3 - xBoxMaxd2 + nseg3 + 1.0;
+      r3y[i] = -2.0;
+    }
+    if (i == nseg3 - 1)
+    {
+      r3x[i] = +i - nseg3 - xBoxMaxd2 + nseg3 + 1.0;
+      r3y[i] = -1.0;
+    }
+  }
+
+  for (i = 0; i < nseg4; i++)
+  {
+    r4z[i] = 2.0;
+
+    if (i < nseg4 / 2)
+    {
+      r4x[i] = +i + xBoxMaxd2 - nseg4;
+      r4y[i] = 0.0;
+    }
+    if (i == nseg4 / 2 + 0.5 || i == nseg4 / 2)
+    {
+      r4x[i] = +i + xBoxMaxd2 - nseg4 - 1.0;
+      r4y[i] = -1.0;
+    }
+    if (i > nseg4 / 2 && i < nseg2 - 1)
+    {
+      r4x[i] = -i - nseg4 + xBoxMaxd2 + nseg4 - 1.0;
+      r4y[i] = -2.0;
+    }
+    if (i == nseg4 - 1)
+    {
+      r4x[i] = -i - nseg4 + xBoxMaxd2 + nseg4 - 1.0;
+      r4y[i] = -1.0;
+    }
+  }
+}
+
+/* Circular init_pos
 void init_pos(void)
 {
 
@@ -1338,6 +1461,7 @@ void init_pos(void)
     r4y[i] = Rplasmid4 * sin(i * theta_plasmid4) - Rplasmid4 / 2.0;
   }
 }
+*/
 
 void write_data(void)
 {
