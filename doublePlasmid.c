@@ -9,16 +9,18 @@ T4 polymer (Much longer linear polymer).
 This program was built with the Compute Canada clusters, as such it should include an input file whose contents are read from the function "void input(void)".
 
 There are some pecularities that were implemented into this program in order to be most effective for file management as well as ease of use:
+
   1) If the variable "ecc" (eccentricity of the elliptical caps) is greater than or equal to 1.0, then the geometry is changed into a rectangle.
 
-  2) There is a variable called "plasRigid" that controls whether or not the plasmids have the ridigity of the linear polymer. If plasRigid == 1 then the plasmiids
+  2) There is a variable called "plasRigid" that controls whether or not the plasmids have ridigity equal to the linear polymer. If plasRigid == 1 then the plasmiids
      have rigidity. They have zero rigidity otherwise.
 
   3) The variable imov determines whether or not the "xyz" files used for VMD visualizations are printed to a file. It should be noted that this variable needs to be
      set to 0 if doing any work in the Compute Canada clusters, as there is not enough storage in the cloud to support printing these files anywhere but on the local
      computer.
 
-  4)
+  4) This code was generalized around adding more plasmids to the system, and was optimized such that if either the polymer or any plasmids were removed from the system
+     (nseg = 0) then no modifications would be necessary for the program to compile, run, and produce relevant data.
 
 */
 
@@ -466,7 +468,8 @@ int main()
 
     if (ii % cmFreqSamp == 0 && ii > neq)
     {
-      long thing = ii / cmFreqSamp;
+      long thing = (ii - neq - 1) / cmFreqSamp;
+      printf("%ld   %lf\n", thing, xcm2*xcm3);
       iter++;
       plas23[thing] = xcm3 * xcm4;
       plas13[thing] = xcm2 * xcm4;
@@ -1367,7 +1370,7 @@ void init_pos(void)
   }
 }
 
-/* Initialize plasmids as circles rather than trapezoid 
+/* Initialize plasmids as circles rather than trapezoid
 void init_pos(void)
 {
   double xadd, yadd, xmax, ymax, zplace;
@@ -1532,49 +1535,58 @@ void write_data(void)
     fclose(fp);
   }
 
-  if ((fp = fopen("x2x3cm.dat", "w")) == NULL)
+  if (nseg2 != 0 && nseg3 != 0)
   {
-    printf("Cannot open file: x2x3cm.dat\n");
-    exit(0);
-  }
-  else
-  {
-    for (j = neq / cmFreqSamp + 1; j < iter; j++)
+    if ((fp = fopen("x2x3cm.dat", "w")) == NULL)
     {
-      fprintf(fp, "%8.2lf  ", plas12[j]);
-      fprintf(fp, "\n");
+      printf("Cannot open file: x2x3cm.dat\n");
+      exit(0);
     }
-    fclose(fp);
+    else
+    {
+      for (j = neq / cmFreqSamp + 1; j < iter; j++)
+      {
+        fprintf(fp, "%8.2lf  ", plas12[j]);
+        fprintf(fp, "\n");
+      }
+      fclose(fp);
+    }
   }
 
-  if ((fp = fopen("x2x4cm.dat", "w")) == NULL)
+  if (nseg2 != 0 && nseg4 != 0)
   {
-    printf("Cannot open file: x2x4cm.dat\n");
-    exit(0);
-  }
-  else
-  {
-    for (j = neq / cmFreqSamp + 1; j < iter; j++)
+    if ((fp = fopen("x2x4cm.dat", "w")) == NULL)
     {
-      fprintf(fp, "%8.2lf  ", plas13[j]);
-      fprintf(fp, "\n");
+      printf("Cannot open file: x2x4cm.dat\n");
+      exit(0);
     }
-    fclose(fp);
+    else
+    {
+      for (j = neq / cmFreqSamp + 1; j < iter; j++)
+      {
+        fprintf(fp, "%8.2lf  ", plas13[j]);
+        fprintf(fp, "\n");
+      }
+      fclose(fp);
+    }
   }
 
-  if ((fp = fopen("x3x4cm.dat", "w")) == NULL)
+  if (nseg3 != 0 && nseg4 != 0)
   {
-    printf("Cannot open file: x3x4cm.dat\n");
-    exit(0);
-  }
-  else
-  {
-    for (j = neq / cmFreqSamp + 1; j < iter; j++)
+    if ((fp = fopen("x3x4cm.dat", "w")) == NULL)
     {
-      fprintf(fp, "%8.2lf  ", plas23[j]);
-      fprintf(fp, "\n");
+      printf("Cannot open file: x3x4cm.dat\n");
+      exit(0);
     }
-    fclose(fp);
+    else
+    {
+      for (j = neq / cmFreqSamp + 1; j < iter; j++)
+      {
+        fprintf(fp, "%8.2lf  ", plas23[j]);
+        fprintf(fp, "\n");
+      }
+      fclose(fp);
+    }
   }
 }
 
