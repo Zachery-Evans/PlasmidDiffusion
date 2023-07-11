@@ -368,9 +368,14 @@ int main()
        * Warning for invalid data
        */
       if (indx >= ngridx || indy >= ngridy)
+      {
         printf("1:  indx = %ld/%ld, indy = %ld/%ld\n", indx, ngridx, indy, ngridy);
+      }
+
       if (indx >= 0 && indx < ngridx && indy >= 0 && indy < ngridy)
+      {
         prob1[indx][indy] += 1.0;
+      }
 
       for (i = 0; i < nseg1; i++)
       {
@@ -606,7 +611,7 @@ void write_log(void)
   printf("\n");
 }
 
-/* squareEllipse and checkEllipse Code written by Zach Evans in attempt to create geometry of rectangle between two halves of an ellipse */
+/* squareEllipse and checkEllipse Code written by Zach Evans to create geometry of rectangle between two halves of an ellipse */
 
 /*
  *
@@ -1032,7 +1037,7 @@ int check_plasmid_energy(double rx[5000], double ry[5000], double rz[5000], long
 
   // The following 3 blocks consider the possible scenarios of monomer
   // movement: 1.) first monomer ( k ==0 ), 2.) last monomer ( k == nseg* -1 )
-  //
+  // 3.) the second monomer ( k==1 ) 4.) The second last monomer ( k == nseg* -2 )
   // shifting monomers at the ends requires a change in the indices. As k-1 for the k == 0 monomer
   // will give a value of -1, or the -1 indices of the polymer position array, which will provide incorrect
   // results.
@@ -1362,7 +1367,7 @@ void init_pos(void)
   }
 }
 
-/* Circular init_pos
+/* Initialize plasmids as circles rather than trapezoid 
 void init_pos(void)
 {
   double xadd, yadd, xmax, ymax, zplace;
