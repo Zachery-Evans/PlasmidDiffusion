@@ -798,12 +798,12 @@ int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
   {
     if (k == 0)
     {
-      klow = nseg2 - 1;
+      klow = nseg - 1;
       khigh = 1;
     }
-    else if (k == nseg2 - 1)
+    else if (k == nseg - 1)
     {
-      klow = nseg2 - 2;
+      klow = nseg - 2;
       khigh = 0;
     }
     else
@@ -840,6 +840,7 @@ int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
             return (reject);
           }
         }
+        
       }
 
       if (kk < nseg1)
