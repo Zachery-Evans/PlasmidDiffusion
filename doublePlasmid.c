@@ -6,7 +6,21 @@ Email: zdjevans@protonmail.com
 This program was written to study the equilibrium behaviour of plasmids confined to a dual pit geometry of an elliptically capped rectangle interacting with
 T4 polymer (Much longer linear polymer).
 
-This program was built with the Compute Canada clusters, as such it has included an input file that
+This program was built with the Compute Canada clusters, as such it should include an input file whose contents are read from the function "void input(void)".
+
+There are some pecularities that were implemented into this program in order to be most effective for file management as well as ease of use:
+
+  1) If the variable "ecc" (eccentricity of the elliptical caps) is greater than or equal to 1.0, then the geometry is changed into a rectangle.
+
+  2) There is a variable called "plasRigid" that controls whether or not the plasmids have ridigity equal to the linear polymer. If plasRigid == 1 then the plasmiids
+     have rigidity. They have zero rigidity otherwise.
+
+  3) The variable imov determines whether or not the "xyz" files used for VMD visualizations are printed to a file. It should be noted that this variable needs to be
+     set to 0 if doing any work in the Compute Canada clusters, as there is not enough storage in the cloud to support printing these files anywhere but on the local
+     computer.
+
+  4) This code was generalized around adding more plasmids to the system, and was optimized such that if either the polymer or any plasmids were removed from the system
+     (nseg = 0) then no modifications would be necessary for the program to compile, run, and produce relevant data.
 
 */
 
@@ -23,6 +37,7 @@ This program was built with the Compute Canada clusters, as such it has included
 // function headers
 double ran3(void);
 void init_pos(void);
+void init_pos_circular(void);
 void write_log(void);
 void write_data(void);
 void input(void);
@@ -61,18 +76,11 @@ double **prob1, **prob2, **prob3, **prob4, **probmon;
 
 FILE *fpmov;
 
-double r1x[5000];
-double r1y[5000];
-double r1z[5000];
-double r2x[5000];
-double r2y[5000];
-double r2z[5000];
-double r3x[5000];
-double r3y[5000];
-double r3z[5000];
-double r4x[5000];
-double r4y[5000];
-double r4z[5000];
+double r1x[5000], r1y[5000], r1z[5000];
+double r2x[5000], r2y[5000], r2z[5000];
+double r3x[5000], r3y[5000], r3z[5000];
+double r4x[5000], r4y[5000], r4z[5000];
+double plas12[5000], plas23[5000], plas13[5000];
 
 double x1, x2, x3, yone, y2, y3, z1, z2, z3;
 double vax, vay, vaz, vbx, vby, vbz;
@@ -87,6 +95,7 @@ double delta_E;
 long ind;
 
 long irep;
+long iter = 0;
 double rep_prob;
 long nacc_rep;
 long nrep;
@@ -106,8 +115,6 @@ int main()
   long imon, indx, indy;
   double xcm1, ycm1, xcm2, ycm2, xcm3, ycm3, xcm4, ycm4;
   clock_t start, end;
-
-  FILE *xp1, *xp2, *xp3, *xp4, *x1x2, *x2x3, *x1x3;
 
   input();
 
@@ -180,7 +187,14 @@ int main()
 
   imon = 0;
 
-  init_pos(); // function call
+  if (plasRigid == 1)
+  {
+    init_pos(); // function call
+  }
+  else
+  {
+    init_pos_circular();
+  }
 
   // Don't include if statement below in cluster
   if (imov == 1)
@@ -216,14 +230,6 @@ int main()
   nacc_shift = 0;
   nshift = 0;
   nrep = 0;
-
-  xp1 = fopen("xcm1.dat", "w");
-  xp2 = fopen("xcm2.dat", "w");
-  xp3 = fopen("xcm3.dat", "w");
-  xp4 = fopen("xcm4.dat", "w");
-  x2x3 = fopen("x3x4cm.dat", "w");
-  x1x3 = fopen("x2x4cm.dat", "w");
-  x1x2 = fopen("x2x3cm.dat", "w");
 
   for (ii = 0; ii < ncyc; ii++)
   {
@@ -372,9 +378,14 @@ int main()
        * Warning for invalid data
        */
       if (indx >= ngridx || indy >= ngridy)
+      {
         printf("1:  indx = %ld/%ld, indy = %ld/%ld\n", indx, ngridx, indy, ngridy);
+      }
+
       if (indx >= 0 && indx < ngridx && indy >= 0 && indy < ngridy)
+      {
         prob1[indx][indy] += 1.0;
+      }
 
       for (i = 0; i < nseg1; i++)
       {
@@ -465,13 +476,12 @@ int main()
 
     if (ii % cmFreqSamp == 0 && ii > neq)
     {
-      fprintf(xp1, "%lf\n", xcm1);
-      fprintf(xp2, "%lf\n", xcm2);
-      fprintf(xp3, "%lf\n", xcm3);
-      fprintf(xp4, "%lf\n", xcm4);
-      fprintf(x2x3, "%lf\n", xcm3 * xcm4);
-      fprintf(x1x3, "%lf\n", xcm2 * xcm4);
-      fprintf(x1x2, "%lf\n", xcm2 * xcm3);
+      long thing = (ii - neq - 1) / cmFreqSamp;
+      printf("%ld   %lf\n", thing, xcm2);
+      iter++;
+      plas23[thing] = xcm3 * xcm4;
+      plas13[thing] = xcm2 * xcm4;
+      plas12[thing] = xcm2 * xcm3;
     }
 
     if (imov == 1)
@@ -502,14 +512,6 @@ int main()
       }
     }
   }
-
-  fclose(xp1);
-  fclose(xp2);
-  fclose(xp3);
-  fclose(xp4);
-  fclose(x2x3);
-  fclose(x1x3);
-  fclose(x1x2);
 
   printf("Acc. ratio = %lf\n", 1.0 * nacc / ((ncyc * (nseg1 + nseg2 + nseg3 + nseg4)) - nrep));
   printf("Number of reptation attempts = %ld\n", nrep);
@@ -620,7 +622,7 @@ void write_log(void)
   printf("\n");
 }
 
-/* squareEllipse and checkEllipse Code written by Zach Evans in attempt to create geometry of rectangle between two halves of an ellipse */
+/* squareEllipse and checkEllipse Code written by Zach Evans to create geometry of rectangle between two halves of an ellipse */
 
 /*
  *
@@ -796,7 +798,6 @@ int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
         }
       }
     }
-
     return (check_poly_energy(rx, ry, rz, nseg)); // apply rigidity
   }
 
@@ -804,12 +805,12 @@ int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
   {
     if (k == 0)
     {
-      klow = nseg2 - 1;
+      klow = nseg - 1;
       khigh = 1;
     }
-    else if (k == nseg2 - 1)
+    else if (k == nseg - 1)
     {
-      klow = nseg2 - 2;
+      klow = nseg - 2;
       khigh = 0;
     }
     else
@@ -837,9 +838,9 @@ int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
         }
         if (kk != k && kk != klow && kk != khigh)
         {
-          dx = rx[k] - r2x[kk];
-          dy = ry[k] - r2y[kk];
-          dz = rz[k] - r2z[kk];
+          dx = rx[k] - rx[kk];
+          dy = ry[k] - ry[kk];
+          dz = rz[k] - rz[kk];
           dr2 = dx * dx + dy * dy + dz * dz;
           if (dr2 < 1.0)
           {
@@ -848,7 +849,7 @@ int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
         }
       }
 
-      if (kk < nseg1)
+      if (kk < nseg1 && ichain != 1)
       {
         // Check if polymer and plasmid overlap
         dx = rx[k] - r1x[kk];
@@ -861,9 +862,9 @@ int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
         }
       }
 
+      // Check if plasmids overlap
       if (kk < nseg2 && ichain != 2)
       {
-        // Check if polymer and plasmid overlap
         dx = rx[k] - r2x[kk];
         dy = ry[k] - r2y[kk];
         dz = rz[k] - r2z[kk];
@@ -906,7 +907,7 @@ int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
     }
     else
     {
-      return accept;
+      return (accept);
     }
   }
 }
@@ -1046,7 +1047,7 @@ int check_plasmid_energy(double rx[5000], double ry[5000], double rz[5000], long
 
   // The following 3 blocks consider the possible scenarios of monomer
   // movement: 1.) first monomer ( k ==0 ), 2.) last monomer ( k == nseg* -1 )
-  //
+  // 3.) the second monomer ( k==1 ) 4.) The second last monomer ( k == nseg* -2 )
   // shifting monomers at the ends requires a change in the indices. As k-1 for the k == 0 monomer
   // will give a value of -1, or the -1 indices of the polymer position array, which will provide incorrect
   // results.
@@ -1076,7 +1077,7 @@ int check_plasmid_energy(double rx[5000], double ry[5000], double rz[5000], long
     energy_new[0] = kappa * (1.0 - theta_new);
     energy_old[0] = kappa * (1.0 - theta_old);
 
-    theta_new = calc_cosine(k - 1, 0, 0, rx, ry, rz);
+    theta_new = calc_cosine(k - 1, k, 0, rx, ry, rz);
     theta_old = calc_cosine(k - 1, -1, 0, rx, ry, rz);
     energy_new[1] = kappa * (1.0 - theta_new);
     energy_old[1] = kappa * (1.0 - theta_old);
@@ -1246,7 +1247,7 @@ double calc_cosine(int i1, int i2, int i3, double rx[5000], double ry[5000], dou
 
   va_dot_vb = vax * vbx + vay * vby + vaz * vbz;
 
-  return (va_dot_vb / (sqrt(va_sq) * sqrt(vb_sq)));
+  return (va_dot_vb / (sqrt(va_sq * vb_sq)));
 }
 
 // ----------------------------------------------------------------------
@@ -1296,37 +1297,28 @@ void init_pos(void)
     }
   }
 
-  double theta_plasmid2 = 2.0 * PI / nseg2;
-  double Rplasmid2 = 0.5 / tan(theta_plasmid2 / 2.0);
-
-  double theta_plasmid3 = 2.0 * PI / nseg3;
-  double Rplasmid3 = 0.5 / tan(theta_plasmid3 / 2.0);
-
-  double theta_plasmid4 = 2.0 * PI / nseg4;
-  double Rplasmid4 = 0.5 / tan(theta_plasmid4 / 2.0);
-
   for (i = 0; i < nseg2; i++)
   {
     r2z[i] = 4.0;
 
     if (i < nseg2 / 2)
     {
-      r2x[i] = -i - xBoxMaxd2 + nseg2;
+      r2x[i] = (double)-i - xBoxMaxd2 + nseg2;
       r2y[i] = 0.0;
     }
     if (i == nseg2 / 2 + 0.5 || i == nseg2 / 2)
     {
-      r2x[i] = -i - xBoxMaxd2 + nseg2 + 1.0;
+      r2x[i] = (double)-i - xBoxMaxd2 + nseg2 + 1.0;
       r2y[i] = -1.0;
     }
     if (i > nseg2 / 2 && i < nseg2 - 1)
     {
-      r2x[i] = +i - nseg2 - xBoxMaxd2 + nseg2 + 1.0;
+      r2x[i] = (double)+i - nseg2 - xBoxMaxd2 + nseg2 + 1.0;
       r2y[i] = -2.0;
     }
     if (i == nseg2 - 1)
     {
-      r2x[i] = +i - nseg2 - xBoxMaxd2 + nseg2 + 1.0;
+      r2x[i] = (double)+i - nseg2 - xBoxMaxd2 + nseg2 + 1.0;
       r2y[i] = -1.0;
     }
   }
@@ -1384,6 +1376,79 @@ void init_pos(void)
   }
 }
 
+// Initialize plasmids as circles rather than trapezoid
+void init_pos_circular(void)
+{
+  double xadd, yadd, xmax, ymax, zplace;
+
+  r1x[0] = -xBoxMaxd2;
+  r1y[0] = -yBoxMaxd2 + 2.0;
+  r1z[0] = 1.0;
+  xadd = 1.0;
+  yadd = 1.0;
+  zplace = 1.0;
+
+  for (i = 1; i < nseg1; i++)
+  {
+    r1x[i] = r1x[i - 1] + xadd;
+    r1y[i] = r1y[i - 1];
+    r1z[i] = zplace;
+    xmax = xBoxMaxd2; // Changed to be inside of the rectangle structure
+    // xmax = amax * sqrt(1.0 - pow(r1y[i] / bmin, 2.0)) - 3.0;
+
+    if (r1x[i] > xmax || r1x[i] < -xmax)
+    {
+      if (r1y[i] + 2.0 > ymax || r1y[i] - 2.0 < -ymax)
+      {
+        zplace -= 1.0;
+        yadd = -1.0 * yadd;
+        // printf("%ld   %lf\n", i, yadd);
+      }
+
+      r1x[i] -= xadd;
+      r1y[i] = r1y[i] + yadd;
+      ymax = yBoxMaxd2;
+
+      if (r1y[i] > ymax || r1y[i] < -ymax)
+      {
+        printf("Can't place polymer... exiting...\n");
+        exit(0);
+      }
+      xadd *= -1.0;
+    }
+  }
+
+  double theta_plasmid2 = 2.0 * PI / nseg2;
+  double Rplasmid2 = 0.5 / tan(theta_plasmid2 / 2.0);
+
+  double theta_plasmid3 = 2.0 * PI / nseg3;
+  double Rplasmid3 = 0.5 / tan(theta_plasmid3 / 2.0);
+
+  double theta_plasmid4 = 2.0 * PI / nseg4;
+  double Rplasmid4 = 0.5 / tan(theta_plasmid4 / 2.0);
+
+  for (i = 0; i < nseg2; i++)
+  {
+    r2z[i] = 4.0;
+    r2x[i] = Rplasmid2 * cos(i * theta_plasmid2) - xBoxMaxd2 + Rplasmid2;
+    r2y[i] = Rplasmid2 * sin(i * theta_plasmid2) - Rplasmid2 / 2.0;
+  }
+
+  for (i = 0; i < nseg3; i++)
+  {
+    r3z[i] = 2.0; // Initialized just above the first plasmid
+    r3x[i] = Rplasmid3 * cos(i * theta_plasmid3) - xBoxMaxd2 + Rplasmid3;
+    r3y[i] = Rplasmid3 * sin(i * theta_plasmid3) - Rplasmid3 / 2.0;
+  }
+
+  for (i = 0; i < nseg4; i++)
+  {
+    r4z[i] = 4.0; // Initialized just above the first plasmid
+    r4x[i] = Rplasmid4 * cos(i * theta_plasmid4) + xBoxMaxd2 - Rplasmid4;
+    r4y[i] = Rplasmid4 * sin(i * theta_plasmid4) - Rplasmid4 / 2.0;
+  }
+}
+
 void write_data(void)
 {
   FILE *fp;
@@ -1391,6 +1456,7 @@ void write_data(void)
   if ((fp = fopen("prob1.dat", "w")) == NULL)
   {
     printf("Cannot open file: prob1.dat\n");
+    exit(0);
   }
   else
   {
@@ -1408,6 +1474,7 @@ void write_data(void)
   if ((fp = fopen("prob2.dat", "w")) == NULL)
   {
     printf("Cannot open file: prob2.dat\n");
+    exit(0);
   }
   else
   {
@@ -1423,6 +1490,7 @@ void write_data(void)
   if ((fp = fopen("prob3.dat", "w")) == NULL)
   {
     printf("Cannot open file: prob3.dat\n");
+    exit(0);
   }
   else
   {
@@ -1440,6 +1508,7 @@ void write_data(void)
   if ((fp = fopen("prob4.dat", "w")) == NULL)
   {
     printf("Cannot open file: prob4.dat\n");
+    exit(0);
   }
   else
   {
@@ -1457,6 +1526,7 @@ void write_data(void)
   if ((fp = fopen("probmon.dat", "w")) == NULL)
   {
     printf("Cannot open file: probmon.dat\n");
+    exit(0);
   }
   else
   {
@@ -1469,6 +1539,60 @@ void write_data(void)
       fprintf(fp, "\n");
     }
     fclose(fp);
+  }
+
+  if (nseg2 != 0 && nseg3 != 0)
+  {
+    if ((fp = fopen("x2x3cm.dat", "w")) == NULL)
+    {
+      printf("Cannot open file: x2x3cm.dat\n");
+      exit(0);
+    }
+    else
+    {
+      for (j = neq / cmFreqSamp + 1; j < iter; j++)
+      {
+        fprintf(fp, "%8.2lf  ", plas12[j]);
+        fprintf(fp, "\n");
+      }
+      fclose(fp);
+    }
+  }
+
+  if (nseg2 != 0 && nseg4 != 0)
+  {
+    if ((fp = fopen("x2x4cm.dat", "w")) == NULL)
+    {
+      printf("Cannot open file: x2x4cm.dat\n");
+      exit(0);
+    }
+    else
+    {
+      for (j = neq / cmFreqSamp + 1; j < iter; j++)
+      {
+        fprintf(fp, "%8.2lf  ", plas13[j]);
+        fprintf(fp, "\n");
+      }
+      fclose(fp);
+    }
+  }
+
+  if (nseg3 != 0 && nseg4 != 0)
+  {
+    if ((fp = fopen("x3x4cm.dat", "w")) == NULL)
+    {
+      printf("Cannot open file: x3x4cm.dat\n");
+      exit(0);
+    }
+    else
+    {
+      for (j = neq / cmFreqSamp + 1; j < iter; j++)
+      {
+        fprintf(fp, "%8.2lf  ", plas23[j]);
+        fprintf(fp, "\n");
+      }
+      fclose(fp);
+    }
   }
 }
 
