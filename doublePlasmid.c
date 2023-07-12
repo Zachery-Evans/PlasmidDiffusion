@@ -80,6 +80,8 @@ double r1x[5000], r1y[5000], r1z[5000];
 double r2x[5000], r2y[5000], r2z[5000];
 double r3x[5000], r3y[5000], r3z[5000];
 double r4x[5000], r4y[5000], r4z[5000];
+double x2cm[5000], x3cm[5000], x4cm[5000];
+double y2cm[5000], y3cm[5000], y4cm[5000];
 double plas12[5000], plas23[5000], plas13[5000];
 
 double x1, x2, x3, yone, y2, y3, z1, z2, z3;
@@ -482,6 +484,15 @@ int main()
       plas23[thing] = xcm3 * xcm4;
       plas13[thing] = xcm2 * xcm4;
       plas12[thing] = xcm2 * xcm3;
+
+      x2cm[thing] = xcm2;
+      y2cm[thing] = ycm2;
+
+      x3cm[thing] = xcm3;
+      y3cm[thing] = ycm3;
+      
+      x4cm[thing] = xcm4;
+      y4cm[thing] = ycm4;
     }
 
     if (imov == 1)
@@ -847,7 +858,6 @@ int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
             return (reject);
           }
         }
-        
       }
 
       if (kk < nseg1 && ichain != 1)
