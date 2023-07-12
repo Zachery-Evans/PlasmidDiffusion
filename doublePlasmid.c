@@ -22,6 +22,10 @@ There are some pecularities that were implemented into this program in order to 
   4) This code was generalized around adding more plasmids to the system, and was optimized such that if either the polymer or any plasmids were removed from the system
      (nseg = 0) then no modifications would be necessary for the program to compile, run, and produce relevant data.
 
+  5) It is not always the case that measurements for the CM of the plasmids are necessary, to avoid using too much file space on the clusters, input parameters xcmPrint 
+     and ycmPrint where created in order for user input to determine what particular data should be collected. It should be noted that the x2CM * x3CM etc. data will always
+     be collected, as the equilibriumn behaviour of the plasmids is one way of making sure that the data you receive is within expectation.
+
 */
 
 #include <math.h>
