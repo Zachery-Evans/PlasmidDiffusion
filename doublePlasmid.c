@@ -600,7 +600,7 @@ void write_log(void)
   printf("nseg3    %ld\n", nseg3);
   printf("nseg4    %ld\n", nseg4);
   printf("Area     %lf\n", Area);
-  printf("Rectangle %lf\n", rectangleArea);
+  printf("Rect     %lf\n", rectangleArea);
   printf("ecc      %lf\n", ecc);
   printf("amax     %lf\n", amax);
   printf("bmin     %lf\n", bmin);
@@ -631,7 +631,7 @@ void write_log(void)
   printf("\n");
 
   printf("imov     %ld\n", imov);
-  printf("plasRigid     %ld\n", plasRigid);
+  printf("plasRigid    %ld\n", plasRigid);
   printf("xcmPrint     %ld\n", xcmPrint);
   printf("ycmPrint     %ld\n", ycmPrint);
   printf("\n");
