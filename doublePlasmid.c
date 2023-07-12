@@ -37,6 +37,7 @@ There are some pecularities that were implemented into this program in order to 
 // function headers
 double ran3(void);
 void init_pos(void);
+void init_pos_circular(void);
 void write_log(void);
 void write_data(void);
 void input(void);
@@ -186,7 +187,14 @@ int main()
 
   imon = 0;
 
-  init_pos(); // function call
+  if (plasRigid == 1)
+  {
+    init_pos(); // function call
+  }
+  else
+  {
+    init_pos_circular();
+  }
 
   // Don't include if statement below in cluster
   if (imov == 1)
@@ -469,7 +477,7 @@ int main()
     if (ii % cmFreqSamp == 0 && ii > neq)
     {
       long thing = (ii - neq - 1) / cmFreqSamp;
-      printf("%ld   %lf\n", thing, xcm2*xcm3);
+      // printf("%ld   %lf\n", thing, xcm2);
       iter++;
       plas23[thing] = xcm3 * xcm4;
       plas13[thing] = xcm2 * xcm4;
@@ -790,7 +798,6 @@ int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
         }
       }
     }
-
     return (check_poly_energy(rx, ry, rz, nseg)); // apply rigidity
   }
 
@@ -831,9 +838,9 @@ int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
         }
         if (kk != k && kk != klow && kk != khigh)
         {
-          dx = rx[k] - r2x[kk];
-          dy = ry[k] - r2y[kk];
-          dz = rz[k] - r2z[kk];
+          dx = rx[k] - rx[kk];
+          dy = ry[k] - ry[kk];
+          dz = rz[k] - rz[kk];
           dr2 = dx * dx + dy * dy + dz * dz;
           if (dr2 < 1.0)
           {
@@ -843,7 +850,7 @@ int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
         
       }
 
-      if (kk < nseg1)
+      if (kk < nseg1 && ichain != 1)
       {
         // Check if polymer and plasmid overlap
         dx = rx[k] - r1x[kk];
@@ -856,9 +863,9 @@ int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
         }
       }
 
+      // Check if plasmids overlap
       if (kk < nseg2 && ichain != 2)
       {
-        // Check if polymer and plasmid overlap
         dx = rx[k] - r2x[kk];
         dy = ry[k] - r2y[kk];
         dz = rz[k] - r2z[kk];
@@ -901,7 +908,7 @@ int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
     }
     else
     {
-      return accept;
+      return (accept);
     }
   }
 }
@@ -1298,22 +1305,22 @@ void init_pos(void)
 
     if (i < nseg2 / 2)
     {
-      r2x[i] = -i - xBoxMaxd2 + nseg2;
+      r2x[i] = (double)-i - xBoxMaxd2 + nseg2;
       r2y[i] = 0.0;
     }
     if (i == nseg2 / 2 + 0.5 || i == nseg2 / 2)
     {
-      r2x[i] = -i - xBoxMaxd2 + nseg2 + 1.0;
+      r2x[i] = (double)-i - xBoxMaxd2 + nseg2 + 1.0;
       r2y[i] = -1.0;
     }
     if (i > nseg2 / 2 && i < nseg2 - 1)
     {
-      r2x[i] = +i - nseg2 - xBoxMaxd2 + nseg2 + 1.0;
+      r2x[i] = (double)+i - nseg2 - xBoxMaxd2 + nseg2 + 1.0;
       r2y[i] = -2.0;
     }
     if (i == nseg2 - 1)
     {
-      r2x[i] = +i - nseg2 - xBoxMaxd2 + nseg2 + 1.0;
+      r2x[i] = (double)+i - nseg2 - xBoxMaxd2 + nseg2 + 1.0;
       r2y[i] = -1.0;
     }
   }
@@ -1371,8 +1378,8 @@ void init_pos(void)
   }
 }
 
-/* Initialize plasmids as circles rather than trapezoid
-void init_pos(void)
+// Initialize plasmids as circles rather than trapezoid
+void init_pos_circular(void)
 {
   double xadd, yadd, xmax, ymax, zplace;
 
@@ -1443,7 +1450,7 @@ void init_pos(void)
     r4y[i] = Rplasmid4 * sin(i * theta_plasmid4) - Rplasmid4 / 2.0;
   }
 }
-*/
+
 void write_data(void)
 {
   FILE *fp;
