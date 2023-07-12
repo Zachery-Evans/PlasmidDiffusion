@@ -63,7 +63,7 @@ void crank_move_polymer(double[], double[], double[]);
 void crank_move_plasmid(double[], double[], double[], long);
 
 long nseg1, nseg2, nseg3, nseg4, nbin, i, j, k, ii, ncyc, overlap, nacc, kk, itest, iseed;
-long neq, nbintot, ibin, ichain, nsamp, nacc_shift, nshift;
+long neq, nbintot, ibin, ichain, nsamp, nacc_shift, nshift, xcmPrint, ycmPrint;
 long imov, plasRigid, kmaxtest, freq_samp, cmFreqSamp, freq_mon, freq_mov, ncmt, ngridx, ngridy;
 
 double L, H, Ld2, Hd2, rmax, xt, yt, zt, dx, dy, dz, re, dr2, drxy2, dr2min, dr2max;
@@ -490,7 +490,7 @@ int main()
 
       x3cm[thing] = xcm3;
       y3cm[thing] = ycm3;
-      
+
       x4cm[thing] = xcm4;
       y4cm[thing] = ycm4;
     }
@@ -581,6 +581,8 @@ void input(void)
 
     fscanf(fp, "\n%ld%*s", &imov);
     fscanf(fp, "\n%ld%*s", &plasRigid);
+    fscanf(fp, "\n%ld%*s", &xcmPrint);
+    fscanf(fp, "\n%ld%*s", &ycmPrint);
   }
 
   fclose(fp);
@@ -630,6 +632,8 @@ void write_log(void)
 
   printf("imov     %ld\n", imov);
   printf("plasRigid     %ld\n", plasRigid);
+  printf("xcmPrint     %ld\n", xcmPrint);
+  printf("ycmPrint     %ld\n", ycmPrint);
   printf("\n");
 }
 
@@ -1603,6 +1607,112 @@ void write_data(void)
         fprintf(fp, "%8.2lf  ", plas23[j]);
         fprintf(fp, "\n");
       }
+      fclose(fp);
+    }
+  }
+
+  if (nseg2 != 0)
+  {
+    if ((fp = fopen("x2cm.dat", "w")) == NULL)
+    {
+      printf("Cannot open file: x2cm.dat\n");
+      exit(0);
+    }
+    else
+    {
+      if (xcmPrint == 1)
+        for (j = neq / cmFreqSamp + 1; j < iter; j++)
+        {
+          fprintf(fp, "%8.2lf  ", x2cm[j]);
+          fprintf(fp, "\n");
+        }
+      fclose(fp);
+    }
+
+    if ((fp = fopen("y2cm.dat", "w")) == NULL)
+    {
+      printf("Cannot open file: y2cm.dat\n");
+      exit(0);
+    }
+    else
+    {
+      if (ycmPrint == 1)
+        for (j = neq / cmFreqSamp + 1; j < iter; j++)
+        {
+          fprintf(fp, "%8.2lf  ", y2cm[j]);
+          fprintf(fp, "\n");
+        }
+      fclose(fp);
+    }
+  }
+
+  if (nseg3 != 0)
+  {
+    if ((fp = fopen("x3cm.dat", "w")) == NULL)
+    {
+      printf("Cannot open file: x3cm.dat\n");
+      exit(0);
+    }
+    else
+    {
+      if (xcmPrint == 1)
+        for (j = neq / cmFreqSamp + 1; j < iter; j++)
+        {
+          fprintf(fp, "%8.2lf  ", x3cm[j]);
+          fprintf(fp, "\n");
+        }
+      fclose(fp);
+    }
+
+    if ((fp = fopen("y3cm.dat", "w")) == NULL)
+    {
+      printf("Cannot open file: y3cm.dat\n");
+      exit(0);
+    }
+    else
+    {
+      if (ycmPrint == 1)
+        for (j = neq / cmFreqSamp + 1; j < iter; j++)
+        {
+          fprintf(fp, "%8.2lf  ", y3cm[j]);
+          fprintf(fp, "\n");
+        }
+      fclose(fp);
+    }
+  }
+
+  if (nseg4 != 0)
+  {
+    if ((fp = fopen("x4cm.dat", "w")) == NULL)
+    {
+      printf("Cannot open file: x4cm.dat\n");
+      exit(0);
+    }
+    else
+    {
+      if (xcmPrint == 1)
+        for (j = neq / cmFreqSamp + 1; j < iter; j++)
+        {
+
+          fprintf(fp, "%8.2lf  ", x4cm[j]);
+          fprintf(fp, "\n");
+        }
+      fclose(fp);
+    }
+
+    if ((fp = fopen("y4cm.dat", "w")) == NULL)
+    {
+      printf("Cannot open file: y4cm.dat\n");
+      exit(0);
+    }
+    else
+    {
+      if (ycmPrint == 1)
+        for (j = neq / cmFreqSamp + 1; j < iter; j++)
+        {
+          fprintf(fp, "%8.2lf  ", y4cm[j]);
+          fprintf(fp, "\n");
+        }
       fclose(fp);
     }
   }
