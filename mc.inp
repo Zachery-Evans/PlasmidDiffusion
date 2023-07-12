@@ -25,5 +25,5 @@
 
 1                 imov
 0                 plasRigid
-0                 xcmPrint
+1                 xcmPrint
 0                 ycmPrint
