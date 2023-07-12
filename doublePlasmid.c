@@ -477,7 +477,7 @@ int main()
     if (ii % cmFreqSamp == 0 && ii > neq)
     {
       long thing = (ii - neq - 1) / cmFreqSamp;
-      printf("%ld   %lf\n", thing, xcm2);
+      // printf("%ld   %lf\n", thing, xcm2);
       iter++;
       plas23[thing] = xcm3 * xcm4;
       plas13[thing] = xcm2 * xcm4;
