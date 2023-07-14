@@ -24,7 +24,7 @@ int main(void)
 
     FILE *fp;
 
-    double C[5000], Cav, delCav, delC, sumC;
+    double C[10000], Cav, delCav, delC, sumC;
     long Nsim = 200;
 
     for (int i = 0; i < Nsim; i++)
