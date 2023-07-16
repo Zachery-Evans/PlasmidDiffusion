@@ -792,7 +792,7 @@ int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
         }
       }
 
-      // Checking if second plasmid overlaps with T4 polymer
+      // Checking if third plasmid overlaps with T4 polymer
       if (kk < nseg3)
       {
         dx = rx[k] - r3x[kk];
