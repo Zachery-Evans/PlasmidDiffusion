@@ -22,7 +22,7 @@ There are some pecularities that were implemented into this program in order to 
   4) This code was generalized around adding more plasmids to the system, and was optimized such that if either the polymer or any plasmids were removed from the system
      (nseg = 0) then no modifications would be necessary for the program to compile, run, and produce relevant data.
 
-  5) It is not always the case that measurements for the CM of the plasmids are necessary, to avoid using too much file space on the clusters, input parameters xcmPrint 
+  5) It is not always the case that measurements for the CM of the plasmids are necessary, to avoid using too much file space on the clusters, input parameters xcmPrint
      and ycmPrint where created in order for user input to determine what particular data should be collected. It should be noted that the x2CM * x3CM etc. data will always
      be collected, as the equilibriumn behaviour of the plasmids is one way of making sure that the data you receive is within expectation.
 
@@ -1349,22 +1349,22 @@ void init_pos(void)
 
     if (i < nseg3 / 2)
     {
-      r3x[i] = (double) -i - xBoxMaxd2 + nseg3;
+      r3x[i] = (double)-i - xBoxMaxd2 + nseg3;
       r3y[i] = 0.0;
     }
     if (i == nseg3 / 2 + 0.5 || i == nseg3 / 2)
     {
-      r3x[i] = (double) -i - xBoxMaxd2 + nseg3 + 1.0;
+      r3x[i] = (double)-i - xBoxMaxd2 + nseg3 + 1.0;
       r3y[i] = -1.0;
     }
     if (i > nseg3 / 2 && i < nseg3 - 1)
     {
-      r3x[i] = (double) +i - nseg3 - xBoxMaxd2 + nseg3 + 1.0;
+      r3x[i] = (double)+i - nseg3 - xBoxMaxd2 + nseg3 + 1.0;
       r3y[i] = -2.0;
     }
     if (i == nseg3 - 1)
     {
-      r3x[i] = (double) +i - nseg3 - xBoxMaxd2 + nseg3 + 1.0;
+      r3x[i] = (double)+i - nseg3 - xBoxMaxd2 + nseg3 + 1.0;
       r3y[i] = -1.0;
     }
   }
@@ -1375,22 +1375,22 @@ void init_pos(void)
 
     if (i < nseg4 / 2)
     {
-      r4x[i] = (double) +i + xBoxMaxd2 - nseg4;
+      r4x[i] = (double)+i + xBoxMaxd2 - nseg4;
       r4y[i] = 0.0;
     }
     if (i == nseg4 / 2 + 0.5 || i == nseg4 / 2)
     {
-      r4x[i] = (double) +i + xBoxMaxd2 - nseg4 - 1.0;
+      r4x[i] = (double)+i + xBoxMaxd2 - nseg4 - 1.0;
       r4y[i] = -1.0;
     }
     if (i > nseg4 / 2 && i < nseg2 - 1)
     {
-      r4x[i] = (double) -i - nseg4 + xBoxMaxd2 + nseg4 - 1.0;
+      r4x[i] = (double)-i - nseg4 + xBoxMaxd2 + nseg4 - 1.0;
       r4y[i] = -2.0;
     }
     if (i == nseg4 - 1)
     {
-      r4x[i] = (double) -i - nseg4 + xBoxMaxd2 + nseg4 - 1.0;
+      r4x[i] = (double)-i - nseg4 + xBoxMaxd2 + nseg4 - 1.0;
       r4y[i] = -1.0;
     }
   }
@@ -1473,92 +1473,107 @@ void write_data(void)
 {
   FILE *fp;
 
-  if ((fp = fopen("prob1.dat", "w")) == NULL)
+  if (nseg1 != 0)
   {
-    printf("Cannot open file: prob1.dat\n");
-    exit(0);
-  }
-  else
-  {
-    for (i = 0; i < ngridx; i++)
+    if ((fp = fopen("prob1.dat", "w")) == NULL)
     {
-      for (j = 0; j < ngridy; j++)
-      {
-        fprintf(fp, "%8.2lf  ", prob1[i][j]);
-      }
-      fprintf(fp, "\n");
+      printf("Cannot open file: prob1.dat\n");
+      exit(0);
     }
-    fclose(fp);
+    else
+    {
+      for (i = 0; i < ngridx; i++)
+      {
+        for (j = 0; j < ngridy; j++)
+        {
+          fprintf(fp, "%8.2lf  ", prob1[i][j]);
+        }
+        fprintf(fp, "\n");
+      }
+      fclose(fp);
+    }
   }
 
-  if ((fp = fopen("prob2.dat", "w")) == NULL)
+  if (nseg2 != 0)
   {
-    printf("Cannot open file: prob2.dat\n");
-    exit(0);
-  }
-  else
-  {
-    for (i = 0; i < ngridx; i++)
+    if ((fp = fopen("prob2.dat", "w")) == NULL)
     {
-      for (j = 0; j < ngridy; j++)
-        fprintf(fp, "%8.2lf  ", prob2[i][j]);
-      fprintf(fp, "\n");
+      printf("Cannot open file: prob2.dat\n");
+      exit(0);
     }
-    fclose(fp);
+    else
+    {
+      for (i = 0; i < ngridx; i++)
+      {
+        for (j = 0; j < ngridy; j++)
+          fprintf(fp, "%8.2lf  ", prob2[i][j]);
+        fprintf(fp, "\n");
+      }
+      fclose(fp);
+    }
   }
 
-  if ((fp = fopen("prob3.dat", "w")) == NULL)
+  if (nseg3 != 0)
   {
-    printf("Cannot open file: prob3.dat\n");
-    exit(0);
-  }
-  else
-  {
-    for (i = 0; i < ngridx; i++)
+    if ((fp = fopen("prob3.dat", "w")) == NULL)
     {
-      for (j = 0; j < ngridy; j++)
-      {
-        fprintf(fp, "%8.2lf  ", prob3[i][j]);
-      }
-      fprintf(fp, "\n");
+      printf("Cannot open file: prob3.dat\n");
+      exit(0);
     }
-    fclose(fp);
+    else
+    {
+      for (i = 0; i < ngridx; i++)
+      {
+        for (j = 0; j < ngridy; j++)
+        {
+          fprintf(fp, "%8.2lf  ", prob3[i][j]);
+        }
+        fprintf(fp, "\n");
+      }
+      fclose(fp);
+    }
   }
 
-  if ((fp = fopen("prob4.dat", "w")) == NULL)
+  if (nseg4 != 0)
   {
-    printf("Cannot open file: prob4.dat\n");
-    exit(0);
-  }
-  else
-  {
-    for (i = 0; i < ngridx; i++)
+    if ((fp = fopen("prob4.dat", "w")) == NULL)
     {
-      for (j = 0; j < ngridy; j++)
-      {
-        fprintf(fp, "%8.2lf  ", prob4[i][j]);
-      }
-      fprintf(fp, "\n");
+      printf("Cannot open file: prob4.dat\n");
+      exit(0);
     }
-    fclose(fp);
+    else
+    {
+      for (i = 0; i < ngridx; i++)
+      {
+        for (j = 0; j < ngridy; j++)
+        {
+          fprintf(fp, "%8.2lf  ", prob4[i][j]);
+        }
+        fprintf(fp, "\n");
+      }
+      fclose(fp);
+    }
   }
 
-  if ((fp = fopen("probmon.dat", "w")) == NULL)
+  if (nseg1 != 0)
   {
-    printf("Cannot open file: probmon.dat\n");
-    exit(0);
-  }
-  else
-  {
-    for (i = 0; i < ngridx; i++)
+    if ((fp = fopen("probmon.dat", "w")) == NULL)
     {
-      for (j = 0; j < ngridy; j++)
-      {
-        fprintf(fp, "%8.2lf  ", probmon[i][j]);
-      }
-      fprintf(fp, "\n");
+      printf("Cannot open file: probmon.dat\n");
+      exit(0);
     }
-    fclose(fp);
+    else
+    {
+      for (i = 0; i < ngridx; i++)
+      {
+        for (j = 0; j < ngridy; j++)
+        {
+          fprintf(fp, "%8.2lf  ", probmon[i][j]);
+        }
+        fprintf(fp, "\n");
+      }
+      fclose(fp);
+    }
   }
 
   if (nseg2 != 0 && nseg3 != 0)
@@ -1617,108 +1632,108 @@ void write_data(void)
 
   if (nseg2 != 0)
   {
-    if ((fp = fopen("x2cm.dat", "w")) == NULL)
-    {
-      printf("Cannot open file: x2cm.dat\n");
-      exit(0);
-    }
-    else
-    {
-      if (xcmPrint == 1)
+    if (xcmPrint == 1)
+      if ((fp = fopen("x2cm.dat", "w")) == NULL)
+      {
+        printf("Cannot open file: x2cm.dat\n");
+        exit(0);
+      }
+      else
+      {
         for (j = neq / cmFreqSamp + 1; j < iter; j++)
         {
           fprintf(fp, "%8.2lf  ", x2cm[j]);
           fprintf(fp, "\n");
         }
-      fclose(fp);
-    }
+        fclose(fp);
+      }
 
-    if ((fp = fopen("y2cm.dat", "w")) == NULL)
-    {
-      printf("Cannot open file: y2cm.dat\n");
-      exit(0);
-    }
-    else
-    {
-      if (ycmPrint == 1)
+    if (ycmPrint == 1)
+      if ((fp = fopen("y2cm.dat", "w")) == NULL)
+      {
+        printf("Cannot open file: y2cm.dat\n");
+        exit(0);
+      }
+      else
+      {
         for (j = neq / cmFreqSamp + 1; j < iter; j++)
         {
           fprintf(fp, "%8.2lf  ", y2cm[j]);
           fprintf(fp, "\n");
         }
-      fclose(fp);
-    }
+        fclose(fp);
+      }
   }
 
   if (nseg3 != 0)
   {
-    if ((fp = fopen("x3cm.dat", "w")) == NULL)
-    {
-      printf("Cannot open file: x3cm.dat\n");
-      exit(0);
-    }
-    else
-    {
-      if (xcmPrint == 1)
+    if (xcmPrint == 1)
+      if ((fp = fopen("x3cm.dat", "w")) == NULL)
+      {
+        printf("Cannot open file: x3cm.dat\n");
+        exit(0);
+      }
+      else
+      {
         for (j = neq / cmFreqSamp + 1; j < iter; j++)
         {
           fprintf(fp, "%8.2lf  ", x3cm[j]);
           fprintf(fp, "\n");
         }
-      fclose(fp);
-    }
+        fclose(fp);
+      }
 
-    if ((fp = fopen("y3cm.dat", "w")) == NULL)
-    {
-      printf("Cannot open file: y3cm.dat\n");
-      exit(0);
-    }
-    else
-    {
-      if (ycmPrint == 1)
+    if (ycmPrint == 1)
+      if ((fp = fopen("y3cm.dat", "w")) == NULL)
+      {
+        printf("Cannot open file: y3cm.dat\n");
+        exit(0);
+      }
+      else
+      {
         for (j = neq / cmFreqSamp + 1; j < iter; j++)
         {
           fprintf(fp, "%8.2lf  ", y3cm[j]);
           fprintf(fp, "\n");
         }
-      fclose(fp);
-    }
+        fclose(fp);
+      }
   }
 
   if (nseg4 != 0)
   {
-    if ((fp = fopen("x4cm.dat", "w")) == NULL)
-    {
-      printf("Cannot open file: x4cm.dat\n");
-      exit(0);
-    }
-    else
-    {
-      if (xcmPrint == 1)
+    if (xcmPrint == 1)
+      if ((fp = fopen("x4cm.dat", "w")) == NULL)
+      {
+        printf("Cannot open file: x4cm.dat\n");
+        exit(0);
+      }
+      else
+      {
         for (j = neq / cmFreqSamp + 1; j < iter; j++)
         {
 
           fprintf(fp, "%8.2lf  ", x4cm[j]);
           fprintf(fp, "\n");
         }
-      fclose(fp);
-    }
+        fclose(fp);
+      }
 
-    if ((fp = fopen("y4cm.dat", "w")) == NULL)
-    {
-      printf("Cannot open file: y4cm.dat\n");
-      exit(0);
-    }
-    else
-    {
-      if (ycmPrint == 1)
+    if (ycmPrint == 1)
+      if ((fp = fopen("y4cm.dat", "w")) == NULL)
+      {
+        printf("Cannot open file: y4cm.dat\n");
+        exit(0);
+      }
+      else
+      {
         for (j = neq / cmFreqSamp + 1; j < iter; j++)
         {
           fprintf(fp, "%8.2lf  ", y4cm[j]);
           fprintf(fp, "\n");
         }
-      fclose(fp);
-    }
+        fclose(fp);
+      }
   }
 }
 
