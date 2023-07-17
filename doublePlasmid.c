@@ -101,7 +101,7 @@ double delta_E;
 long ind;
 
 long irep;
-long iter = 0;
+long iter = 0, leftEllipse = 0, rightEllipse = 0, centerBox = 0;
 double rep_prob;
 long nacc_rep;
 long nrep;
@@ -535,6 +535,8 @@ int main()
 
   write_data();
 
+  printf("%ld\t%ld\t%ld\n", leftEllipse, rightEllipse, centerBox);
+
   if (imov == 1)
   {
     fclose(fpmov);
@@ -674,9 +676,13 @@ int checkEllipse(double xPos, double yPos, double zPos)
     {
       return reject;
     }
-    if (yPos * yPos > bmin2 * (1 - (xPos - xBoxMaxd2) * (xPos - xBoxMaxd2) / amax2))
+    else if (yPos * yPos > bmin2 * (1 - (xPos - xBoxMaxd2) * (xPos - xBoxMaxd2) / amax2))
     {
       return reject;
+    }
+    else
+    {
+      rightEllipse++;
     }
 
     echeck = (((xPos - xBoxMaxd2) * (xPos - xBoxMaxd2)) / amax2) + ((yPos * yPos) / bmin2);
@@ -693,9 +699,13 @@ int checkEllipse(double xPos, double yPos, double zPos)
     {
       return reject;
     }
-    if (yPos * yPos > bmin2 * (1 - (xPos + xBoxMaxd2) * (xPos + xBoxMaxd2) / amax2))
+    else if (yPos * yPos > bmin2 * (1 - (xPos + xBoxMaxd2) * (xPos + xBoxMaxd2) / amax2))
     {
       return reject;
+    }
+    else
+    {
+      leftEllipse++;
     }
 
     echeck = ((xPos + xBoxMaxd2) * (xPos + xBoxMaxd2) / amax2) + (yPos * yPos / bmin2);
@@ -730,6 +740,10 @@ int squareEllipse(double xPos, double yPos, double zPos)
   else if (yPos > yBoxMaxd2 || yPos < -yBoxMaxd2)
   {
     return (reject);
+  }
+  else
+  {
+    centerBox++;
   }
 
   return accept;
@@ -1472,6 +1486,17 @@ void init_pos_circular(void)
 void write_data(void)
 {
   FILE *fp;
+
+  if ((fp = fopen("areaProb.dat", "w")) == NULL)
+  {
+    printf("Cannot open file: areaProb.dat\n");
+    exit(0);
+  }
+  else
+  {
+    fprintf(fp, "%ld\t%ld\t%ld\n ", leftEllipse, centerBox, rightEllipse);
+    fclose(fp);
+  }
 
   if (nseg1 != 0)
   {
