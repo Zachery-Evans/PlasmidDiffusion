@@ -535,7 +535,7 @@ int main()
 
   write_data();
 
-  printf("%ld\t%ld\t%ld\n", leftEllipse, rightEllipse, centerBox);
+  //printf("%ld\t%ld\t%ld\n", leftEllipse, rightEllipse, centerBox);
 
   if (imov == 1)
   {
