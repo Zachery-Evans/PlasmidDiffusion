@@ -4,19 +4,15 @@
 ARGS= ''
 
 all:
-	cc -lm -O3 doublePlasmid.c -o mc.run
-	cc -lm -O3 geometry.c -o geo.run
-	cc -lm -O3 uncertainty.c -o unc.run
-	./geo.run
+	cpp -lm -O3 doublePlasmid.cpp -o mc.run
 	./mc.run $(ARGS)
 	
-
 default:
-	main.c
+	main.cpp
 
 main.c:
-	cc $(CFLAGS) $(SRC)/*.c
+	ccpp $(CFLAGS) $(SRC)/*.cpp
 
 test:
-	main.c
+	main.cpp
 	$(TARGET)/sim.run $(ARGS)

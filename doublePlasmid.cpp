@@ -33,6 +33,8 @@ There are some pecularities that were implemented into this program in order to 
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+#include<iostream>
+#include<thread>
 
 #define PI 3.141592653589793
 #define NR_END 1
@@ -116,8 +118,10 @@ double u, uxy;
 // ------------------------------------------------------------------------
 // main function
 // ------------------------------------------------------------------------
-int main()
+
+int main(void)
 {
+
   long imon, indx, indy;
   double xcm1, ycm1, xcm2, ycm2, xcm3, ycm3, xcm4, ycm4;
   clock_t start, end;
@@ -183,16 +187,6 @@ int main()
 
   write_log();
 
-  // *************************************************************
-
-  if (imov == 1)
-  { // Don't include this in cluster
-    fpmov = fopen("chain.xyz", "w");
-    start = clock();
-  }
-
-  imon = 0;
-
   if (plasRigid == 1)
   {
     init_pos(); // function call
@@ -201,41 +195,6 @@ int main()
   {
     init_pos_circular();
   }
-
-  // Don't include if statement below in cluster
-  if (imov == 1)
-  {
-    if (ii % freq_mov == 0 && ii > neq)
-    {
-      fprintf(fpmov, "%ld\n", nseg1 + nseg2 + nseg3 + nseg4);
-      fprintf(fpmov, "Polymer:  %ld\n", ii);
-
-      for (i = 0; i < nseg1; i++)
-      {
-        fprintf(fpmov, "N    %lf  %lf  %lf\n", r1x[i], r1y[i], r1z[i]);
-      }
-      for (i = 0; i < nseg2; i++)
-      {
-        fprintf(fpmov, "O    %lf  %lf  %lf\n", r2x[i], r2y[i], r2z[i]);
-      }
-
-      for (i = 0; i < nseg3; i++)
-      {
-        fprintf(fpmov, "F    %lf  %lf  %lf\n", r3x[i], r3y[i], r3z[i]);
-      }
-
-      for (i = 0; i < nseg4; i++)
-      {
-        fprintf(fpmov, "B    %lf  %lf  %lf\n", r4x[i], r4y[i], r4z[i]);
-      }
-    }
-  }
-
-  nacc = 0; // will hold number of accepted moves
-  nacc_rep = 0;
-  nacc_shift = 0;
-  nshift = 0;
-  nrep = 0;
 
   for (ii = 0; ii < ncyc; ii++)
   {
@@ -535,15 +494,7 @@ int main()
 
   write_data();
 
-  //printf("%ld\t%ld\t%ld\n", leftEllipse, rightEllipse, centerBox);
-
-  if (imov == 1)
-  {
-    fclose(fpmov);
-    end = clock();
-    double duration = (double)(end - start) / CLOCKS_PER_SEC;
-    printf("Program finished in %lf seconds\n", duration);
-  }
+  // printf("%ld\t%ld\t%ld\n", leftEllipse, rightEllipse, centerBox);
 }
 
 // ----------------------------------------------------------------------
