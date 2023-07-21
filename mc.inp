@@ -1,6 +1,6 @@
 1000            nseg1
-50                nseg2
-50                nseg3
+25                nseg2
+25                nseg3
 0                 nseg4
 3000.0            Area
 12.0              bmin
@@ -24,6 +24,6 @@
 100               freq_mov
 
 1                 imov
-1                 plasRigid
-1                 xcmPrint
+0                 plasRigid
+0                 xcmPrint
 0                 ycmPrint
