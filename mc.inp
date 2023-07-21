@@ -1,8 +1,8 @@
-1000            nseg1
+1000              nseg1
 50                nseg2
-50                nseg3
-0                 nseg4
-3000.0            Area
+0                 nseg3
+50                nseg4
+2500.0            Area
 12.0              bmin
 0.8               ecc
 15.0              H
@@ -12,7 +12,7 @@
 1.0               gridspace
 
 50000             ncyc
-10000             neq
+00000             neq
 0.14              rmax
 3.14159           delphi_max
 0.5               rshift_max
@@ -25,5 +25,5 @@
 
 1                 imov
 1                 plasRigid
-1                 xcmPrint
+0                 xcmPrint
 0                 ycmPrint
