@@ -35,7 +35,6 @@ There are some pecularities that were implemented into this program in order to 
 #include <time.h>
 #include <iostream>
 #include <thread>
-#include <pthread.h>
 
 #define PI 3.141592653589793
 #define NR_END 1
@@ -84,6 +83,14 @@ double **prob1, **prob2, **prob3, **prob4, **probmon;
 
 FILE *fpmov;
 
+double r1x[5000], r1y[5000], r1z[5000];
+double r2x[5000], r2y[5000], r2z[5000];
+double r3x[5000], r3y[5000], r3z[5000];
+double r4x[5000], r4y[5000], r4z[5000];
+double x2cm[10000], x3cm[10000], x4cm[10000];
+double y2cm[10000], y3cm[10000], y4cm[10000];
+double plas12[10000], plas23[10000], plas13[10000];
+
 double x1, x2, x3, yone, y2, y3, z1, z2, z3;
 double vax, vay, vaz, vbx, vby, vbz;
 double va_sq, vb_sq;
@@ -115,10 +122,10 @@ double u, uxy;
 int main()
 {
   // using namespace std;
+
   std::thread simulation(sim);
-  std::thread simulation2(sim);
+
   simulation.join();
-  simulation2.join();
   std::cout << "Done :D";
 
   return 0;
@@ -130,14 +137,6 @@ int main()
 void sim()
 {
   using namespace std;
-
-  double r1x[5000], r1y[5000], r1z[5000];
-  double r2x[5000], r2y[5000], r2z[5000];
-  double r3x[5000], r3y[5000], r3z[5000];
-  double r4x[5000], r4y[5000], r4z[5000];
-  double x2cm[10000], x3cm[10000], x4cm[10000];
-  double y2cm[10000], y3cm[10000], y4cm[10000];
-  double plas12[10000], plas23[10000], plas13[10000];
 
   long imon, indx, indy;
   double xcm1, ycm1, xcm2, ycm2, xcm3, ycm3, xcm4, ycm4;

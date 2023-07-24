@@ -4,15 +4,16 @@
 ARGS= ''
 
 all:
-	g++ -pthread -lm -O3 doublePlasmid.cpp -o mc.run
+	nvcc doublePlasmid.cu -o mc.run
+	nvcc geometry.cu -o g.run
 	./mc.run $(ARGS)
 
 default:
-	main.cpp
+	main.cu
 
 main.c:
-	cpp $(CFLAGS) $(SRC)/*.cpp
+	nvcc $(CFLAGS) $(SRC)/*.cu
 
 test:
-	main.cpp
+	main.cu
 	$(TARGET)/sim.run $(ARGS)
