@@ -468,7 +468,7 @@ int main()
       if (indx >= ngridx || indy >= ngridy)
       {
         printf("4:  indx = %ld/%ld, indy = %ld/%ld\n", indx, ngridx, indy, ngridy);
-        printf("    xcm4 = %lf, 2*amax = %lf,  ycm3 = %lf, 2*bmin = %lf\n",
+        printf("    xcm4 = %lf, 2*amax = %lf,  ycm4 = %lf, 2*bmin = %lf\n",
                xcm4 + amax / 2.0, 2 * amax, ycm4 + bmin / 2.0, 2 * bmin);
       }
 
