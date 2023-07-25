@@ -69,16 +69,14 @@ void calc_delta_xyz(void);
 __global__ void crank_move_polymer(double[], double[], double[]);
 void crank_move_plasmid(double[], double[], double[], long);
 
-long nseg1, nseg2, nseg3, nseg4, nbin, i, j, k, ii, ncyc, overlap, nacc, kk, itest, iseed;
-long neq, nbintot, ibin, ichain, nsamp, nacc_shift, nshift, xcmPrint, ycmPrint;
-long imov, plasRigid, kmaxtest, freq_samp, cmFreqSamp, freq_mon, freq_mov, ncmt, ngridx, ngridy;
+long nseg1, nseg2, nseg3, nseg4, i, j, k, ii, ncyc, overlap, nacc, kk, iseed;
+long neq, ichain, nsamp, nacc_shift, nshift, xcmPrint, ycmPrint;
+long imov, plasRigid, kmaxtest, freq_samp, cmFreqSamp, freq_mon, freq_mov, ngridx, ngridy;
 
 double L, H, Ld2, Hd2, rmax, xt, yt, zt, dx, dy, dz, re, dr2, drxy2, dr2min, dr2max;
-double qmin, qmax, re2av, re2, drmin, drmax, gridspace, gridspacex_real, gridspacey_real;
-double amax, bmin, amax2, bmin2, ecc, Area, rectangleArea, rectangleXYRatio, xBoxMax, yBoxMax, rshift_max;
-double xBoxMaxd2, yBoxMaxd2;
-double kappa, xold, yold, zold, delphi_max;
-double z1min, z1max, z2min, z2max, zcm1, zcm2, z1bcm, z2bcm;
+double drmin, drmax, gridspace, gridspacex_real, gridspacey_real, xBoxMaxd2, yBoxMaxd2;
+double amax, bmin, amax2, bmin2, ecc, Area, rectangleArea, xBoxMax, yBoxMax, rshift_max;
+double kappa, xold, yold, zold, delphi_max, zcm1, zcm2;
 double **prob1, **prob2, **prob3, **prob4, **probmon;
 
 FILE *fpmov;
@@ -2456,20 +2454,20 @@ int check_accept_reptation(double rx[5000], double ry[5000], double rz[5000], lo
 
   return (accept);
 }
-__global__ void crank_move_polymer(double rx[5000], double ry[5000], double rz[5000])
+__global__ void crank_move_polymer(double rx[5000], double ry[5000], double rz[5000], long monomer)
 {
 
   double delrx, delry, delrz, Rx, Ry, Rz, Rmag, rdotRn, Rnx, Rny, Rnz;
   double ux, uy, uz, vx, vy, vz, vmag, wx, wy, wz, wmag;
   double cosphi, sinphi, delphi;
 
-  delrx = rx[k] - rx[k - 1];
-  delry = ry[k] - ry[k - 1];
-  delrz = rz[k] - rz[k - 1];
+  delrx = rx[monomer] - rx[monomer - 1];
+  delry = ry[monomer] - ry[monomer - 1];
+  delrz = rz[monomer] - rz[monomer - 1];
 
-  Rx = rx[k + 1] - rx[k - 1];
-  Ry = ry[k + 1] - ry[k - 1];
-  Rz = rz[k + 1] - rz[k - 1];
+  Rx = rx[monomer + 1] - rx[monomer - 1];
+  Ry = ry[monomer + 1] - ry[monomer - 1];
+  Rz = rz[monomer + 1] - rz[monomer - 1];
   Rmag = sqrt(Rx * Rx + Ry * Ry + Rz * Rz);
 
   Rnx = Rx / Rmag;
@@ -2502,15 +2500,15 @@ __global__ void crank_move_polymer(double rx[5000], double ry[5000], double rz[5
     delry = uy + cosphi * vy + sinphi * vmag * wy / wmag;
     delrz = uz + cosphi * vz + sinphi * vmag * wz / wmag;
 
-    rx[k] = rx[k - 1] + delrx;
-    ry[k] = ry[k - 1] + delry;
-    rz[k] = rz[k - 1] + delrz;
+    rx[monomer] = rx[monomer - 1] + delrx;
+    ry[monomer] = ry[monomer - 1] + delry;
+    rz[monomer] = rz[monomer - 1] + delrz;
   }
   else
   { // bonds are parallel
-    rx[k] = xold;
-    ry[k] = yold;
-    rz[k] = zold;
+    rx[monomer] = xold;
+    ry[monomer] = yold;
+    rz[monomer] = zold;
   }
 }
 
