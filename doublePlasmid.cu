@@ -39,9 +39,9 @@ There are some pecularities that were implemented into this program in order to 
 #define PI 3.141592653589793
 #define NR_END 1
 #define FREE_ARG char *
+#define MONS 5000 // constant for allocating memory to the GPUs
 
 // function headers
-void sim(void);
 double ran3(void);
 void init_pos(void);
 void init_pos_circular(void);
@@ -66,7 +66,7 @@ void shift_move_plasmid(double[], double[], double[], long);
 int check_accept_reptation(double[], double[], double[], long, long);
 void calc_delta_xyz(void);
 
-void crank_move_polymer(double[], double[], double[]);
+__global__ void crank_move_polymer(double[], double[], double[]);
 void crank_move_plasmid(double[], double[], double[], long);
 
 long nseg1, nseg2, nseg3, nseg4, nbin, i, j, k, ii, ncyc, overlap, nacc, kk, itest, iseed;
@@ -83,10 +83,10 @@ double **prob1, **prob2, **prob3, **prob4, **probmon;
 
 FILE *fpmov;
 
-double r1x[5000], r1y[5000], r1z[5000];
-double r2x[5000], r2y[5000], r2z[5000];
-double r3x[5000], r3y[5000], r3z[5000];
-double r4x[5000], r4y[5000], r4z[5000];
+double r1x[MONS], r1y[MONS], r1z[MONS];
+double r2x[MONS], r2y[MONS], r2z[MONS];
+double r3x[MONS], r3y[MONS], r3z[MONS];
+double r4x[MONS], r4y[MONS], r4z[MONS];
 double x2cm[10000], x3cm[10000], x4cm[10000];
 double y2cm[10000], y3cm[10000], y4cm[10000];
 double plas12[10000], plas23[10000], plas13[10000];
@@ -121,24 +121,24 @@ double u, uxy;
 // ------------------------------------------------------------------------
 int main()
 {
+  // Allocating memory to relevant variables
+  // long *h_k = (long *)cudaMalloc(sizeof(long));
+  // double* dev_r1x[MONS] = (double *)cudaMalloc(sizeof(double) * MONS);
+  // double* dev_r1y[MONS] = (double *)cudaMalloc(sizeof(double) * MONS);
+  // double* dev_r1z[MONS] = (double *)cudaMalloc(sizeof(double) * MONS);
+  //
+  //// GPU variables and arrays
+  long *dev_k, *host_k;
+  cudaMalloc(&dev_k, sizeof(long));
+  cudaMalloc(&host_k, sizeof(long));
+
+  // double[] *dev_r1x[MONS], *dev_r1y[MONS], *dev_r1z[MONS];
+  // double[] *dev_r2x[MONS], *dev_r2y[MONS], *dev_r2z[MONS];
+  // double[] *dev_r3x[MONS], *dev_r3y[MONS], *dev_r3z[MONS];
+  // double[] *dev_r4x[MONS], *dev_r4y[MONS], *dev_r4z[MONS];
+
   // using namespace std;
-
-  std::thread simulation(sim);
-
-  simulation.join();
-  std::cout << "Done :D";
-
-  return 0;
-}
-
-// ------------------------------------------------------------------------
-// sim function
-// ------------------------------------------------------------------------
-void sim()
-{
-  using namespace std;
-
-  long imon, indx, indy;
+  long indx, indy;
   double xcm1, ycm1, xcm2, ycm2, xcm3, ycm3, xcm4, ycm4;
   clock_t start, end;
 
@@ -175,8 +175,6 @@ void sim()
   ngridy = 2.0 * bmin / gridspace + 0.00001;
   gridspacex_real = 2.0 * (amax + xBoxMaxd2) / ngridx;
   gridspacey_real = 2.0 * bmin / ngridy;
-  // printf("ngridx = %ld, ngridy = %ld, gridspacex_real = %lf, gridspacey_real = %lf\n",
-  // ngridx, ngridy, gridspacex_real, gridspacey_real);
   prob1 = dmatrix(0, ngridx - 1, 0, ngridy - 1);
   prob2 = dmatrix(0, ngridx - 1, 0, ngridy - 1);
   prob3 = dmatrix(0, ngridx - 1, 0, ngridy - 1);
@@ -210,8 +208,6 @@ void sim()
     fpmov = fopen("chain.xyz", "w");
     start = clock();
   }
-
-  imon = 0;
 
   if (plasRigid == 1)
   {
@@ -263,6 +259,7 @@ void sim()
     for (j = 0; j < nseg1 + nseg2 + nseg3 + nseg4; j++)
     {
       k = (nseg1 + nseg2 + nseg3 + nseg4) * ran3();
+      host_k = &k;
 
       if (k < nseg1 && nseg1 != 0)
       {
@@ -301,7 +298,8 @@ void sim()
           xold = r1x[k];
           yold = r1y[k];
           zold = r1z[k];
-          crank_move_polymer(r1x, r1y, r1z);
+          cudaMemcpy(dev_k, host_k, sizeof(long), cudaMemcpyHostToDevice);
+          crank_move_polymer<<<1, 1>>>(r1x, r1y, r1z);
           overlap = check_accept(r1x, r1y, r1z, nseg1);
         }
         else if (ichain == 2)
@@ -1947,6 +1945,77 @@ int check_shift_chain(double rx[5000], double ry[5000], double rz[5000], long ns
   return (accept);
 }
 
+int gpu_check_shift_chain(double rx, double ry, double rz, long nseg)
+{
+  int accept = 0;
+  int reject = 1;
+
+  for (i = 0; i < nseg; i++)
+  {
+
+    if (squareEllipse(rx, ry, rz) == reject)
+    {
+      return (reject);
+    }
+    // Check to see if iterative constant is greater than the size of all
+    // polymers, if so, break inner loop and continue to next monomer in
+    // checked polymer.
+    if (kk > nseg1 && kk > nseg2 && kk > nseg3 && kk > nseg4)
+    {
+      break;
+    }
+
+    if (kk < nseg1 && ichain != 1)
+    {
+      dx = rx - r1x[kk];
+      dy = ry - r1y[kk];
+      dz = rz - r1z[kk];
+      dr2 = dx * dx + dy * dy + dz * dz;
+      if (dr2 < 1.0)
+      {
+        return (reject);
+      }
+    }
+
+    if (kk < nseg2 && ichain != 2)
+    {
+      dx = rx - r2x[kk];
+      dy = ry - r2y[kk];
+      dz = rz - r2z[kk];
+      dr2 = dx * dx + dy * dy + dz * dz;
+      if (dr2 < 1.0)
+      {
+        return (reject);
+      }
+    }
+
+    if (kk < nseg3 && ichain != 3)
+    {
+      dx = rx - r3x[kk];
+      dy = ry - r3y[kk];
+      dz = rz - r3z[kk];
+      dr2 = dx * dx + dy * dy + dz * dz;
+      if (dr2 < 1.0)
+      {
+        return (reject);
+      }
+    }
+
+    if (kk < nseg4 && ichain != 4)
+    {
+      dx = rx - r4x[kk];
+      dy = ry - r4y[kk];
+      dz = rz - r4z[kk];
+      dr2 = dx * dx + dy * dy + dz * dz;
+      if (dr2 < 1.0)
+      {
+        return (reject);
+      }
+    }
+  }
+  return (accept);
+}
+
 void reptation_move_chain1()
 {
   double rannum;
@@ -2387,7 +2456,7 @@ int check_accept_reptation(double rx[5000], double ry[5000], double rz[5000], lo
 
   return (accept);
 }
-void crank_move_polymer(double rx[5000], double ry[5000], double rz[5000])
+__global__ void crank_move_polymer(double rx[5000], double ry[5000], double rz[5000])
 {
 
   double delrx, delry, delrz, Rx, Ry, Rz, Rmag, rdotRn, Rnx, Rny, Rnz;
@@ -2452,7 +2521,6 @@ void crank_move_polymer(double rx[5000], double ry[5000], double rz[5000])
  * Written by Zach Evans 2023 June 30
  * zdjevans@protonmail.com
  */
-
 void crank_move_plasmid(double rx[5000], double ry[5000], double rz[5000], long nseg)
 {
 

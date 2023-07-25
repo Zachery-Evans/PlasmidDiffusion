@@ -3,7 +3,7 @@
  *   Written by Zach Evans 28 June 2023
  *   zdjevans@protonmail.com
  *
- *
+ * 
  *   Program should be compiled to a run file by: cc -lm -O3 uncertainty.c -o unc.run
  *   or similar.
  *
