@@ -48,12 +48,20 @@ void init_pos_circular(void);
 void write_log(void);
 void write_data(void);
 void input(void);
+
 int check_accept(double[], double[], double[], long);
 int check_shift_chain(double[], double[], double[], long);
+
+void gpu_checkAccept(double[], double[], double[], long);
+void gpu_shiftChain(double[], double[], double[], long);
 
 int check_poly_energy(double[], double[], double[], long);
 int check_plasmid_energy(double[], double[], double[], long);
 double calc_cosine(int, int, int, double[], double[], double[]);
+
+__global__ void gpu_checkPolyEnergy(double[], double[], double[], long);
+__global__ void gpu_checkPlasmidEnergy(double[], double[], double[], long);
+__global__ void gpu_calc_cosine(int, int, int, double[], double[], double[]);
 
 double **dmatrix(long, long, long, long);
 void free_dmatrix(double **, long, long, long, long);
@@ -66,7 +74,7 @@ void shift_move_plasmid(double[], double[], double[], long);
 int check_accept_reptation(double[], double[], double[], long, long);
 void calc_delta_xyz(void);
 
-__global__ void crank_move_polymer(double[], double[], double[]);
+void crank_move_polymer(double[], double[], double[], long);
 void crank_move_plasmid(double[], double[], double[], long);
 
 long nseg1, nseg2, nseg3, nseg4, i, j, k, ii, ncyc, overlap, nacc, kk, iseed;
@@ -297,7 +305,7 @@ int main()
           yold = r1y[k];
           zold = r1z[k];
           cudaMemcpy(dev_k, host_k, sizeof(long), cudaMemcpyHostToDevice);
-          crank_move_polymer<<<1, 1>>>(r1x, r1y, r1z);
+          crank_move_polymer(r1x, r1y, r1z, nseg1);
           overlap = check_accept(r1x, r1y, r1z, nseg1);
         }
         else if (ichain == 2)
@@ -2454,7 +2462,7 @@ int check_accept_reptation(double rx[5000], double ry[5000], double rz[5000], lo
 
   return (accept);
 }
-__global__ void crank_move_polymer(double rx[5000], double ry[5000], double rz[5000], long monomer)
+void crank_move_polymer(double rx[5000], double ry[5000], double rz[5000], long monomer)
 {
 
   double delrx, delry, delrz, Rx, Ry, Rz, Rmag, rdotRn, Rnx, Rny, Rnz;
