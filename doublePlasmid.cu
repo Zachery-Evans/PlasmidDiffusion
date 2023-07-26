@@ -52,12 +52,13 @@ void input(void);
 int check_accept(double[], double[], double[], long);
 int check_shift_chain(double[], double[], double[], long);
 
-void gpu_checkAccept(double[], double[], double[], long);
-void gpu_shiftChain(double[], double[], double[], long);
+__global__ void gpu_checkAccept(double[], double[], double[], long);
+__global__ void gpu_shiftChain(double[], double[], double[], long);
 
 int check_poly_energy(double[], double[], double[], long);
 int check_plasmid_energy(double[], double[], double[], long);
 double calc_cosine(int, int, int, double[], double[], double[]);
+__global__ void calcCosine(int, int, int, double[], double[], double[]);
 
 __global__ void gpu_checkPolyEnergy(double[], double[], double[], long);
 __global__ void gpu_checkPlasmidEnergy(double[], double[], double[], long);
@@ -97,10 +98,6 @@ double x2cm[10000], x3cm[10000], x4cm[10000];
 double y2cm[10000], y3cm[10000], y4cm[10000];
 double plas12[10000], plas23[10000], plas13[10000];
 
-double x1, x2, x3, yone, y2, y3, z1, z2, z3;
-double vax, vay, vaz, vbx, vby, vbz;
-double va_sq, vb_sq;
-double va_dot_vb;
 double theta_old, theta_new;
 double energy_new[3];
 double energy_old[3];
@@ -1001,57 +998,57 @@ int check_poly_energy(double rx[5000], double ry[5000], double rz[5000], long ns
   // all the rest require three.
   if (k == 0)
   {
-    theta_new = calc_cosine(k, k + 1, k + 2, rx, ry, rz);
-    theta_old = calc_cosine(-1, k + 1, k + 2, rx, ry, rz);
+    gpu_calc_cosine<<<1, 1>>>(k, k + 1, k + 2, rx, ry, rz);
     energy_new[0] = kappa * (1.0 - theta_new);
+    gpu_calc_cosine<<<1, 1>>>(-1, k + 1, k + 2, rx, ry, rz);
     energy_old[0] = kappa * (1.0 - theta_old);
   }
   else if (k == nseg - 1)
   {
-    theta_new = calc_cosine(k - 2, k - 1, k, rx, ry, rz);
-    theta_old = calc_cosine(k - 2, k - 1, -1, rx, ry, rz);
+    gpu_calc_cosine<<<1, 1>>>(k - 2, k - 1, k, rx, ry, rz);
     energy_new[0] = kappa * (1.0 - theta_new);
+    gpu_calc_cosine<<<1, 1>>>(k - 2, k - 1, -1, rx, ry, rz);
     energy_old[0] = kappa * (1.0 - theta_old);
   }
   else if (k == 1)
   {
-    theta_new = calc_cosine(k - 1, k, k + 1, rx, ry, rz);
-    theta_old = calc_cosine(k - 1, -1, k + 1, rx, ry, rz);
+    gpu_calc_cosine<<<1, 1>>>(k - 1, k, k + 1, rx, ry, rz);
     energy_new[0] = kappa * (1.0 - theta_new);
+    gpu_calc_cosine<<<1, 1>>>(k - 1, -1, k + 1, rx, ry, rz);
     energy_old[0] = kappa * (1.0 - theta_old);
 
-    theta_new = calc_cosine(k, k + 1, k + 2, rx, ry, rz);
-    theta_old = calc_cosine(-1, k + 1, k + 2, rx, ry, rz);
+    gpu_calc_cosine<<<1, 1>>>(k, k + 1, k + 2, rx, ry, rz);
     energy_new[1] = kappa * (1.0 - theta_new);
+    gpu_calc_cosine<<<1, 1>>>(-1, k + 1, k + 2, rx, ry, rz);
     energy_old[1] = kappa * (1.0 - theta_old);
   }
   else if (k == nseg - 2)
   {
-    theta_new = calc_cosine(k - 2, k - 1, k, rx, ry, rz);
-    theta_old = calc_cosine(k - 2, k - 1, -1, rx, ry, rz);
+    gpu_calc_cosine<<<1, 1>>>(k - 2, k - 1, k, rx, ry, rz);
     energy_new[0] = kappa * (1.0 - theta_new);
+    gpu_calc_cosine<<<1, 1>>>(k - 2, k - 1, -1, rx, ry, rz);
     energy_old[0] = kappa * (1.0 - theta_old);
 
-    theta_new = calc_cosine(k - 1, k, k + 1, rx, ry, rz);
-    theta_old = calc_cosine(k - 1, -1, k + 1, rx, ry, rz);
+    gpu_calc_cosine<<<1, 1>>>(k - 1, k, k + 1, rx, ry, rz);
     energy_new[1] = kappa * (1.0 - theta_new);
+    gpu_calc_cosine<<<1, 1>>>(k - 1, -1, k + 1, rx, ry, rz);
     energy_old[1] = kappa * (1.0 - theta_old);
   }
   else
   {
-    theta_new = calc_cosine(k - 2, k - 1, k, rx, ry, rz);
-    theta_old = calc_cosine(k - 2, k - 1, -1, rx, ry, rz);
+    gpu_calc_cosine<<<1, 1>>>(k - 2, k - 1, k, rx, ry, rz);
     energy_new[0] = kappa * (1.0 - theta_new);
+    gpu_calc_cosine<<<1, 1>>>(k - 2, k - 1, -1, rx, ry, rz);
     energy_old[0] = kappa * (1.0 - theta_old);
 
-    theta_new = calc_cosine(k - 1, k, k + 1, rx, ry, rz);
-    theta_old = calc_cosine(k - 1, -1, k + 1, rx, ry, rz);
+    gpu_calc_cosine<<<1, 1>>>(k - 1, k, k + 1, rx, ry, rz);
     energy_new[1] = kappa * (1.0 - theta_new);
+    gpu_calc_cosine<<<1, 1>>>(k - 1, -1, k + 1, rx, ry, rz);
     energy_old[1] = kappa * (1.0 - theta_old);
 
-    theta_new = calc_cosine(k, k + 1, k + 2, rx, ry, rz);
-    theta_old = calc_cosine(-1, k + 1, k + 2, rx, ry, rz);
+    gpu_calc_cosine<<<1, 1>>>(k, k + 1, k + 2, rx, ry, rz);
     energy_new[2] = kappa * (1.0 - theta_new);
+    gpu_calc_cosine<<<1, 1>>>(-1, k + 1, k + 2, rx, ry, rz);
     energy_old[2] = kappa * (1.0 - theta_old);
   }
 
@@ -1112,87 +1109,87 @@ int check_plasmid_energy(double rx[5000], double ry[5000], double rz[5000], long
 
   if (k == 0)
   {
-    theta_new = calc_cosine(nseg - 2, nseg - 1, k, rx, ry, rz);
-    theta_old = calc_cosine(nseg - 2, nseg - 1, -1, rx, ry, rz);
+    gpu_calc_cosine<<<1, 1>>>(nseg - 2, nseg - 1, k, rx, ry, rz);
     energy_new[0] = kappa * (1.0 - theta_new);
+    gpu_calc_cosine<<<1, 1>>>(nseg - 2, nseg - 1, -1, rx, ry, rz);
     energy_old[0] = kappa * (1.0 - theta_old);
 
-    theta_new = calc_cosine(nseg - 1, k, k + 1, rx, ry, rz);
-    theta_old = calc_cosine(nseg - 1, -1, k + 1, rx, ry, rz);
+    gpu_calc_cosine<<<1, 1>>>(nseg - 1, k, k + 1, rx, ry, rz);
     energy_new[1] = kappa * (1.0 - theta_new);
+    gpu_calc_cosine<<<1, 1>>>(nseg - 1, -1, k + 1, rx, ry, rz);
     energy_old[1] = kappa * (1.0 - theta_old);
 
-    theta_new = calc_cosine(k, k + 1, k + 2, rx, ry, rz);
-    theta_old = calc_cosine(-1, k + 1, k + 2, rx, ry, rz);
+    gpu_calc_cosine<<<1, 1>>>(k, k + 1, k + 2, rx, ry, rz);
     energy_new[2] = kappa * (1.0 - theta_new);
+    gpu_calc_cosine<<<1, 1>>>(-1, k + 1, k + 2, rx, ry, rz);
     energy_old[2] = kappa * (1.0 - theta_old);
   }
   else if (k == nseg - 1)
   {
-    theta_new = calc_cosine(k - 2, k - 1, k, rx, ry, rz);
-    theta_old = calc_cosine(k - 2, k - 1, -1, rx, ry, rz);
+    gpu_calc_cosine<<<1, 1>>>(k - 2, k - 1, k, rx, ry, rz);
     energy_new[0] = kappa * (1.0 - theta_new);
+    gpu_calc_cosine<<<1, 1>>>(k - 2, k - 1, -1, rx, ry, rz);
     energy_old[0] = kappa * (1.0 - theta_old);
 
-    theta_new = calc_cosine(k - 1, k, 0, rx, ry, rz);
-    theta_old = calc_cosine(k - 1, -1, 0, rx, ry, rz);
+    gpu_calc_cosine<<<1, 1>>>(k - 1, k, 0, rx, ry, rz);
     energy_new[1] = kappa * (1.0 - theta_new);
+    gpu_calc_cosine<<<1, 1>>>(k - 1, -1, 0, rx, ry, rz);
     energy_old[1] = kappa * (1.0 - theta_old);
 
-    theta_new = calc_cosine(k, 0, 1, rx, ry, rz);
-    theta_old = calc_cosine(-1, 0, 1, rx, ry, rz);
+    gpu_calc_cosine<<<1, 1>>>(k, 0, 1, rx, ry, rz);
     energy_new[2] = kappa * (1.0 - theta_new);
+    gpu_calc_cosine<<<1, 1>>>(-1, 0, 1, rx, ry, rz);
     energy_old[2] = kappa * (1.0 - theta_old);
   }
   else if (k == 1)
   {
-    theta_new = calc_cosine(nseg - 1, k - 1, k, rx, ry, rz);
-    theta_old = calc_cosine(nseg - 1, k - 1, -1, rx, ry, rz);
+    gpu_calc_cosine<<<1, 1>>>(nseg - 1, k - 1, k, rx, ry, rz);
     energy_new[0] = kappa * (1.0 - theta_new);
+    gpu_calc_cosine<<<1, 1>>>(nseg - 1, k - 1, -1, rx, ry, rz);
     energy_old[0] = kappa * (1.0 - theta_old);
 
-    theta_new = calc_cosine(k - 1, k, k + 1, rx, ry, rz);
-    theta_old = calc_cosine(k - 1, -1, k + 1, rx, ry, rz);
+    gpu_calc_cosine<<<1, 1>>>(k - 1, k, k + 1, rx, ry, rz);
     energy_new[1] = kappa * (1.0 - theta_new);
+    gpu_calc_cosine<<<1, 1>>>(k - 1, -1, k + 1, rx, ry, rz);
     energy_old[1] = kappa * (1.0 - theta_old);
 
-    theta_new = calc_cosine(k, k + 1, k + 2, rx, ry, rz);
-    theta_old = calc_cosine(-1, k + 1, k + 2, rx, ry, rz);
+    gpu_calc_cosine<<<1, 1>>>(k, k + 1, k + 2, rx, ry, rz);
     energy_new[2] = kappa * (1.0 - theta_new);
+    gpu_calc_cosine<<<1, 1>>>(-1, k + 1, k + 2, rx, ry, rz);
     energy_old[2] = kappa * (1.0 - theta_old);
   }
   else if (k == nseg - 2)
   {
-    theta_new = calc_cosine(k - 2, k - 1, k, rx, ry, rz);
-    theta_old = calc_cosine(k - 2, k - 1, -1, rx, ry, rz);
+    gpu_calc_cosine<<<1, 1>>>(k - 2, k - 1, k, rx, ry, rz);
     energy_new[0] = kappa * (1.0 - theta_new);
+    gpu_calc_cosine<<<1, 1>>>(k - 2, k - 1, -1, rx, ry, rz);
     energy_old[0] = kappa * (1.0 - theta_old);
 
-    theta_new = calc_cosine(k - 1, k, k + 1, rx, ry, rz);
-    theta_old = calc_cosine(k - 1, -1, k + 1, rx, ry, rz);
+    gpu_calc_cosine<<<1, 1>>>(k - 1, k, k + 1, rx, ry, rz);
     energy_new[1] = kappa * (1.0 - theta_new);
+    gpu_calc_cosine<<<1, 1>>>(k - 1, -1, k + 1, rx, ry, rz);
     energy_old[1] = kappa * (1.0 - theta_old);
 
-    theta_new = calc_cosine(k, k + 1, 0, rx, ry, rz);
-    theta_old = calc_cosine(-1, k + 1, 0, rx, ry, rz);
+    gpu_calc_cosine<<<1, 1>>>(k, k + 1, 0, rx, ry, rz);
     energy_new[2] = kappa * (1.0 - theta_new);
+    gpu_calc_cosine<<<1, 1>>>(-1, k + 1, 0, rx, ry, rz);
     energy_old[2] = kappa * (1.0 - theta_old);
   }
   else
   {
-    theta_new = calc_cosine(k - 2, k - 1, k, rx, ry, rz);
-    theta_old = calc_cosine(k - 2, k - 1, -1, rx, ry, rz);
+    gpu_calc_cosine<<<1, 1>>>(k - 2, k - 1, k, rx, ry, rz);
     energy_new[0] = kappa * (1.0 - theta_new);
+    gpu_calc_cosine<<<1, 1>>>(k - 2, k - 1, -1, rx, ry, rz);
     energy_old[0] = kappa * (1.0 - theta_old);
 
-    theta_new = calc_cosine(k - 1, k, k + 1, rx, ry, rz);
-    theta_old = calc_cosine(k - 1, -1, k + 1, rx, ry, rz);
+    gpu_calc_cosine<<<1, 1>>>(k - 1, k, k + 1, rx, ry, rz);
     energy_new[1] = kappa * (1.0 - theta_new);
+    gpu_calc_cosine<<<1, 1>>>(k - 1, -1, k + 1, rx, ry, rz);
     energy_old[1] = kappa * (1.0 - theta_old);
 
-    theta_new = calc_cosine(k, k + 1, k + 2, rx, ry, rz);
-    theta_old = calc_cosine(-1, k + 1, k + 2, rx, ry, rz);
+    gpu_calc_cosine<<<1, 1>>>(k, k + 1, k + 2, rx, ry, rz);
     energy_new[2] = kappa * (1.0 - theta_new);
+    gpu_calc_cosine<<<1, 1>>>(-1, k + 1, k + 2, rx, ry, rz);
     energy_old[2] = kappa * (1.0 - theta_old);
   }
 
@@ -1237,6 +1234,7 @@ int check_plasmid_energy(double rx[5000], double ry[5000], double rz[5000], long
 // Calculate the cosine of theta between two bonds (vectors) that connect
 // three sequential monomers within the first polymer chain.
 // ----------------------------------------------------------------------
+/*
 double calc_cosine(int i1, int i2, int i3, double rx[5000], double ry[5000], double rz[5000])
 {
   // determine which of the indices is negative (if any). The negative index
@@ -1305,6 +1303,83 @@ double calc_cosine(int i1, int i2, int i3, double rx[5000], double ry[5000], dou
   va_dot_vb = vax * vbx + vay * vby + vaz * vbz;
 
   return (va_dot_vb / (sqrt(va_sq * vb_sq)));
+}*/
+
+// ----------------------------------------------------------------------
+// Calculate the cosine of theta between two bonds (vectors) that connect
+// three sequential monomers within the first polymer chain.
+// ----------------------------------------------------------------------
+__global__ void gpu_calc_cosine(int i1, int i2, int i3, double rx[5000], double ry[5000], double rz[5000])
+{
+  // determine which of the indices is negative (if any). The negative index
+  // corresponds to the old position of the monomer. Set x, y, and z values of
+  // each of the three monomers accordingly. Note y1 is an implicit variable
+  // name in some stlib function, so use yone instead.
+  double xold, yold, zold;
+  double x1, x2, x3, yone, y2, y3, z1, z2, z3;
+  double vax, vay, vaz, vbx, vby, vbz;
+  double va_sq, vb_sq, va_dot_vb;
+
+  if (i1 < 0)
+  {
+    x1 = xold;
+    yone = yold;
+    z1 = zold;
+    x2 = rx[i2];
+    y2 = ry[i2];
+    z2 = rz[i2];
+    x3 = rx[i3];
+    y3 = ry[i3];
+    z3 = rz[i3];
+  }
+  else if (i2 < 0)
+  {
+    x1 = rx[i1];
+    yone = ry[i1];
+    z1 = rz[i1];
+    x2 = xold;
+    y2 = yold;
+    z2 = zold;
+    x3 = rx[i3];
+    y3 = ry[i3];
+    z3 = rz[i3];
+  }
+  else if (i3 < 0)
+  {
+    x1 = rx[i1];
+    yone = ry[i1];
+    z1 = rz[i1];
+    x2 = rx[i2];
+    y2 = ry[i2];
+    z2 = rz[i2];
+    x3 = xold;
+    y3 = yold;
+    z3 = zold;
+  }
+  else
+  {
+    x1 = rx[i1];
+    yone = ry[i1];
+    z1 = rz[i1];
+    x2 = rx[i2];
+    y2 = ry[i2];
+    z2 = rz[i2];
+    x3 = rx[i3];
+    y3 = ry[i3];
+    z3 = rz[i3];
+  }
+
+  vax = x2 - x1;
+  vay = y2 - yone;
+  vaz = z2 - z1;
+  vbx = x3 - x2;
+  vby = y3 - y2;
+  vbz = z3 - z2;
+
+  va_sq = vax * vax + vay * vay + vaz * vaz;
+  vb_sq = vbx * vbx + vby * vby + vbz * vbz;
+
+  va_dot_vb = vax * vbx + vay * vby + vaz * vbz;
 }
 
 // ----------------------------------------------------------------------
@@ -1312,7 +1387,6 @@ double calc_cosine(int i1, int i2, int i3, double rx[5000], double ry[5000], dou
 //  unique window. Overlaps the polymers somewhere to match the current
 //  window.
 // ----------------------------------------------------------------------
-
 void init_pos(void)
 {
 
@@ -2024,6 +2098,7 @@ int gpu_check_shift_chain(double rx, double ry, double rz, long nseg)
 
 void reptation_move_chain1()
 {
+  double xold, yold, zold;
   double rannum;
   rannum = ran3();
   if (rannum <= 0.5)
@@ -2464,7 +2539,7 @@ int check_accept_reptation(double rx[5000], double ry[5000], double rz[5000], lo
 }
 void crank_move_polymer(double rx[5000], double ry[5000], double rz[5000], long monomer)
 {
-
+  double xold, yold, zold;
   double delrx, delry, delrz, Rx, Ry, Rz, Rmag, rdotRn, Rnx, Rny, Rnz;
   double ux, uy, uz, vx, vy, vz, vmag, wx, wy, wz, wmag;
   double cosphi, sinphi, delphi;
@@ -2698,11 +2773,11 @@ double **dmatrix(long nrl, long nrh, long ncl, long nch)
 
   /* return pointer to array of pointers to rows */
   return m;
+  energy_new[1] = kappa * (1.0 - theta_new);
 }
 
 void free_dmatrix(double **m, long nrl, long nrh, long ncl, long nch)
-/* free a double matrix allocated by dmatrix() */
-{
+{ /* free a double matrix allocated by dmatrix() */
   free((FREE_ARG)(m[nrl] + ncl - NR_END));
   free((FREE_ARG)(m + nrl - NR_END));
 }
