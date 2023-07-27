@@ -6,6 +6,7 @@ ARGS= ''
 all:
 	nvcc doublePlasmid.cu -o mc.run
 	nvcc geometry.cu -o g.run
+	nvcc uncertainty.cu -o u.run
 	./mc.run $(ARGS)
 
 default:
