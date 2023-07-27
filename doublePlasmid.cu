@@ -39,7 +39,7 @@ There are some pecularities that were implemented into this program in order to 
 #define PI 3.141592653589793
 #define NR_END 1
 #define FREE_ARG char *
-#define MONS 5000 // constant for allocating memory to the GPUs
+#define MAX_MONS 5000 // constant for allocating memory to the GPUs
 
 // function headers
 double ran3(void);
@@ -58,11 +58,12 @@ __global__ void gpu_shiftChain(double[], double[], double[], long);
 int check_poly_energy(double[], double[], double[], long);
 int check_plasmid_energy(double[], double[], double[], long);
 double calc_cosine(int, int, int, double[], double[], double[]);
-__global__ void calcCosine(int, int, int, double[], double[], double[]);
+__global__ void gpu_calc_cosine(int, int, int, double[], double[], double[]);
+__device__ double theta;
 
 __global__ void gpu_checkPolyEnergy(double[], double[], double[], long);
 __global__ void gpu_checkPlasmidEnergy(double[], double[], double[], long);
-__global__ void gpu_calc_cosine(int, int, int, double[], double[], double[]);
+__device__ int accepted;
 
 double **dmatrix(long, long, long, long);
 void free_dmatrix(double **, long, long, long, long);
@@ -90,17 +91,18 @@ double **prob1, **prob2, **prob3, **prob4, **probmon;
 
 FILE *fpmov;
 
-double r1x[MONS], r1y[MONS], r1z[MONS];
-double r2x[MONS], r2y[MONS], r2z[MONS];
-double r3x[MONS], r3y[MONS], r3z[MONS];
-double r4x[MONS], r4y[MONS], r4z[MONS];
+__global__ double *r1x[MAX_MONS], *r1y[MAX_MONS], *r1z[MAX_MONS];
+__global__ double *r2x[MAX_MONS], *r2y[MAX_MONS], *r2z[MAX_MONS];
+__global__ double *r3x[MAX_MONS], *r3y[MAX_MONS], *r3z[MAX_MONS];
+__global__ double *r4x[MAX_MONS], *r4y[MAX_MONS], *r4z[MAX_MONS];
+
 double x2cm[10000], x3cm[10000], x4cm[10000];
 double y2cm[10000], y3cm[10000], y4cm[10000];
 double plas12[10000], plas23[10000], plas13[10000];
 
-double theta_old, theta_new;
 double energy_new[3];
 double energy_old[3];
+
 double E_new, E_old;
 double delta_E;
 
@@ -125,22 +127,26 @@ double u, uxy;
 int main()
 {
   // Allocating memory to relevant variables
-  // long *h_k = (long *)cudaMalloc(sizeof(long));
-  // double* dev_r1x[MONS] = (double *)cudaMalloc(sizeof(double) * MONS);
-  // double* dev_r1y[MONS] = (double *)cudaMalloc(sizeof(double) * MONS);
-  // double* dev_r1z[MONS] = (double *)cudaMalloc(sizeof(double) * MONS);
-  //
-  //// GPU variables and arrays
-  long *dev_k, *host_k;
-  cudaMalloc(&dev_k, sizeof(long));
-  cudaMalloc(&host_k, sizeof(long));
+  long dev_k, host_k;
 
-  // double[] *dev_r1x[MONS], *dev_r1y[MONS], *dev_r1z[MONS];
-  // double[] *dev_r2x[MONS], *dev_r2y[MONS], *dev_r2z[MONS];
-  // double[] *dev_r3x[MONS], *dev_r3y[MONS], *dev_r3z[MONS];
-  // double[] *dev_r4x[MONS], *dev_r4y[MONS], *dev_r4z[MONS];
+  r1x[MAX_MONS] = (double *)malloc(MAX_MONS * sizeof(double)), r1y[MAX_MONS] = (double *)malloc(MAX_MONS * sizeof(double)), r1z[MAX_MONS] = (double *)malloc(MAX_MONS * sizeof(double));
+  r2x[MAX_MONS] = (double *)malloc(MAX_MONS * sizeof(double)), r2y[MAX_MONS] = (double *)malloc(MAX_MONS * sizeof(double)), r2z[MAX_MONS] = (double *)malloc(MAX_MONS * sizeof(double));
+  r3x[MAX_MONS] = (double *)malloc(MAX_MONS * sizeof(double)), r3y[MAX_MONS] = (double *)malloc(MAX_MONS * sizeof(double)), r3z[MAX_MONS] = (double *)malloc(MAX_MONS * sizeof(double));
+  r4x[MAX_MONS] = (double *)malloc(MAX_MONS * sizeof(double)), r4y[MAX_MONS] = (double *)malloc(MAX_MONS * sizeof(double)), r4z[MAX_MONS] = (double *)malloc(MAX_MONS * sizeof(double));
 
-  // using namespace std;
+  // GPU variables and arrays
+  double *dev_r1x, *dev_r1y, *dev_r1z;
+  double *dev_r2x, *dev_r2y, *dev_r2z;
+  double *dev_r3x, *dev_r3y, *dev_r3z;
+  double *dev_r4x, *dev_r4y, *dev_r4z;
+  long *h_k;
+
+  h_k = (long *)malloc(sizeof(long));
+
+  cudaMalloc(&dev_r1x, sizeof(double) * 5000);
+  cudaMalloc(&dev_r1y, sizeof(double) * 5000);
+  cudaMalloc(&dev_r1z, sizeof(double) * 5000);
+
   long indx, indy;
   double xcm1, ycm1, xcm2, ycm2, xcm3, ycm3, xcm4, ycm4;
   clock_t start, end;
@@ -214,7 +220,7 @@ int main()
 
   if (plasRigid == 1)
   {
-    init_pos(); // function call
+    init_pos_circular(); // function call
   }
   else
   {
@@ -262,7 +268,7 @@ int main()
     for (j = 0; j < nseg1 + nseg2 + nseg3 + nseg4; j++)
     {
       k = (nseg1 + nseg2 + nseg3 + nseg4) * ran3();
-      host_k = &k;
+      host_k = k;
 
       if (k < nseg1 && nseg1 != 0)
       {
@@ -298,36 +304,39 @@ int main()
 
         if (ichain == 1)
         {
-          xold = r1x[k];
-          yold = r1y[k];
-          zold = r1z[k];
-          cudaMemcpy(dev_k, host_k, sizeof(long), cudaMemcpyHostToDevice);
-          crank_move_polymer(r1x, r1y, r1z, nseg1);
-          overlap = check_accept(r1x, r1y, r1z, nseg1);
+          xold = *r1x[k];
+          yold = *r1y[k];
+          zold = *r1z[k];
+          cudaMemcpyToSymbol(dev_k, &k, sizeof(long), 0, cudaMemcpyHostToDevice);
+          crank_move_polymer(*r1x, *r1y, *r1z, nseg1);
+          gpu_checkAccept<<<1, 1>>>(*r1x, *r1y, *r1z, nseg1);
         }
         else if (ichain == 2)
         {
-          xold = r2x[k];
-          yold = r2y[k];
-          zold = r2z[k];
-          crank_move_plasmid(r2x, r2y, r2z, nseg2);
-          overlap = check_accept(r2x, r2y, r2z, nseg2);
+          xold = *r2x[k];
+          yold = *r2y[k];
+          zold = *r2z[k];
+          cudaMemcpyToSymbol(dev_k, &k, sizeof(long), 0, cudaMemcpyHostToDevice);
+          crank_move_polymer(*r2x, *r2y, *r2z, nseg2);
+          gpu_checkAccept<<<1, 1>>>(*r2x, *r2y, *r2z, nseg2);
         }
         else if (ichain == 3)
         {
-          xold = r3x[k];
-          yold = r3y[k];
-          zold = r3z[k];
-          crank_move_plasmid(r3x, r3y, r3z, nseg3);
-          overlap = check_accept(r3x, r3y, r3z, nseg3);
+          xold = *r3x[k];
+          yold = *r3y[k];
+          zold = *r3z[k];
+          cudaMemcpyToSymbol(dev_k, &k, sizeof(long), 0, cudaMemcpyHostToDevice);
+          crank_move_polymer(*r3x, *r3y, *r3z, nseg3);
+          gpu_checkAccept<<<1, 1>>>(*r3x, *r3y, *r3z, nseg3);
         }
         else if (ichain == 4)
         {
-          xold = r4x[k];
-          yold = r4y[k];
-          zold = r4z[k];
-          crank_move_plasmid(r4x, r4y, r4z, nseg4);
-          overlap = check_accept(r4x, r4y, r4z, nseg4);
+          xold = *r4x[k];
+          yold = *r4y[k];
+          zold = *r4z[k];
+          cudaMemcpyToSymbol(dev_k, &k, sizeof(long), 0, cudaMemcpyHostToDevice);
+          crank_move_polymer(*r4x, *r4y, *r4z, nseg4);
+          gpu_checkAccept<<<1, 1>>>(*r4x, *r4y, *r4z, nseg4);
         }
 
         if (overlap == 0)
@@ -338,27 +347,27 @@ int main()
         {
           if (ichain == 1)
           {
-            r1x[k] = xold;
-            r1y[k] = yold;
-            r1z[k] = zold;
+            *r1x[k] = xold;
+            *r1y[k] = yold;
+            *r1z[k] = zold;
           }
           else if (ichain == 2)
           {
-            r2x[k] = xold;
-            r2y[k] = yold;
-            r2z[k] = zold;
+            *r2x[k] = xold;
+            *r2y[k] = yold;
+            *r2z[k] = zold;
           }
           else if (ichain == 3)
           {
-            r3x[k] = xold;
-            r3y[k] = yold;
-            r3z[k] = zold;
+            *r3x[k] = xold;
+            *r3y[k] = yold;
+            *r3z[k] = zold;
           }
           else if (ichain == 4)
           {
-            r4x[k] = xold;
-            r4y[k] = yold;
-            r4z[k] = zold;
+            *r4x[k] = xold;
+            *r4y[k] = yold;
+            *r4z[k] = zold;
           }
         }
       }
@@ -371,15 +380,15 @@ int main()
         }
         else if (ichain == 2)
         {
-          shift_move_plasmid(r2x, r2y, r2z, nseg2);
+          shift_move_plasmid(*r2x, *r2y, *r2z, nseg2);
         }
         else if (ichain == 3)
         {
-          shift_move_plasmid(r3x, r3y, r3z, nseg3);
+          shift_move_plasmid(*r3x, *r3y, *r3z, nseg3);
         }
         else if (ichain == 4)
         {
-          shift_move_plasmid(r4x, r4y, r4z, nseg4);
+          shift_move_plasmid(*r4x, *r4y, *r4z, nseg4);
         }
       }
     }
@@ -391,8 +400,8 @@ int main()
       ycm1 = 0.0;
       for (i = 0; i < nseg1; i++)
       {
-        xcm1 += r1x[i];
-        ycm1 += r1y[i];
+        xcm1 += *r1x[i];
+        ycm1 += *r1y[i];
       }
       xcm1 /= nseg1;
       ycm1 /= nseg1;
@@ -416,8 +425,8 @@ int main()
 
       for (i = 0; i < nseg1; i++)
       {
-        indx = (r1x[i] + amax + xBoxMaxd2) / gridspacex_real;
-        indy = (r1y[i] + bmin) / gridspacey_real;
+        indx = (*r1x[i] + amax + xBoxMaxd2) / gridspacex_real;
+        indy = (*r1y[i] + bmin) / gridspacey_real;
         if (indx >= 0 && indx < ngridx && indy >= 0 && indy < ngridy)
         {
           probmon[indx][indy] += 1.0;
@@ -428,8 +437,8 @@ int main()
       ycm2 = 0.0;
       for (i = 0; i < nseg2; i++)
       {
-        xcm2 += r2x[i];
-        ycm2 += r2y[i];
+        xcm2 += *r2x[i];
+        ycm2 += *r2y[i];
       }
       xcm2 /= nseg2;
       ycm2 /= nseg2;
@@ -452,8 +461,8 @@ int main()
       ycm3 = 0.0;
       for (i = 0; i < nseg3; i++)
       {
-        xcm3 += r3x[i];
-        ycm3 += r3y[i];
+        xcm3 += *r3x[i];
+        ycm3 += *r3y[i];
       }
       xcm3 /= nseg3;
       ycm3 /= nseg3;
@@ -477,8 +486,8 @@ int main()
       ycm4 = 0.0;
       for (i = 0; i < nseg4; i++)
       {
-        xcm4 += r4x[i];
-        ycm4 += r4y[i];
+        xcm4 += *r4x[i];
+        ycm4 += *r4y[i];
       }
       xcm4 /= nseg4;
       ycm4 /= nseg4;
@@ -817,9 +826,9 @@ int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
       // Checking if the plasmid overlaps with the T4 polymer
       if (kk < nseg2)
       {
-        dx = rx[k] - r2x[kk];
-        dy = ry[k] - r2y[kk];
-        dz = rz[k] - r2z[kk];
+        dx = rx[k] - *r2x[kk];
+        dy = ry[k] - *r2y[kk];
+        dz = rz[k] - *r2z[kk];
         dr2 = dx * dx + dy * dy + dz * dz;
         if (dr2 < 1.0)
         {
@@ -830,9 +839,9 @@ int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
       // Checking if third plasmid overlaps with T4 polymer
       if (kk < nseg3)
       {
-        dx = rx[k] - r3x[kk];
-        dy = ry[k] - r3y[kk];
-        dz = rz[k] - r3z[kk];
+        dx = rx[k] - *r3x[kk];
+        dy = ry[k] - *r3y[kk];
+        dz = rz[k] - *r3z[kk];
         dr2 = dx * dx + dy * dy + dz * dz;
         if (dr2 < 1.0)
         {
@@ -842,9 +851,9 @@ int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
 
       if (kk < nseg4)
       {
-        dx = rx[k] - r4x[kk];
-        dy = ry[k] - r4y[kk];
-        dz = rz[k] - r4z[kk];
+        dx = rx[k] - *r4x[kk];
+        dy = ry[k] - *r4y[kk];
+        dz = rz[k] - *r4z[kk];
         dr2 = dx * dx + dy * dy + dz * dz;
         if (dr2 < 1.0)
         {
@@ -906,9 +915,9 @@ int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
       if (kk < nseg1 && ichain != 1)
       {
         // Check if polymer and plasmid overlap
-        dx = rx[k] - r1x[kk];
-        dy = ry[k] - r1y[kk];
-        dz = rz[k] - r1z[kk];
+        dx = rx[k] - *r1x[kk];
+        dy = ry[k] - *r1y[kk];
+        dz = rz[k] - *r1z[kk];
         dr2 = dx * dx + dy * dy + dz * dz;
         if (dr2 < 1.0)
         {
@@ -919,9 +928,9 @@ int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
       // Check if plasmids overlap
       if (kk < nseg2 && ichain != 2)
       {
-        dx = rx[k] - r2x[kk];
-        dy = ry[k] - r2y[kk];
-        dz = rz[k] - r2z[kk];
+        dx = rx[k] - *r2x[kk];
+        dy = ry[k] - *r2y[kk];
+        dz = rz[k] - *r2z[kk];
         dr2 = dx * dx + dy * dy + dz * dz;
         if (dr2 < 1.0)
         {
@@ -932,9 +941,9 @@ int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
       // Check if plasmids overlap
       if (kk < nseg3 && ichain != 3)
       {
-        dx = rx[k] - r3x[kk];
-        dy = ry[k] - r3y[kk];
-        dz = rz[k] - r3z[kk];
+        dx = rx[k] - *r3x[kk];
+        dy = ry[k] - *r3y[kk];
+        dz = rz[k] - *r3z[kk];
         dr2 = dx * dx + dy * dy + dz * dz;
         if (dr2 < 1.0)
         {
@@ -944,9 +953,201 @@ int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
 
       if (kk < nseg4 && ichain != 4)
       {
-        dx = rx[k] - r4x[kk];
-        dy = ry[k] - r4y[kk];
-        dz = rz[k] - r4z[kk];
+        dx = rx[k] - *r4x[kk];
+        dy = ry[k] - *r4y[kk];
+        dz = rz[k] - *r4z[kk];
+        dr2 = dx * dx + dy * dy + dz * dz;
+        if (dr2 < 1.0)
+        {
+          return (reject);
+        }
+      }
+    }
+
+    if (plasRigid == 1)
+    {
+      return (check_plasmid_energy(rx, ry, rz, nseg)); // apply rigidity
+    }
+    else
+    {
+      return (accept);
+    }
+  }
+}
+
+void gpu_checkAccept(double rx[5000], double ry[5000], double rz[5000], long nseg)
+{
+  int accept, reject;
+  long klow, khigh;
+
+  accept = 0;
+  reject = 1;
+
+  if (ichain == 1)
+  {
+    // Checking if the T4 polymer overlaps with itself
+    for (kk = 0; kk < nseg1 + nseg2 + nseg3 + nseg4; kk++)
+    {
+      // Check to see if iterative constant is greater than the size of all
+      // polymers, if so, break inner loop and continue to next monomer in
+      // checked polymer.
+      if (kk > nseg1 && kk > nseg2 && kk > nseg3 && kk > nseg4)
+      {
+        break;
+      }
+
+      if (kk < nseg1)
+      {
+        if (squareEllipse(rx[kk], ry[kk], rz[kk]) == reject)
+        {
+          return (reject);
+        }
+        if (kk < k - 1 || kk > k + 1)
+        {
+          dx = rx[k] - rx[kk];
+          dy = ry[k] - ry[kk];
+          dz = rz[k] - rz[kk];
+          dr2 = dx * dx + dy * dy + dz * dz;
+          if (dr2 < 1.0)
+          {
+            return (reject);
+          }
+        }
+      }
+
+      // Checking if the plasmid overlaps with the T4 polymer
+      if (kk < nseg2)
+      {
+        dx = rx[k] - *r2x[kk];
+        dy = ry[k] - *r2y[kk];
+        dz = rz[k] - *r2z[kk];
+        dr2 = dx * dx + dy * dy + dz * dz;
+        if (dr2 < 1.0)
+        {
+          return (reject);
+        }
+      }
+
+      // Checking if third plasmid overlaps with T4 polymer
+      if (kk < nseg3)
+      {
+        dx = rx[k] - *r3x[kk];
+        dy = ry[k] - *r3y[kk];
+        dz = rz[k] - *r3z[kk];
+        dr2 = dx * dx + dy * dy + dz * dz;
+        if (dr2 < 1.0)
+        {
+          return (reject);
+        }
+      }
+
+      if (kk < nseg4)
+      {
+        dx = rx[k] - *r4x[kk];
+        dy = ry[k] - *r4y[kk];
+        dz = rz[k] - *r4z[kk];
+        dr2 = dx * dx + dy * dy + dz * dz;
+        if (dr2 < 1.0)
+        {
+          return (reject);
+        }
+      }
+    }
+    return (check_poly_energy(rx, ry, rz, nseg)); // apply rigidity
+  }
+
+  else
+  {
+    if (k == 0)
+    {
+      klow = nseg - 1;
+      khigh = 1;
+    }
+    else if (k == nseg - 1)
+    {
+      klow = nseg - 2;
+      khigh = 0;
+    }
+    else
+    {
+      klow = k - 1;
+      khigh = k + 1;
+    }
+
+    for (kk = 0; kk < nseg1 + nseg2 + nseg3 + nseg4; kk++)
+    {
+      // Check to see if iterative constant is greater than the size of all
+      // polymers, if so, break inner loop and continue to next monomer in
+      // checked polymer.
+      if (kk > nseg1 && kk > nseg2 && kk > nseg3 && kk > nseg4)
+      {
+        break;
+      }
+
+      // Check if nseg=2 plasmid escapes squareEllipse or overlaps
+      if (kk < nseg)
+      {
+        if (squareEllipse(rx[kk], ry[kk], rz[kk]) == reject)
+        {
+          return (reject);
+        }
+        if (kk != k && kk != klow && kk != khigh)
+        {
+          dx = rx[k] - rx[kk];
+          dy = ry[k] - ry[kk];
+          dz = rz[k] - rz[kk];
+          dr2 = dx * dx + dy * dy + dz * dz;
+          if (dr2 < 1.0)
+          {
+            return (reject);
+          }
+        }
+      }
+
+      if (kk < nseg1 && ichain != 1)
+      {
+        // Check if polymer and plasmid overlap
+        dx = rx[k] - *r1x[kk];
+        dy = ry[k] - *r1y[kk];
+        dz = rz[k] - *r1z[kk];
+        dr2 = dx * dx + dy * dy + dz * dz;
+        if (dr2 < 1.0)
+        {
+          return (reject);
+        }
+      }
+
+      // Check if plasmids overlap
+      if (kk < nseg2 && ichain != 2)
+      {
+        dx = rx[k] - *r2x[kk];
+        dy = ry[k] - *r2y[kk];
+        dz = rz[k] - *r2z[kk];
+        dr2 = dx * dx + dy * dy + dz * dz;
+        if (dr2 < 1.0)
+        {
+          return (reject);
+        }
+      }
+
+      // Check if plasmids overlap
+      if (kk < nseg3 && ichain != 3)
+      {
+        dx = rx[k] - *r3x[kk];
+        dy = ry[k] - *r3y[kk];
+        dz = rz[k] - *r3z[kk];
+        dr2 = dx * dx + dy * dy + dz * dz;
+        if (dr2 < 1.0)
+        {
+          return (reject);
+        }
+      }
+
+      if (kk < nseg4 && ichain != 4)
+      {
+        dx = rx[k] - *r4x[kk];
+        dy = ry[k] - *r4y[kk];
+        dz = rz[k] - *r4z[kk];
         dr2 = dx * dx + dy * dy + dz * dz;
         if (dr2 < 1.0)
         {
@@ -971,7 +1172,7 @@ int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
 // based on considerations of polymer chain energy related to the
 // move. See comments within the function for details.
 // ----------------------------------------------------------------------
-int check_poly_energy(double rx[5000], double ry[5000], double rz[5000], long nseg)
+__global__ void gpu_checkPolyEnergy(double rx[5000], double ry[5000], double rz[5000], long nseg)
 {
   int accept, reject; // will return either accept or reject at end of function
 
@@ -999,57 +1200,57 @@ int check_poly_energy(double rx[5000], double ry[5000], double rz[5000], long ns
   if (k == 0)
   {
     gpu_calc_cosine<<<1, 1>>>(k, k + 1, k + 2, rx, ry, rz);
-    energy_new[0] = kappa * (1.0 - theta_new);
+    energy_new[0] = kappa * (1.0 - theta);
     gpu_calc_cosine<<<1, 1>>>(-1, k + 1, k + 2, rx, ry, rz);
-    energy_old[0] = kappa * (1.0 - theta_old);
+    energy_old[0] = kappa * (1.0 - theta);
   }
   else if (k == nseg - 1)
   {
     gpu_calc_cosine<<<1, 1>>>(k - 2, k - 1, k, rx, ry, rz);
-    energy_new[0] = kappa * (1.0 - theta_new);
+    energy_new[0] = kappa * (1.0 - theta);
     gpu_calc_cosine<<<1, 1>>>(k - 2, k - 1, -1, rx, ry, rz);
-    energy_old[0] = kappa * (1.0 - theta_old);
+    energy_old[0] = kappa * (1.0 - theta);
   }
   else if (k == 1)
   {
     gpu_calc_cosine<<<1, 1>>>(k - 1, k, k + 1, rx, ry, rz);
-    energy_new[0] = kappa * (1.0 - theta_new);
+    energy_new[0] = kappa * (1.0 - theta);
     gpu_calc_cosine<<<1, 1>>>(k - 1, -1, k + 1, rx, ry, rz);
-    energy_old[0] = kappa * (1.0 - theta_old);
+    energy_old[0] = kappa * (1.0 - theta);
 
     gpu_calc_cosine<<<1, 1>>>(k, k + 1, k + 2, rx, ry, rz);
-    energy_new[1] = kappa * (1.0 - theta_new);
+    energy_new[1] = kappa * (1.0 - theta);
     gpu_calc_cosine<<<1, 1>>>(-1, k + 1, k + 2, rx, ry, rz);
-    energy_old[1] = kappa * (1.0 - theta_old);
+    energy_old[1] = kappa * (1.0 - theta);
   }
   else if (k == nseg - 2)
   {
     gpu_calc_cosine<<<1, 1>>>(k - 2, k - 1, k, rx, ry, rz);
-    energy_new[0] = kappa * (1.0 - theta_new);
+    energy_new[0] = kappa * (1.0 - theta);
     gpu_calc_cosine<<<1, 1>>>(k - 2, k - 1, -1, rx, ry, rz);
-    energy_old[0] = kappa * (1.0 - theta_old);
+    energy_old[0] = kappa * (1.0 - theta);
 
     gpu_calc_cosine<<<1, 1>>>(k - 1, k, k + 1, rx, ry, rz);
-    energy_new[1] = kappa * (1.0 - theta_new);
+    energy_new[1] = kappa * (1.0 - theta);
     gpu_calc_cosine<<<1, 1>>>(k - 1, -1, k + 1, rx, ry, rz);
-    energy_old[1] = kappa * (1.0 - theta_old);
+    energy_old[1] = kappa * (1.0 - theta);
   }
   else
   {
     gpu_calc_cosine<<<1, 1>>>(k - 2, k - 1, k, rx, ry, rz);
-    energy_new[0] = kappa * (1.0 - theta_new);
+    energy_new[0] = kappa * (1.0 - theta);
     gpu_calc_cosine<<<1, 1>>>(k - 2, k - 1, -1, rx, ry, rz);
-    energy_old[0] = kappa * (1.0 - theta_old);
+    energy_old[0] = kappa * (1.0 - theta);
 
     gpu_calc_cosine<<<1, 1>>>(k - 1, k, k + 1, rx, ry, rz);
-    energy_new[1] = kappa * (1.0 - theta_new);
+    energy_new[1] = kappa * (1.0 - theta);
     gpu_calc_cosine<<<1, 1>>>(k - 1, -1, k + 1, rx, ry, rz);
-    energy_old[1] = kappa * (1.0 - theta_old);
+    energy_old[1] = kappa * (1.0 - theta);
 
     gpu_calc_cosine<<<1, 1>>>(k, k + 1, k + 2, rx, ry, rz);
-    energy_new[2] = kappa * (1.0 - theta_new);
+    energy_new[2] = kappa * (1.0 - theta);
     gpu_calc_cosine<<<1, 1>>>(-1, k + 1, k + 2, rx, ry, rz);
-    energy_old[2] = kappa * (1.0 - theta_old);
+    energy_old[2] = kappa * (1.0 - theta);
   }
 
   // Get the total new and and old energies of the bond angles affected
@@ -1067,16 +1268,18 @@ int check_poly_energy(double rx[5000], double ry[5000], double rz[5000], long ns
   // in an exponential, with a random value [0,1] to determine if move is
   // accepted or rejected. (Higher delta_E leads to reduced chance of accepted move)
   if (delta_E <= 0)
-    return (accept);
+  {
+    accepted = accept;
+  }
   else
   {
     if (ran3() <= exp(-1.0 * delta_E))
     {
-      return (accept);
+      accepted = (accept);
     }
     else
     {
-      return (reject);
+      accepted = (reject);
     }
   }
 }
@@ -1110,87 +1313,87 @@ int check_plasmid_energy(double rx[5000], double ry[5000], double rz[5000], long
   if (k == 0)
   {
     gpu_calc_cosine<<<1, 1>>>(nseg - 2, nseg - 1, k, rx, ry, rz);
-    energy_new[0] = kappa * (1.0 - theta_new);
+    energy_new[0] = kappa * (1.0 - theta);
     gpu_calc_cosine<<<1, 1>>>(nseg - 2, nseg - 1, -1, rx, ry, rz);
-    energy_old[0] = kappa * (1.0 - theta_old);
+    energy_old[0] = kappa * (1.0 - theta);
 
     gpu_calc_cosine<<<1, 1>>>(nseg - 1, k, k + 1, rx, ry, rz);
-    energy_new[1] = kappa * (1.0 - theta_new);
+    energy_new[1] = kappa * (1.0 - theta);
     gpu_calc_cosine<<<1, 1>>>(nseg - 1, -1, k + 1, rx, ry, rz);
-    energy_old[1] = kappa * (1.0 - theta_old);
+    energy_old[1] = kappa * (1.0 - theta);
 
     gpu_calc_cosine<<<1, 1>>>(k, k + 1, k + 2, rx, ry, rz);
-    energy_new[2] = kappa * (1.0 - theta_new);
+    energy_new[2] = kappa * (1.0 - theta);
     gpu_calc_cosine<<<1, 1>>>(-1, k + 1, k + 2, rx, ry, rz);
-    energy_old[2] = kappa * (1.0 - theta_old);
+    energy_old[2] = kappa * (1.0 - theta);
   }
   else if (k == nseg - 1)
   {
     gpu_calc_cosine<<<1, 1>>>(k - 2, k - 1, k, rx, ry, rz);
-    energy_new[0] = kappa * (1.0 - theta_new);
+    energy_new[0] = kappa * (1.0 - theta);
     gpu_calc_cosine<<<1, 1>>>(k - 2, k - 1, -1, rx, ry, rz);
-    energy_old[0] = kappa * (1.0 - theta_old);
+    energy_old[0] = kappa * (1.0 - theta);
 
     gpu_calc_cosine<<<1, 1>>>(k - 1, k, 0, rx, ry, rz);
-    energy_new[1] = kappa * (1.0 - theta_new);
+    energy_new[1] = kappa * (1.0 - theta);
     gpu_calc_cosine<<<1, 1>>>(k - 1, -1, 0, rx, ry, rz);
-    energy_old[1] = kappa * (1.0 - theta_old);
+    energy_old[1] = kappa * (1.0 - theta);
 
     gpu_calc_cosine<<<1, 1>>>(k, 0, 1, rx, ry, rz);
-    energy_new[2] = kappa * (1.0 - theta_new);
+    energy_new[2] = kappa * (1.0 - theta);
     gpu_calc_cosine<<<1, 1>>>(-1, 0, 1, rx, ry, rz);
-    energy_old[2] = kappa * (1.0 - theta_old);
+    energy_old[2] = kappa * (1.0 - theta);
   }
   else if (k == 1)
   {
     gpu_calc_cosine<<<1, 1>>>(nseg - 1, k - 1, k, rx, ry, rz);
-    energy_new[0] = kappa * (1.0 - theta_new);
+    energy_new[0] = kappa * (1.0 - theta);
     gpu_calc_cosine<<<1, 1>>>(nseg - 1, k - 1, -1, rx, ry, rz);
-    energy_old[0] = kappa * (1.0 - theta_old);
+    energy_old[0] = kappa * (1.0 - theta);
 
     gpu_calc_cosine<<<1, 1>>>(k - 1, k, k + 1, rx, ry, rz);
-    energy_new[1] = kappa * (1.0 - theta_new);
+    energy_new[1] = kappa * (1.0 - theta);
     gpu_calc_cosine<<<1, 1>>>(k - 1, -1, k + 1, rx, ry, rz);
-    energy_old[1] = kappa * (1.0 - theta_old);
+    energy_old[1] = kappa * (1.0 - theta);
 
     gpu_calc_cosine<<<1, 1>>>(k, k + 1, k + 2, rx, ry, rz);
-    energy_new[2] = kappa * (1.0 - theta_new);
+    energy_new[2] = kappa * (1.0 - theta);
     gpu_calc_cosine<<<1, 1>>>(-1, k + 1, k + 2, rx, ry, rz);
-    energy_old[2] = kappa * (1.0 - theta_old);
+    energy_old[2] = kappa * (1.0 - theta);
   }
   else if (k == nseg - 2)
   {
     gpu_calc_cosine<<<1, 1>>>(k - 2, k - 1, k, rx, ry, rz);
-    energy_new[0] = kappa * (1.0 - theta_new);
+    energy_new[0] = kappa * (1.0 - theta);
     gpu_calc_cosine<<<1, 1>>>(k - 2, k - 1, -1, rx, ry, rz);
-    energy_old[0] = kappa * (1.0 - theta_old);
+    energy_old[0] = kappa * (1.0 - theta);
 
     gpu_calc_cosine<<<1, 1>>>(k - 1, k, k + 1, rx, ry, rz);
-    energy_new[1] = kappa * (1.0 - theta_new);
+    energy_new[1] = kappa * (1.0 - theta);
     gpu_calc_cosine<<<1, 1>>>(k - 1, -1, k + 1, rx, ry, rz);
-    energy_old[1] = kappa * (1.0 - theta_old);
+    energy_old[1] = kappa * (1.0 - theta);
 
     gpu_calc_cosine<<<1, 1>>>(k, k + 1, 0, rx, ry, rz);
-    energy_new[2] = kappa * (1.0 - theta_new);
+    energy_new[2] = kappa * (1.0 - theta);
     gpu_calc_cosine<<<1, 1>>>(-1, k + 1, 0, rx, ry, rz);
-    energy_old[2] = kappa * (1.0 - theta_old);
+    energy_old[2] = kappa * (1.0 - theta);
   }
   else
   {
     gpu_calc_cosine<<<1, 1>>>(k - 2, k - 1, k, rx, ry, rz);
-    energy_new[0] = kappa * (1.0 - theta_new);
+    energy_new[0] = kappa * (1.0 - theta);
     gpu_calc_cosine<<<1, 1>>>(k - 2, k - 1, -1, rx, ry, rz);
-    energy_old[0] = kappa * (1.0 - theta_old);
+    energy_old[0] = kappa * (1.0 - theta);
 
     gpu_calc_cosine<<<1, 1>>>(k - 1, k, k + 1, rx, ry, rz);
-    energy_new[1] = kappa * (1.0 - theta_new);
+    energy_new[1] = kappa * (1.0 - theta);
     gpu_calc_cosine<<<1, 1>>>(k - 1, -1, k + 1, rx, ry, rz);
-    energy_old[1] = kappa * (1.0 - theta_old);
+    energy_old[1] = kappa * (1.0 - theta);
 
     gpu_calc_cosine<<<1, 1>>>(k, k + 1, k + 2, rx, ry, rz);
-    energy_new[2] = kappa * (1.0 - theta_new);
+    energy_new[2] = kappa * (1.0 - theta);
     gpu_calc_cosine<<<1, 1>>>(-1, k + 1, k + 2, rx, ry, rz);
-    energy_old[2] = kappa * (1.0 - theta_old);
+    energy_old[2] = kappa * (1.0 - theta);
   }
 
   // Get the total new and and old energies of the bond angles affected
@@ -1309,16 +1512,21 @@ double calc_cosine(int i1, int i2, int i3, double rx[5000], double ry[5000], dou
 // Calculate the cosine of theta between two bonds (vectors) that connect
 // three sequential monomers within the first polymer chain.
 // ----------------------------------------------------------------------
-__global__ void gpu_calc_cosine(int i1, int i2, int i3, double rx[5000], double ry[5000], double rz[5000])
+__global__ void gpu_calc_cosine(int ip1, int ip2, int ip3, double rx[5000], double ry[5000], double rz[5000])
 {
   // determine which of the indices is negative (if any). The negative index
   // corresponds to the old position of the monomer. Set x, y, and z values of
   // each of the three monomers accordingly. Note y1 is an implicit variable
   // name in some stlib function, so use yone instead.
+  int i1, i2, i3;
   double xold, yold, zold;
   double x1, x2, x3, yone, y2, y3, z1, z2, z3;
   double vax, vay, vaz, vbx, vby, vbz;
   double va_sq, vb_sq, va_dot_vb;
+
+  cudaMemcpyToSymbol(i1, &ip1, sizeof(long), cudaMemcpyHostToDevice);
+  cudaMemcpyToSymbol(i2, &ip2, sizeof(long), cudaMemcpyHostToDevice);
+  cudaMemcpyToSymbol(i3, &ip3, sizeof(long), cudaMemcpyHostToDevice);
 
   if (i1 < 0)
   {
@@ -1380,6 +1588,8 @@ __global__ void gpu_calc_cosine(int i1, int i2, int i3, double rx[5000], double 
   vb_sq = vbx * vbx + vby * vby + vbz * vbz;
 
   va_dot_vb = vax * vbx + vay * vby + vaz * vbz;
+
+  theta = (va_dot_vb / (sqrt(va_sq * vb_sq)));
 }
 
 // ----------------------------------------------------------------------
@@ -1392,35 +1602,35 @@ void init_pos(void)
 
   double xadd, yadd, xmax, ymax, zplace;
 
-  r1x[0] = -xBoxMaxd2;
-  r1y[0] = -yBoxMaxd2 + 2.0;
-  r1z[0] = 1.0;
+  *r1x[0] = -xBoxMaxd2;
+  *r1y[0] = -yBoxMaxd2 + 2.0;
+  *r1z[0] = 1.0;
   xadd = 1.0;
   yadd = 1.0;
   zplace = 1.0;
 
   for (i = 1; i < nseg1; i++)
   {
-    r1x[i] = r1x[i - 1] + xadd;
-    r1y[i] = r1y[i - 1];
-    r1z[i] = zplace;
+    *r1x[i] = *r1x[i - 1] + xadd;
+    *r1y[i] = *r1y[i - 1];
+    *r1z[i] = zplace;
     xmax = xBoxMaxd2; // Changed to be inside of the rectangle structure
     // xmax = amax * sqrt(1.0 - pow(r1y[i] / bmin, 2.0)) - 3.0;
 
-    if (r1x[i] > xmax || r1x[i] < -xmax)
+    if (*r1x[i] > xmax || *r1x[i] < -xmax)
     {
-      if (r1y[i] + 2.0 > ymax || r1y[i] - 2.0 < -ymax)
+      if (*r1y[i] + 2.0 > ymax || *r1y[i] - 2.0 < -ymax)
       {
         zplace -= 1.0;
         yadd = -1.0 * yadd;
         // printf("%ld   %lf\n", i, yadd);
       }
 
-      r1x[i] -= xadd;
-      r1y[i] = r1y[i] + yadd;
+      *r1x[i] -= xadd;
+      *r1y[i] = *r1y[i] + yadd;
       ymax = yBoxMaxd2;
 
-      if (r1y[i] > ymax || r1y[i] < -ymax)
+      if (*r1y[i] > ymax || *r1y[i] < -ymax)
       {
         printf("Can't place polymer... exiting...\n");
         exit(0);
@@ -1431,79 +1641,79 @@ void init_pos(void)
 
   for (i = 0; i < nseg2; i++)
   {
-    r2z[i] = 4.0;
+    *r2z[i] = 4.0;
 
     if (i < nseg2 / 2)
     {
-      r2x[i] = (double)-i - xBoxMaxd2 + nseg2;
-      r2y[i] = 0.0;
+      *r2x[i] = (double)-i - xBoxMaxd2 + nseg2;
+      *r2y[i] = 0.0;
     }
     if (i == nseg2 / 2 + 0.5 || i == nseg2 / 2)
     {
-      r2x[i] = (double)-i - xBoxMaxd2 + nseg2 + 1.0;
-      r2y[i] = -1.0;
+      *r2x[i] = (double)-i - xBoxMaxd2 + nseg2 + 1.0;
+      *r2y[i] = -1.0;
     }
     if (i > nseg2 / 2 && i < nseg2 - 1)
     {
-      r2x[i] = (double)+i - nseg2 - xBoxMaxd2 + nseg2 + 1.0;
-      r2y[i] = -2.0;
+      *r2x[i] = (double)+i - nseg2 - xBoxMaxd2 + nseg2 + 1.0;
+      *r2y[i] = -2.0;
     }
     if (i == nseg2 - 1)
     {
-      r2x[i] = (double)+i - nseg2 - xBoxMaxd2 + nseg2 + 1.0;
-      r2y[i] = -1.0;
+      *r2x[i] = (double)+i - nseg2 - xBoxMaxd2 + nseg2 + 1.0;
+      *r2y[i] = -1.0;
     }
   }
 
   for (i = 0; i < nseg3; i++)
   {
-    r3z[i] = -2.0;
+    *r3z[i] = -2.0;
 
     if (i < nseg3 / 2)
     {
-      r3x[i] = (double)-i - xBoxMaxd2 + nseg3;
-      r3y[i] = 0.0;
+      *r3x[i] = (double)-i - xBoxMaxd2 + nseg3;
+      *r3y[i] = 0.0;
     }
     if (i == nseg3 / 2 + 0.5 || i == nseg3 / 2)
     {
-      r3x[i] = (double)-i - xBoxMaxd2 + nseg3 + 1.0;
-      r3y[i] = -1.0;
+      *r3x[i] = (double)-i - xBoxMaxd2 + nseg3 + 1.0;
+      *r3y[i] = -1.0;
     }
     if (i > nseg3 / 2 && i < nseg3 - 1)
     {
-      r3x[i] = (double)+i - nseg3 - xBoxMaxd2 + nseg3 + 1.0;
-      r3y[i] = -2.0;
+      *r3x[i] = (double)+i - nseg3 - xBoxMaxd2 + nseg3 + 1.0;
+      *r3y[i] = -2.0;
     }
     if (i == nseg3 - 1)
     {
-      r3x[i] = (double)+i - nseg3 - xBoxMaxd2 + nseg3 + 1.0;
-      r3y[i] = -1.0;
+      *r3x[i] = (double)+i - nseg3 - xBoxMaxd2 + nseg3 + 1.0;
+      *r3y[i] = -1.0;
     }
   }
 
   for (i = 0; i < nseg4; i++)
   {
-    r4z[i] = 2.0;
+    *r4z[i] = 2.0;
 
     if (i < nseg4 / 2)
     {
-      r4x[i] = (double)+i + xBoxMaxd2 - nseg4;
-      r4y[i] = 0.0;
+      *r4x[i] = (double)+i + xBoxMaxd2 - nseg4;
+      *r4y[i] = 0.0;
     }
     if (i == nseg4 / 2 + 0.5 || i == nseg4 / 2)
     {
-      r4x[i] = (double)+i + xBoxMaxd2 - nseg4 - 1.0;
-      r4y[i] = -1.0;
+      *r4x[i] = (double)+i + xBoxMaxd2 - nseg4 - 1.0;
+      *r4y[i] = -1.0;
     }
     if (i > nseg4 / 2 && i < nseg2 - 1)
     {
-      r4x[i] = (double)-i - nseg4 + xBoxMaxd2 + nseg4 - 1.0;
-      r4y[i] = -2.0;
+      *r4x[i] = (double)-i - nseg4 + xBoxMaxd2 + nseg4 - 1.0;
+      *r4y[i] = -2.0;
     }
     if (i == nseg4 - 1)
     {
-      r4x[i] = (double)-i - nseg4 + xBoxMaxd2 + nseg4 - 1.0;
-      r4y[i] = -1.0;
+      *r4x[i] = (double)-i - nseg4 + xBoxMaxd2 + nseg4 - 1.0;
+      *r4y[i] = -1.0;
     }
   }
 }
@@ -1513,35 +1723,35 @@ void init_pos_circular(void)
 {
   double xadd, yadd, xmax, ymax, zplace;
 
-  r1x[0] = -xBoxMaxd2;
-  r1y[0] = -yBoxMaxd2 + 2.0;
-  r1z[0] = 1.0;
+  *r1x[0] = -xBoxMaxd2;
+  *r1y[0] = -yBoxMaxd2 + 2.0;
+  *r1z[0] = 1.0;
   xadd = 1.0;
   yadd = 1.0;
   zplace = 1.0;
 
   for (i = 1; i < nseg1; i++)
   {
-    r1x[i] = r1x[i - 1] + xadd;
-    r1y[i] = r1y[i - 1];
-    r1z[i] = zplace;
+    *r1x[i] = *r1x[i - 1] + xadd;
+    *r1y[i] = *r1y[i - 1];
+    *r1z[i] = zplace;
     xmax = xBoxMaxd2; // Changed to be inside of the rectangle structure
     // xmax = amax * sqrt(1.0 - pow(r1y[i] / bmin, 2.0)) - 3.0;
 
-    if (r1x[i] > xmax || r1x[i] < -xmax)
+    if (*r1x[i] > xmax || *r1x[i] < -xmax)
     {
-      if (r1y[i] + 2.0 > ymax || r1y[i] - 2.0 < -ymax)
+      if (*r1y[i] + 2.0 > ymax || *r1y[i] - 2.0 < -ymax)
       {
         zplace -= 1.0;
         yadd = -1.0 * yadd;
         // printf("%ld   %lf\n", i, yadd);
       }
 
-      r1x[i] -= xadd;
-      r1y[i] = r1y[i] + yadd;
+      *r1x[i] -= xadd;
+      *r1y[i] = *r1y[i] + yadd;
       ymax = yBoxMaxd2;
 
-      if (r1y[i] > ymax || r1y[i] < -ymax)
+      if (*r1y[i] > ymax || *r1y[i] < -ymax)
       {
         printf("Can't place polymer... exiting...\n");
         exit(0);
@@ -1561,23 +1771,23 @@ void init_pos_circular(void)
 
   for (i = 0; i < nseg2; i++)
   {
-    r2z[i] = 4.0;
-    r2x[i] = Rplasmid2 * cos(i * theta_plasmid2) - xBoxMaxd2 + Rplasmid2;
-    r2y[i] = Rplasmid2 * sin(i * theta_plasmid2) - Rplasmid2 / 2.0;
+    *r2z[i] = 4.0;
+    *r2x[i] = Rplasmid2 * cos(i * theta_plasmid2) - xBoxMaxd2 + Rplasmid2;
+    *r2y[i] = Rplasmid2 * sin(i * theta_plasmid2) - Rplasmid2 / 2.0;
   }
 
   for (i = 0; i < nseg3; i++)
   {
-    r3z[i] = 2.0; // Initialized just above the first plasmid
-    r3x[i] = Rplasmid3 * cos(i * theta_plasmid3) - xBoxMaxd2 + Rplasmid3;
-    r3y[i] = Rplasmid3 * sin(i * theta_plasmid3) - Rplasmid3 / 2.0;
+    *r3z[i] = 2.0; // Initialized just above the first plasmid
+    *r3x[i] = Rplasmid3 * cos(i * theta_plasmid3) - xBoxMaxd2 + Rplasmid3;
+    *r3y[i] = Rplasmid3 * sin(i * theta_plasmid3) - Rplasmid3 / 2.0;
   }
 
   for (i = 0; i < nseg4; i++)
   {
-    r4z[i] = 4.0; // Initialized just above the first plasmid
-    r4x[i] = Rplasmid4 * cos(i * theta_plasmid4) + xBoxMaxd2 - Rplasmid4;
-    r4y[i] = Rplasmid4 * sin(i * theta_plasmid4) - Rplasmid4 / 2.0;
+    *r4z[i] = 4.0; // Initialized just above the first plasmid
+    *r4x[i] = Rplasmid4 * cos(i * theta_plasmid4) + xBoxMaxd2 - Rplasmid4;
+    *r4y[i] = Rplasmid4 * sin(i * theta_plasmid4) - Rplasmid4 / 2.0;
   }
 }
 
@@ -1975,9 +2185,9 @@ int check_shift_chain(double rx[5000], double ry[5000], double rz[5000], long ns
 
       if (kk < nseg1 && ichain != 1)
       {
-        dx = rx[i] - r1x[kk];
-        dy = ry[i] - r1y[kk];
-        dz = rz[i] - r1z[kk];
+        dx = rx[i] - *r1x[kk];
+        dy = ry[i] - *r1y[kk];
+        dz = rz[i] - *r1z[kk];
         dr2 = dx * dx + dy * dy + dz * dz;
         if (dr2 < 1.0)
         {
@@ -1987,9 +2197,9 @@ int check_shift_chain(double rx[5000], double ry[5000], double rz[5000], long ns
 
       if (kk < nseg2 && ichain != 2)
       {
-        dx = rx[i] - r2x[kk];
-        dy = ry[i] - r2y[kk];
-        dz = rz[i] - r2z[kk];
+        dx = rx[i] - *r2x[kk];
+        dy = ry[i] - *r2y[kk];
+        dz = rz[i] - *r2z[kk];
         dr2 = dx * dx + dy * dy + dz * dz;
         if (dr2 < 1.0)
         {
@@ -1999,9 +2209,9 @@ int check_shift_chain(double rx[5000], double ry[5000], double rz[5000], long ns
 
       if (kk < nseg3 && ichain != 3)
       {
-        dx = rx[i] - r3x[kk];
-        dy = ry[i] - r3y[kk];
-        dz = rz[i] - r3z[kk];
+        dx = rx[i] - *r3x[kk];
+        dy = ry[i] - *r3y[kk];
+        dz = rz[i] - *r3z[kk];
         dr2 = dx * dx + dy * dy + dz * dz;
         if (dr2 < 1.0)
         {
@@ -2011,9 +2221,9 @@ int check_shift_chain(double rx[5000], double ry[5000], double rz[5000], long ns
 
       if (kk < nseg4 && ichain != 4)
       {
-        dx = rx[i] - r4x[kk];
-        dy = ry[i] - r4y[kk];
-        dz = rz[i] - r4z[kk];
+        dx = rx[i] - *r4x[kk];
+        dy = ry[i] - *r4y[kk];
+        dz = rz[i] - *r4z[kk];
         dr2 = dx * dx + dy * dy + dz * dz;
         if (dr2 < 1.0)
         {
@@ -2047,9 +2257,9 @@ int gpu_check_shift_chain(double rx, double ry, double rz, long nseg)
 
     if (kk < nseg1 && ichain != 1)
     {
-      dx = rx - r1x[kk];
-      dy = ry - r1y[kk];
-      dz = rz - r1z[kk];
+      dx = rx - *r1x[kk];
+      dy = ry - *r1y[kk];
+      dz = rz - *r1z[kk];
       dr2 = dx * dx + dy * dy + dz * dz;
       if (dr2 < 1.0)
       {
@@ -2059,9 +2269,9 @@ int gpu_check_shift_chain(double rx, double ry, double rz, long nseg)
 
     if (kk < nseg2 && ichain != 2)
     {
-      dx = rx - r2x[kk];
-      dy = ry - r2y[kk];
-      dz = rz - r2z[kk];
+      dx = rx - *r2x[kk];
+      dy = ry - *r2y[kk];
+      dz = rz - *r2z[kk];
       dr2 = dx * dx + dy * dy + dz * dz;
       if (dr2 < 1.0)
       {
@@ -2071,9 +2281,9 @@ int gpu_check_shift_chain(double rx, double ry, double rz, long nseg)
 
     if (kk < nseg3 && ichain != 3)
     {
-      dx = rx - r3x[kk];
-      dy = ry - r3y[kk];
-      dz = rz - r3z[kk];
+      dx = rx - *r3x[kk];
+      dy = ry - *r3y[kk];
+      dz = rz - *r3z[kk];
       dr2 = dx * dx + dy * dy + dz * dz;
       if (dr2 < 1.0)
       {
@@ -2083,9 +2293,9 @@ int gpu_check_shift_chain(double rx, double ry, double rz, long nseg)
 
     if (kk < nseg4 && ichain != 4)
     {
-      dx = rx - r4x[kk];
-      dy = ry - r4y[kk];
-      dz = rz - r4z[kk];
+      dx = rx - *r4x[kk];
+      dy = ry - *r4y[kk];
+      dz = rz - *r4z[kk];
       dr2 = dx * dx + dy * dy + dz * dz;
       if (dr2 < 1.0)
       {
@@ -2130,9 +2340,9 @@ void reptation_move_chain1()
   //      dr_prime = pow((0.602*rannum)+0.729,(1.0/3.0));
   dr_prime = 1.0;
 
-  xold = r1x[irep];
-  yold = r1y[irep];
-  zold = r1z[irep];
+  xold = *r1x[irep];
+  yold = *r1y[irep];
+  zold = *r1z[irep];
 
   calc_delta_xyz();
 
@@ -2140,16 +2350,16 @@ void reptation_move_chain1()
   {
     for (ind = 0; ind < nseg1 - 1; ind++)
     {
-      r1x[ind] = r1x[ind + 1];
-      r1y[ind] = r1y[ind + 1];
-      r1z[ind] = r1z[ind + 1];
+      *r1x[ind] = *r1x[ind + 1];
+      *r1y[ind] = *r1y[ind + 1];
+      *r1z[ind] = *r1z[ind + 1];
     }
 
-    r1x[nseg1 - 1] = r1x[nseg1 - 2] + dx_fixed;
-    r1y[nseg1 - 1] = r1y[nseg1 - 2] + dy_fixed;
-    r1z[nseg1 - 1] = r1z[nseg1 - 2] + dz_fixed;
+    *r1x[nseg1 - 1] = *r1x[nseg1 - 2] + dx_fixed;
+    *r1y[nseg1 - 1] = *r1y[nseg1 - 2] + dy_fixed;
+    *r1z[nseg1 - 1] = *r1z[nseg1 - 2] + dz_fixed;
 
-    overlap = check_accept_reptation(r1x, r1y, r1z, nseg1, nseg1 - 1);
+    overlap = check_accept_reptation(*r1x, *r1y, *r1z, nseg1, nseg1 - 1);
 
     if (overlap == 0)
     {
@@ -2159,30 +2369,30 @@ void reptation_move_chain1()
     {
       for (ind = nseg1 - 1; ind > 0; ind--)
       {
-        r1x[ind] = r1x[ind - 1];
-        r1y[ind] = r1y[ind - 1];
-        r1z[ind] = r1z[ind - 1];
+        *r1x[ind] = *r1x[ind - 1];
+        *r1y[ind] = *r1y[ind - 1];
+        *r1z[ind] = *r1z[ind - 1];
       }
 
-      r1x[0] = xold;
-      r1y[0] = yold;
-      r1z[0] = zold;
+      *r1x[0] = xold;
+      *r1y[0] = yold;
+      *r1z[0] = zold;
     }
   }
   else
   { // irep == nseg1-1
     for (ind = nseg1 - 1; ind > 0; ind--)
     {
-      r1x[ind] = r1x[ind - 1];
-      r1y[ind] = r1y[ind - 1];
-      r1z[ind] = r1z[ind - 1];
+      *r1x[ind] = *r1x[ind - 1];
+      *r1y[ind] = *r1y[ind - 1];
+      *r1z[ind] = *r1z[ind - 1];
     }
 
-    r1x[0] = r1x[1] + dx_fixed;
-    r1y[0] = r1y[1] + dy_fixed;
-    r1z[0] = r1z[1] + dz_fixed;
+    *r1x[0] = *r1x[1] + dx_fixed;
+    *r1y[0] = *r1y[1] + dy_fixed;
+    *r1z[0] = *r1z[1] + dz_fixed;
 
-    overlap = check_accept_reptation(r1x, r1y, r1z, nseg1, 0);
+    overlap = check_accept_reptation(*r1x, *r1y, *r1z, nseg1, 0);
 
     if (overlap == 0)
     {
@@ -2192,14 +2402,14 @@ void reptation_move_chain1()
     {
       for (ind = 0; ind < nseg1 - 1; ind++)
       {
-        r1x[ind] = r1x[ind + 1];
-        r1y[ind] = r1y[ind + 1];
-        r1z[ind] = r1z[ind + 1];
+        *r1x[ind] = *r1x[ind + 1];
+        *r1y[ind] = *r1y[ind + 1];
+        *r1z[ind] = *r1z[ind + 1];
       }
 
-      r1x[nseg1 - 1] = xold;
-      r1y[nseg1 - 1] = yold;
-      r1z[nseg1 - 1] = zold;
+      *r1x[nseg1 - 1] = xold;
+      *r1y[nseg1 - 1] = yold;
+      *r1z[nseg1 - 1] = zold;
     }
   }
 }
@@ -2214,15 +2424,15 @@ void calc_delta_xyz()
   {
     if (irep == 0)
     {
-      ux = r1x[nseg1 - 1] - r1x[nseg1 - 2];
-      uy = r1y[nseg1 - 1] - r1y[nseg1 - 2];
-      uz = r1z[nseg1 - 1] - r1z[nseg1 - 2];
+      ux = *r1x[nseg1 - 1] - *r1x[nseg1 - 2];
+      uy = *r1y[nseg1 - 1] - *r1y[nseg1 - 2];
+      uz = *r1z[nseg1 - 1] - *r1z[nseg1 - 2];
     }
     else
     {
-      ux = r1x[0] - r1x[1];
-      uy = r1y[0] - r1y[1];
-      uz = r1z[0] - r1z[1];
+      ux = *r1x[0] - *r1x[1];
+      uy = *r1y[0] - *r1y[1];
+      uz = *r1z[0] - *r1z[1];
     }
   }
 
@@ -2230,15 +2440,15 @@ void calc_delta_xyz()
   {
     if (irep == 0)
     {
-      ux = r2x[nseg2 - 1] - r2x[nseg2 - 2];
-      uy = r2y[nseg2 - 1] - r2y[nseg2 - 2];
-      uz = r2z[nseg2 - 1] - r2z[nseg2 - 2];
+      ux = *r2x[nseg2 - 1] - *r2x[nseg2 - 2];
+      uy = *r2y[nseg2 - 1] - *r2y[nseg2 - 2];
+      uz = *r2z[nseg2 - 1] - *r2z[nseg2 - 2];
     }
     else
     {
-      ux = r2x[0] - r2x[1];
-      uy = r2y[0] - r2y[1];
-      uz = r2z[0] - r2z[1];
+      ux = *r2x[0] - *r2x[1];
+      uy = *r2y[0] - *r2y[1];
+      uz = *r2z[0] - *r2z[1];
     }
   }
 
@@ -2246,15 +2456,15 @@ void calc_delta_xyz()
   {
     if (irep == 0)
     {
-      ux = r3x[nseg3 - 1] - r3x[nseg3 - 2];
-      uy = r3y[nseg3 - 1] - r3y[nseg3 - 2];
-      uz = r3z[nseg3 - 1] - r3z[nseg3 - 2];
+      ux = *r3x[nseg3 - 1] - *r3x[nseg3 - 2];
+      uy = *r3y[nseg3 - 1] - *r3y[nseg3 - 2];
+      uz = *r3z[nseg3 - 1] - *r3z[nseg3 - 2];
     }
     else
     {
-      ux = r3x[0] - r3x[1];
-      uy = r3y[0] - r3y[1];
-      uz = r3z[0] - r3z[1];
+      ux = *r3x[0] - *r3x[1];
+      uy = *r3y[0] - *r3y[1];
+      uz = *r3z[0] - *r3z[1];
     }
   }
 
@@ -2262,15 +2472,15 @@ void calc_delta_xyz()
   {
     if (irep == 0)
     {
-      ux = r4x[nseg4 - 1] - r4x[nseg4 - 2];
-      uy = r4y[nseg4 - 1] - r4y[nseg4 - 2];
-      uz = r4z[nseg4 - 1] - r4z[nseg4 - 2];
+      ux = *r4x[nseg4 - 1] - *r4x[nseg4 - 2];
+      uy = *r4y[nseg4 - 1] - *r4y[nseg4 - 2];
+      uz = *r4z[nseg4 - 1] - *r4z[nseg4 - 2];
     }
     else
     {
-      ux = r4x[0] - r4x[1];
-      uy = r4y[0] - r4y[1];
-      uz = r4z[0] - r4z[1];
+      ux = *r4x[0] - *r4x[1];
+      uy = *r4y[0] - *r4y[1];
+      uz = *r4z[0] - *r4z[1];
     }
   }
 
@@ -2353,11 +2563,11 @@ int check_accept_reptation(double rx[5000], double ry[5000], double rz[5000], lo
 
       if (kk < nseg2)
       {
-        dz = rz[krep] - r2z[kk];
+        dz = rz[krep] - *r2z[kk];
         if (fabs(dz) < 1.0)
         {
-          dx = rx[krep] - r2x[kk];
-          dy = ry[krep] - r2y[kk];
+          dx = rx[krep] - *r2x[kk];
+          dy = ry[krep] - *r2y[kk];
           dr2 = dx * dx + dy * dy + dz * dz;
           if (dr2 < 1.0)
             return (reject); // if overlap with monomer in other chain, reject
@@ -2366,11 +2576,11 @@ int check_accept_reptation(double rx[5000], double ry[5000], double rz[5000], lo
 
       if (kk < nseg3)
       {
-        dz = rz[krep] - r3z[kk];
+        dz = rz[krep] - *r3z[kk];
         if (fabs(dz) < 1.0)
         {
-          dx = rx[krep] - r3x[kk];
-          dy = ry[krep] - r3y[kk];
+          dx = rx[krep] - *r3x[kk];
+          dy = ry[krep] - *r3y[kk];
           dr2 = dx * dx + dy * dy + dz * dz;
           if (dr2 < 1.0)
           {
@@ -2381,11 +2591,11 @@ int check_accept_reptation(double rx[5000], double ry[5000], double rz[5000], lo
 
       if (kk < nseg4)
       {
-        dz = rz[krep] - r4z[kk];
+        dz = rz[krep] - *r4z[kk];
         if (fabs(dz) < 1.0)
         {
-          dx = rx[krep] - r4x[kk];
-          dy = ry[krep] - r4y[kk];
+          dx = rx[krep] - *r4x[kk];
+          dy = ry[krep] - *r4y[kk];
           dr2 = dx * dx + dy * dy + dz * dz;
           if (dr2 < 1.0)
           {
@@ -2417,11 +2627,11 @@ int check_accept_reptation(double rx[5000], double ry[5000], double rz[5000], lo
 
       if (kk < nseg1)
       {
-        dz = rz[krep] - r1z[kk];
+        dz = rz[krep] - *r1z[kk];
         if (fabs(dz) < 1.0)
         {
-          dx = rx[krep] - r1x[kk];
-          dy = ry[krep] - r1y[kk];
+          dx = rx[krep] - *r1x[kk];
+          dy = ry[krep] - *r1y[kk];
           dr2 = dx * dx + dy * dy + dz * dz;
 
           if (dr2 < 1.0)
@@ -2435,11 +2645,11 @@ int check_accept_reptation(double rx[5000], double ry[5000], double rz[5000], lo
       {
         if ((kk < krep - 1 || kk > krep + 1) && ichain == 2)
         {
-          dz = rz[krep] - r2z[kk];
+          dz = rz[krep] - *r2z[kk];
           if (fabs(dz) < 1.0)
           {
-            dx = rx[krep] - r2x[kk];
-            dy = ry[krep] - r2y[kk];
+            dx = rx[krep] - *r2x[kk];
+            dy = ry[krep] - *r2y[kk];
             dr2 = dx * dx + dy * dy + dz * dz;
 
             if (dr2 < 1.0)
@@ -2450,11 +2660,11 @@ int check_accept_reptation(double rx[5000], double ry[5000], double rz[5000], lo
         }
         else if (ichain != 2)
         {
-          dz = rz[krep] - r2z[kk];
+          dz = rz[krep] - *r2z[kk];
           if (fabs(dz) < 1.0)
           {
-            dx = rx[krep] - r2x[kk];
-            dy = ry[krep] - r2y[kk];
+            dx = rx[krep] - *r2x[kk];
+            dy = ry[krep] - *r2y[kk];
             dr2 = dx * dx + dy * dy + dz * dz;
 
             if (dr2 < 1.0)
@@ -2469,11 +2679,11 @@ int check_accept_reptation(double rx[5000], double ry[5000], double rz[5000], lo
       {
         if ((kk < krep - 1 || kk > krep + 1) && ichain == 3)
         {
-          dz = rz[krep] - r3z[kk];
+          dz = rz[krep] - *r3z[kk];
           if (fabs(dz) < 1.0)
           {
-            dx = rx[krep] - r3x[kk];
-            dy = ry[krep] - r3y[kk];
+            dx = rx[krep] - *r3x[kk];
+            dy = ry[krep] - *r3y[kk];
             dr2 = dx * dx + dy * dy + dz * dz;
 
             if (dr2 < 1.0)
@@ -2484,11 +2694,11 @@ int check_accept_reptation(double rx[5000], double ry[5000], double rz[5000], lo
         }
         else if (ichain != 3)
         {
-          dz = rz[krep] - r3z[kk];
+          dz = rz[krep] - *r3z[kk];
           if (fabs(dz) < 1.0)
           {
-            dx = rx[krep] - r3x[kk];
-            dy = ry[krep] - r3y[kk];
+            dx = rx[krep] - *r3x[kk];
+            dy = ry[krep] - *r3y[kk];
             dr2 = dx * dx + dy * dy + dz * dz;
 
             if (dr2 < 1.0)
@@ -2503,11 +2713,11 @@ int check_accept_reptation(double rx[5000], double ry[5000], double rz[5000], lo
       {
         if ((kk < krep - 1 || kk > krep + 1) && ichain == 4)
         {
-          dz = rz[krep] - r4z[kk];
+          dz = rz[krep] - *r4z[kk];
           if (fabs(dz) < 1.0)
           {
-            dx = rx[krep] - r4x[kk];
-            dy = ry[krep] - r4y[kk];
+            dx = rx[krep] - *r4x[kk];
+            dy = ry[krep] - *r4y[kk];
             dr2 = dx * dx + dy * dy + dz * dz;
 
             if (dr2 < 1.0)
@@ -2518,11 +2728,11 @@ int check_accept_reptation(double rx[5000], double ry[5000], double rz[5000], lo
         }
         else if (ichain != 4)
         {
-          dz = rz[krep] - r4z[kk];
+          dz = rz[krep] - *r4z[kk];
           if (fabs(dz) < 1.0)
           {
-            dx = rx[krep] - r4x[kk];
-            dy = ry[krep] - r4y[kk];
+            dx = rx[krep] - *r4x[kk];
+            dy = ry[krep] - *r4y[kk];
             dr2 = dx * dx + dy * dy + dz * dz;
 
             if (dr2 < 1.0)
@@ -2773,7 +2983,6 @@ double **dmatrix(long nrl, long nrh, long ncl, long nch)
 
   /* return pointer to array of pointers to rows */
   return m;
-  energy_new[1] = kappa * (1.0 - theta_new);
 }
 
 void free_dmatrix(double **m, long nrl, long nrh, long ncl, long nch)
