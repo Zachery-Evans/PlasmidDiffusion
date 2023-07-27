@@ -1,18 +1,18 @@
 #SRC=.
 #TARGET=./target
-#CFLAGS=-g -Wall -Wextra 
+#CFLAGS=-o $(TARGET)/sim.run
 ARGS= ''
 
 all:
-	cpp -lm -O3 doublePlasmid.cpp -o mc.run
-	./mc.run $(ARGS)
-	
+	nvcc -lm -O3 mc.cu -o mc.run
+	./mc.run
+
 default:
-	main.cpp
+	main.cu
 
 main.c:
-	ccpp $(CFLAGS) $(SRC)/*.cpp
+	nvcc $(CFLAGS) $(SRC)/*.cu
 
 test:
-	main.cpp
+	main.cu
 	$(TARGET)/sim.run $(ARGS)
