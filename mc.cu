@@ -8,24 +8,24 @@ const int N = 100;
 
 double ran3(void);
 __global__ void crankmethod();
-__global__ void crossProduct(double vector1[], double vector2[], double result[]);
-__global__ void position_check(double x_pos[], double y_pos[], double z_pos[]);
-__global__ void overlap(double x_pos[], double y_pos[], double z_pos[]);
-__global__ void vectorMagnitude(double xvar, double yvar, double zvar);
-__global__ void dotProduct(double xvar_a, double yvar_a, double zvar_a, double xvar_b, double yvar_b, double zvar_b);
+__global__ void crossProduct(double[], double[], double[]);
+__global__ void position_check(double[], double[], double[]);
+__global__ void overlap(double[], double[], double[]);
+__global__ void vectorMagnitude(double, double, double);
+__global__ void dotProduct(double, double, double, double, double, double);
 
 int k;
 long SEEDF = 18394783;
-double xold[MAX_MONOMERS], yold[MAX_MONOMERS], zold[MAX_MONOMERS], x[MAX_MONOMERS], y[MAX_MONOMERS], z[MAX_MONOMERS], r[MAX_MONOMERS];
+double xold[MAX_MONOMERS], yold[MAX_MONOMERS], zold[MAX_MONOMERS], r[MAX_MONOMERS];
 double x[MAX_MONOMERS], y[MAX_MONOMERS], z[MAX_MONOMERS];
-__global__ double xdev[MAX_MONOMERS], ydev[MAX_MONOMERS], zdev[MAX_MONOMERS];
-__global__ double vecMag, dotProd;
-__global__ long posCheckTrue;
-__global__ long overlapCheckTrue;
+double xdev[MAX_MONOMERS], ydev[MAX_MONOMERS], zdev[MAX_MONOMERS];
+double vecMag, dotProd;
+long posCheckTrue;
+long overlapCheckTrue;
 
 int main(void)
 {
-    crankmethod();
+    crankmethod<<<1,1>>>();
 
     return 0;
 }
@@ -131,7 +131,7 @@ void crankmethod(void)
                 vHat[1] = vVec[1] / vVec_mag;
                 vHat[2] = vVec[2] / vVec_mag;
 
-                crossProduct(uHat, vHat, wHat); // Does a cross product of uVec and vVec, sets wVec parameters to x,y,z values
+                crossProduct<<<1,1>>>(uHat, vHat, wHat); // Does a cross product of uVec and vVec, sets wVec parameters to x,y,z values
 
                 wVec[0] = wHat[0] * vVec_mag;
                 wVec[1] = wHat[1] * vVec_mag;
