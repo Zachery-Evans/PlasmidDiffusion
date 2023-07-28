@@ -4,7 +4,7 @@
 ARGS= ''
 
 all:
-	nvcc -lm -O3 mc.cu -o mc.run
+	nvcc -lm -lcurand mc.cu -o mc.run
 	./mc.run
 
 default:

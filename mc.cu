@@ -2,20 +2,16 @@
 #include <math.h>
 #include <stdlib.h>
 #include <iostream>
-#include "cuda_runtime.h"
-#include "device_launch_parameters.h"
-using namespace std;
+#include <curand.h>
+#include <curand_kernel.h>
 
 #define PI 3.14159265359
 #define MAX_MONOMERS 5000
 const int N = 50000;
-__device__ long SEEDF = 18394783;
 
 long icyc, ncyc = 1e7, eq_cyc_Host = 1e5;
 
 void crankmethod(void);
-__global__ void ran3(double *);
-__global__ void mc_cycle(void);
 __global__ void overlap(double[], double[], double[]);
 __global__ void vectorMagnitude(double, double, double);
 __global__ void crossProduct(double[], double[], double[]);
@@ -23,48 +19,29 @@ __global__ void position_check(double[], double[], double[], long);
 __global__ void dotProduct(double, double, double, double, double, double);
 
 __device__ int k;
-
 __device__ double *rt2dev;
 __device__ double *vecMag, *dotProd;
-__device__ double *xdev, *ydev, *zdev;
 __device__ long posCheckTrue, overlapCheckTrue;
-__device__ double *xdevOld, *ydevOld, *zdevOld;
-double *x, *y, *z;
-double xold[MAX_MONOMERS], yold[MAX_MONOMERS], zold[MAX_MONOMERS], r[MAX_MONOMERS];
 double *delrVec, *uVec, *vVec, *wVec, *uHat, *vHat, *wHat, *vprimeVec, *delrprimeVec; // x = [0] y = [1], z = [2]
 double Rgsq_avg, Rgsq, dsrgRun = 0, acptRun = 0, acptRatio = 0, phi, delx, dely, delz;
 double *vVec_mag, *delrVec_mag, *uHat_dot_delrVec, *uVec_mag, *delrVec_dot_uHat, dist_tot, xcm, ycm, zcm;
 
-double Rgsqf[10000];
+unsigned int rand_dev;
 
 int main(void)
 {
-    double *rand_dev;
-    double *rand_host;
-
-    x = (double *)malloc(MAX_MONOMERS * sizeof(double));
-    y = (double *)malloc(MAX_MONOMERS * sizeof(double));
-    z = (double *)malloc(MAX_MONOMERS * sizeof(double));
-
-    cudaMalloc(&rand_dev, sizeof(double));
-    rand_host = (double *)malloc(sizeof(double));
-
-    cudaMalloc(&xdev, MAX_MONOMERS * sizeof(double));
-    cudaMalloc(&ydev, MAX_MONOMERS * sizeof(double));
-    cudaMalloc(&zdev, MAX_MONOMERS * sizeof(double));
-
-    cudaMalloc(&xdevOld, MAX_MONOMERS * sizeof(double));
-    cudaMalloc(&ydevOld, MAX_MONOMERS * sizeof(double));
-    cudaMalloc(&zdevOld, MAX_MONOMERS * sizeof(double));
-
-    cudaMemcpy(rand_host, rand_dev, sizeof(double), cudaMemcpyHostToDevice);
-
-    ran3<<<1, 256>>>(rand_dev);
-    
-    cudaMemcpy(rand_dev, rand_host, sizeof(double), cudaMemcpyDeviceToHost);
-
-    printf("%lf\n", rand_host);
-
+    curandGenerator_t rgen;
+    curandCreateGeneratorHost(&rgen, CURAND_RNG_PSEUDO_MRG32K3A);
+    curandSetPseudoRandomGeneratorSeed(rgen, 198);
+    rand_dev = (long)malloc(sizeof(long));
+    curandGenerate(rgen, &rand_dev, 1);
+    printf("%ld\n", rand_dev);
+    curandGenerate(rgen, &rand_dev, 1);
+    printf("%ld\n", rand_dev);
+    curandGenerate(rgen, &rand_dev, 1);
+    printf("%ld\n", rand_dev);
+    curandGenerate(rgen, &rand_dev, 1);
+    printf("%ld\n", rand_dev);
 }
 
 void crankmethod(void)
@@ -368,52 +345,4 @@ __global__ void overlap(double x_pos[], double y_pos[], double z_pos[])
     {
         overlapCheckTrue = 0;
     }
-}
-__global__ void ran3(double *rannum)
-{
-    long iseed = 18394783;
-    static int ma[60], mj, mk, mz, i, ii, k, inext, inextp, iff, mbig, mseed;
-
-    if (iff == 0)
-    {
-        iff = 1;
-        mbig = 1000000000;
-        // mseed = 161803398;
-        mseed = iseed; // iseed given in input file: simulation always proceeds same way?
-        mz = 0;
-        mj = mseed;
-        mj = mj % mbig;
-        ma[55] = mj;
-        mk = 1;
-        for (i = 1; i < 55; i++)
-        {
-            ii = (21 * i) % 55;
-            ma[ii] = mk;
-            mk = mj - mk;
-            if (mk < mz)
-                mk = mk + mbig;
-            mj = ma[ii];
-        }
-        for (k = 1; k <= 4; k++)
-        {
-            for (i = 1; i <= 55; i++)
-            {
-                ma[i] = ma[i] - ma[1 + ((i + 30) % 55)];
-                if (ma[i] < mz)
-                    ma[i] = ma[i] + mbig;
-            }
-        }
-        inext = 0;
-        inextp = 31;
-    }
-    if (++inext == 56)
-        inext = 1;
-    if (++inextp == 56)
-        inextp = 1;
-    mj = ma[inext] - ma[inextp];
-    if (mj < mz)
-        mj = mj + mbig;
-    ma[inext] = mj;
-
-    *rannum = (double)mj / mbig;
 }
