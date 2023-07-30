@@ -7,11 +7,14 @@
 
 #define PI 3.14159265359
 #define MAX_MONOMERS 5000
-const int N = 50000;
+#define MAX_INT 4294967295
+
+const int N = 500;
 
 long icyc, ncyc = 1e7, eq_cyc_Host = 1e5;
 
 void crankmethod(void);
+double ran3(curandGenerator_t);
 __global__ void overlap(double[], double[], double[]);
 __global__ void vectorMagnitude(double, double, double);
 __global__ void crossProduct(double[], double[], double[]);
@@ -27,21 +30,25 @@ double Rgsq_avg, Rgsq, dsrgRun = 0, acptRun = 0, acptRatio = 0, phi, delx, dely,
 double *vVec_mag, *delrVec_mag, *uHat_dot_delrVec, *uVec_mag, *delrVec_dot_uHat, dist_tot, xcm, ycm, zcm;
 
 unsigned int rand_dev;
+curandGenerator_t rgen;
 
 int main(void)
 {
-    curandGenerator_t rgen;
     curandCreateGeneratorHost(&rgen, CURAND_RNG_PSEUDO_MRG32K3A);
-    curandSetPseudoRandomGeneratorSeed(rgen, 198);
+    curandSetPseudoRandomGeneratorSeed(rgen, 138679324);
     rand_dev = (long)malloc(sizeof(long));
+
+    for (int i = 0; i < 10; i++)
+    {
+        printf("%lf \n", ran3(rgen));
+    }
+}
+
+double ran3(curandGenerator_t randomGenerator)
+{
     curandGenerate(rgen, &rand_dev, 1);
-    printf("%ld\n", rand_dev);
-    curandGenerate(rgen, &rand_dev, 1);
-    printf("%ld\n", rand_dev);
-    curandGenerate(rgen, &rand_dev, 1);
-    printf("%ld\n", rand_dev);
-    curandGenerate(rgen, &rand_dev, 1);
-    printf("%ld\n", rand_dev);
+    double temp = (double)rand_dev / MAX_INT;
+    return temp;
 }
 
 void crankmethod(void)
