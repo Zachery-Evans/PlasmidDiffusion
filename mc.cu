@@ -11,9 +11,10 @@
 
 const int N = 500;
 
-long icyc, ncyc = 1e7, eq_cyc_Host = 1e5;
+long icyc, ncyc = 1e7, eq_cyc = 1e5;
 
 void crankmethod(void);
+void init_pos(void);
 double ran3(curandGenerator_t);
 __global__ void overlap(double[], double[], double[]);
 __global__ void vectorMagnitude(double, double, double);
@@ -25,83 +26,36 @@ __device__ int k;
 __device__ double *rt2dev;
 __device__ double *vecMag, *dotProd;
 __device__ long posCheckTrue, overlapCheckTrue;
+double x[MAX_MONOMERS], y[MAX_MONOMERS], z[MAX_MONOMERS];
+double xOld[MAX_MONOMERS], yOld[MAX_MONOMERS], zOld[MAX_MONOMERS];
+__device__ double xdev[MAX_MONOMERS], ydev[MAX_MONOMERS], zdev[MAX_MONOMERS];
+__device__ double xdevOld[MAX_MONOMERS], ydevOld[MAX_MONOMERS], zdevOld[MAX_MONOMERS];
 double *delrVec, *uVec, *vVec, *wVec, *uHat, *vHat, *wHat, *vprimeVec, *delrprimeVec; // x = [0] y = [1], z = [2]
 double Rgsq_avg, Rgsq, dsrgRun = 0, acptRun = 0, acptRatio = 0, phi, delx, dely, delz;
 double *vVec_mag, *delrVec_mag, *uHat_dot_delrVec, *uVec_mag, *delrVec_dot_uHat, dist_tot, xcm, ycm, zcm;
 
-unsigned int rand_dev;
+double rand_dev;
 curandGenerator_t rgen;
 
 int main(void)
 {
-    curandCreateGeneratorHost(&rgen, CURAND_RNG_PSEUDO_MRG32K3A);
+    curandCreateGeneratorHost(&rgen, CURAND_RNG_PSEUDO_MTGP32);
     curandSetPseudoRandomGeneratorSeed(rgen, 138679324);
     rand_dev = (long)malloc(sizeof(long));
 
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < N; i++)
     {
         printf("%lf \n", ran3(rgen));
     }
-}
-
-double ran3(curandGenerator_t randomGenerator)
-{
-    curandGenerate(rgen, &rand_dev, 1);
-    double temp = (double)rand_dev / MAX_INT;
-    return temp;
-}
-
-void crankmethod(void)
-{
-
-    /*
-        ran3<<<1, 256>>>();
-        cudaMemcpyFromSymbol(&rand_host, &rand_dev, sizeof(double), cudaMemcpyDeviceToHost);
-        printf("%lf\n", &rand_host);
-
-        ran3<<<1, 256>>>();
-        cudaMemcpyFromSymbol(&rand_host, &rand_dev, sizeof(double), cudaMemcpyDeviceToHost);
-        printf("%lf\n", &rand_host);
-    */
-    /*
-        for (i = 0; i < N; i++)
-        { // Initial conditions of Polymer is centered on z axis
-            ydev[i] = 0.0;
-            if (i % 2 != 0)
-            {
-                xdev[i] = *rt2dev;
-                zdev[i] = i * *rt2dev;
-            }
-            else
-            {
-                xdev[i] = 0.0;
-                zdev[i] = i * *rt2dev;
-            }
-        }
-
-        acptRatio = acptRun / (acptRun + dsrgRun);
-        Rgsq_avg /= (ncyc - eq_cyc);
-
-        printf("%s %lf\n", "\nAcceptance Ratio:", acptRatio);
-
-        printf("\n%s %lf %s %lf\n", "Disregarded Number:", dsrgRun, "Accepted Number:", acptRun);
-
-        printf("\n%s %lf\n", "Average Radius of Gyration:", Rgsq_avg);
-        */
-}
-/*
-__global__ void mc_cycle()
-{
-    long i, j, eq_cyc;
 
     for (icyc = 0; icyc < ncyc; icyc++) // For some predetermined number of cycles
     {
-        for (j = 0; j < N; j++) // For every particle on chain
+        for (int j = 0; j < N; j++) // For every particle on chain
         {
-            ran3<<<1, 1>>>();
-            k = N * *rand_dev; // Select **random particle**. Since k is int, will change any 0 < #.0 < 1.0 -> #.0
-            ran3<<<1, 1>>>();
-            phi = PI * (2.0 * *rand_dev - 1.0); // Random angle from 0 -> pi using similar method as (2.0 * ran3() - 1.0)
+
+            k = N * rand_dev; // Select **random particle**. Since k is int, will change any 0 < #.0 < 1.0 -> #.0
+
+            phi = PI * (2.0 * rand_dev - 1.0); // Random angle from 0 -> pi using similar method as (2.0 * ran3() - 1.0)
 
             if (k == 0) // DO NOT TOUCH !!!
             {
@@ -194,7 +148,8 @@ __global__ void mc_cycle()
             ydev[k] += dely;
             zdev[k] += delz;
 
-            position_check<<<1, 1>>>(xdev, ydev, zdev);
+            position_check<<<1, 1>>>(xdev, ydev, zdev, k);
+            
             if (posCheckTrue)
             { // If positon check returns 1, -> accept
                 acptRun += 1;
@@ -220,7 +175,7 @@ __global__ void mc_cycle()
         ycm = 0.0;
         zcm = 0.0;
 
-        for (i = 0; i < N; i++)
+        for (int i = 0; i < N; i++)
         {
             xcm += xdev[i];
             ycm += ydev[i];
@@ -231,7 +186,7 @@ __global__ void mc_cycle()
         ycm /= N;
         zcm /= N;
 
-        for (i = 0; i < N; i++)
+        for (int i = 0; i < N; i++)
         {
             Rgsq += (xdev[i] - xcm) * (xdev[i] - xcm) + (ydev[i] - ycm) * (ydev[i] - ycm) + (zdev[i] - zcm) * (zdev[i] - zcm);
         }
@@ -243,7 +198,31 @@ __global__ void mc_cycle()
             Rgsq_avg += Rgsq;
         }
     }
-}*/
+}
+
+double ran3(curandGenerator_t randomGenerator)
+{
+    curandGenerateUniformDouble(rgen, &rand_dev, 1);
+    return rand_dev;
+}
+
+void init_pos()
+{
+    for (int i = 0; i < N; i++)
+    { // Initial conditions of Polymer is centered on z axis
+        y[i] = 0.0;
+        if (i % 2 != 0)
+        {
+            x[i] = *rt2dev;
+            z[i] = i * *rt2dev;
+        }
+        else
+        {
+            x[i] = 0.0;
+            z[i] = i * *rt2dev;
+        }
+    }
+}
 
 __global__ void vectorMagnitude(double xvar, double yvar, double zvar)
 {
