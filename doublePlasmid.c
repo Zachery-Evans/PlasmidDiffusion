@@ -76,7 +76,7 @@ double amax, bmin, amax2, bmin2, ecc, Area, rectangleArea, rectangleXYRatio, xBo
 double xBoxMaxd2, yBoxMaxd2;
 double kappa, xold, yold, zold, delphi_max;
 double z1min, z1max, z2min, z2max, zcm1, zcm2, z1bcm, z2bcm;
-double **prob1, **prob2, **prob3, **prob4, **probmon;
+double **prob1, **prob2, **prob3, **prob4, **plas, **probmon;
 
 FILE *fpmov;
 
@@ -162,6 +162,7 @@ int main()
   prob3 = dmatrix(0, ngridx - 1, 0, ngridy - 1);
   prob3 = dmatrix(0, ngridx - 1, 0, ngridy - 1);
   prob4 = dmatrix(0, ngridx - 1, 0, ngridy - 1);
+  plas = dmatrix(0, ngridx - 1, 0, ngridy - 1);
   probmon = dmatrix(0, ngridx - 1, 0, ngridy - 1);
 
   for (i = 0; i < ngridx; i++)
@@ -172,6 +173,7 @@ int main()
       prob2[i][j] = 0.0;
       prob3[i][j] = 0.0;
       prob4[i][j] = 0.0;
+      plas[i][j] = 0.0;
       probmon[i][j] = 0.0;
     }
   }
@@ -425,6 +427,7 @@ int main()
       if (indx >= 0 && indx < ngridx && indy >= 0 && indy < ngridy)
       {
         prob2[indx][indy] += 1.0;
+        plas[indx][indy] = 1.0;
       }
 
       xcm3 = 0.0;
@@ -450,6 +453,7 @@ int main()
       if (indx >= 0 && indx < ngridx && indy >= 0 && indy < ngridy)
       {
         prob3[indx][indy] += 1.0;
+        plas[indx][indy] = 1.0;
       }
 
       xcm4 = 0.0;
@@ -475,6 +479,7 @@ int main()
       if (indx >= 0 && indx < ngridx && indy >= 0 && indy < ngridy)
       {
         prob4[indx][indy] += 1.0;
+        plas[indx][indy] = 1.0;
       }
 
       nsamp += 1;
