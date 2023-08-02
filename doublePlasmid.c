@@ -101,7 +101,7 @@ double delta_E;
 long ind;
 
 long irep;
-long iter = 0, state[6];
+long iter = 0, state[6] = {0, 0, 0, 0, 0, 0};
 double rep_prob;
 long nacc_rep;
 long nrep;
@@ -502,6 +502,31 @@ int main()
 
       x4cm[thing] = xcm4;
       y4cm[thing] = ycm4;
+
+      if (xcm2 < -xBoxMaxd2 && xcm3 < -xBoxMaxd2)
+      {
+        state[0]++;
+      }
+      else if (xcm2 < -xBoxMaxd2 && (xcm3 > -xBoxMaxd2 && xcm3 < xBoxMaxd2))
+      {
+        state[1]++;
+      }
+      else if ((xcm3 > xBoxMaxd2 && xcm2 < -xBoxMaxd2) || ((xcm2 > xBoxMaxd2 && xcm3 < -xBoxMaxd2)))
+      {
+        state[2]++;
+      }
+      else if ((xcm3 > -xBoxMaxd2 && xcm3 < xBoxMaxd2) && (xcm2 > -xBoxMaxd2 && xcm2 < xBoxMaxd2))
+      {
+        state[3]++;
+      }
+      else if (xcm3 < -xBoxMaxd2 && (xcm2 > -xBoxMaxd2 && xcm2 < xBoxMaxd2))
+      {
+        state[4]++;
+      }
+      else if (xcm3 > xBoxMaxd2 && xcm2 > xBoxMaxd2)
+      {
+        state[5]++;
+      }
     }
 
     if (imov == 1)
@@ -681,7 +706,7 @@ int checkEllipse(double xPos, double yPos, double zPos)
     {
       return reject;
     }
-    
+
     if (yPos * yPos > bmin2 * (1 - (xPos - xBoxMaxd2) * (xPos - xBoxMaxd2) / amax2))
     {
       return reject;
@@ -1490,7 +1515,7 @@ void write_data(void)
   }
   else
   {
-    fprintf(fp, "%ld\t%ld\t%ld\n ", leftEllipse, centerBox, rightEllipse);
+    fprintf(fp, "%ld\t%ld\n%ld\t%ld\n%ld\t%ld\n%ld\t%ld\n%ld\t%ld\n%ld\t%ld\n", 1, state[0], 2, state[1], 3, state[2], 4, state[3], 5, state[4], 6, state[5]);
     fclose(fp);
   }
 
