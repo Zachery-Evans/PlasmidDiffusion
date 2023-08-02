@@ -101,7 +101,7 @@ double delta_E;
 long ind;
 
 long irep;
-long iter = 0, leftEllipse = 0, rightEllipse = 0, centerBox = 0;
+long iter = 0, state[6];
 double rep_prob;
 long nacc_rep;
 long nrep;
@@ -540,7 +540,7 @@ int main()
 
   write_data();
 
-  //printf("%ld\t%ld\t%ld\n", leftEllipse, rightEllipse, centerBox);
+  // printf("%ld\t%ld\t%ld\n", leftEllipse, rightEllipse, centerBox);
 
   if (imov == 1)
   {
@@ -681,13 +681,10 @@ int checkEllipse(double xPos, double yPos, double zPos)
     {
       return reject;
     }
-    else if (yPos * yPos > bmin2 * (1 - (xPos - xBoxMaxd2) * (xPos - xBoxMaxd2) / amax2))
+    
+    if (yPos * yPos > bmin2 * (1 - (xPos - xBoxMaxd2) * (xPos - xBoxMaxd2) / amax2))
     {
       return reject;
-    }
-    else
-    {
-      rightEllipse++;
     }
 
     echeck = (((xPos - xBoxMaxd2) * (xPos - xBoxMaxd2)) / amax2) + ((yPos * yPos) / bmin2);
@@ -704,13 +701,10 @@ int checkEllipse(double xPos, double yPos, double zPos)
     {
       return reject;
     }
-    else if (yPos * yPos > bmin2 * (1 - (xPos + xBoxMaxd2) * (xPos + xBoxMaxd2) / amax2))
+
+    if (yPos * yPos > bmin2 * (1 - (xPos + xBoxMaxd2) * (xPos + xBoxMaxd2) / amax2))
     {
       return reject;
-    }
-    else
-    {
-      leftEllipse++;
     }
 
     echeck = ((xPos + xBoxMaxd2) * (xPos + xBoxMaxd2) / amax2) + (yPos * yPos / bmin2);
@@ -742,13 +736,10 @@ int squareEllipse(double xPos, double yPos, double zPos)
   {
     return checkEllipse(xPos, yPos, zPos);
   }
-  else if (yPos > yBoxMaxd2 || yPos < -yBoxMaxd2)
+
+  if (yPos > yBoxMaxd2 || yPos < -yBoxMaxd2)
   {
     return (reject);
-  }
-  else
-  {
-    centerBox++;
   }
 
   return accept;
