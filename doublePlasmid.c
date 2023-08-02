@@ -1507,16 +1507,19 @@ void init_pos_circular(void)
 void write_data(void)
 {
   FILE *fp;
-
-  if ((fp = fopen("areaProb.dat", "w")) == NULL)
+  
+  if (nseg3 != 0 && nseg4 == 0)
   {
-    printf("Cannot open file: areaProb.dat\n");
-    exit(0);
-  }
-  else
-  {
-    fprintf(fp, "%ld\t%ld\n%ld\t%ld\n%ld\t%ld\n%ld\t%ld\n%ld\t%ld\n%ld\t%ld\n", 1, state[0], 2, state[1], 3, state[2], 4, state[3], 5, state[4], 6, state[5]);
-    fclose(fp);
+    if ((fp = fopen("areaProb.dat", "w")) == NULL)
+    {
+      printf("Cannot open file: areaProb.dat\n");
+      exit(0);
+    }
+    else
+    {
+      fprintf(fp, "%ld\t%ld\n%ld\t%ld\n%ld\t%ld\n%ld\t%ld\n%ld\t%ld\n%ld\t%ld\n", 1, state[0], 2, state[1], 3, state[2], 4, state[3], 5, state[4], 6, state[5]);
+      fclose(fp);
+    }
   }
 
   if (nseg1 != 0)
