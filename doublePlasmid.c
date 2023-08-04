@@ -487,7 +487,7 @@ int main()
 
     if (ii % cmFreqSamp == 0 && ii > neq)
     {
-      long thing = (ii - neq - 1) / cmFreqSamp;
+      long thing = (ii - neq) / cmFreqSamp;
       // printf("%ld   %lf\n", thing, xcm2);
       iter++;
       plas23[thing] = xcm3 * xcm4;
@@ -1507,7 +1507,7 @@ void init_pos_circular(void)
 void write_data(void)
 {
   FILE *fp;
-  
+
   if (nseg3 != 0 && nseg4 == 0)
   {
     if ((fp = fopen("areaProb.dat", "w")) == NULL)
