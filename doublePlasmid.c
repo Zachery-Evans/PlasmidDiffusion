@@ -852,6 +852,7 @@ int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
         }
       }
     }
+
     return (check_poly_energy(rx, ry, rz, nseg)); // apply rigidity
   }
 
@@ -2251,6 +2252,7 @@ int check_accept_reptation(double rx[5000], double ry[5000], double rz[5000], lo
   }
   else
   { // plasmids
+  
     for (kk = 0; kk < nseg1 + nseg2 + nseg3 + nseg4; kk++)
     {
       // Check to see if iterative constant is greater than the size of all
@@ -2393,7 +2395,6 @@ int check_accept_reptation(double rx[5000], double ry[5000], double rz[5000], lo
 }
 void crank_move_polymer(double rx[5000], double ry[5000], double rz[5000])
 {
-
   double delrx, delry, delrz, Rx, Ry, Rz, Rmag, rdotRn, Rnx, Rny, Rnz;
   double ux, uy, uz, vx, vy, vz, vmag, wx, wy, wz, wmag;
   double cosphi, sinphi, delphi;
