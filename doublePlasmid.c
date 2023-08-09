@@ -427,7 +427,7 @@ int main()
       if (indx >= 0 && indx < ngridx && indy >= 0 && indy < ngridy)
       {
         prob2[indx][indy] += 1.0;
-        plas[indx][indy] = 1.0;
+        plas[indx][indy] += 1.0;
       }
 
       xcm3 = 0.0;
@@ -453,7 +453,7 @@ int main()
       if (indx >= 0 && indx < ngridx && indy >= 0 && indy < ngridy)
       {
         prob3[indx][indy] += 1.0;
-        plas[indx][indy] = 1.0;
+        plas[indx][indy] += 1.0;
       }
 
       xcm4 = 0.0;
@@ -479,7 +479,7 @@ int main()
       if (indx >= 0 && indx < ngridx && indy >= 0 && indy < ngridy)
       {
         prob4[indx][indy] += 1.0;
-        plas[indx][indy] = 1.0;
+        plas[indx][indy] += 1.0;
       }
 
       nsamp += 1;
@@ -2252,7 +2252,7 @@ int check_accept_reptation(double rx[5000], double ry[5000], double rz[5000], lo
   }
   else
   { // plasmids
-  
+
     for (kk = 0; kk < nseg1 + nseg2 + nseg3 + nseg4; kk++)
     {
       // Check to see if iterative constant is greater than the size of all

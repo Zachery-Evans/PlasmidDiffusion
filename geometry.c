@@ -12,12 +12,11 @@ long imov, kmaxtest, freq_samp, cmFreqSamp, freq_mon, freq_mov, ncmt, ngridx, ng
 double L, H, Ld2, Hd2, rmax, xt, yt, zt, dx, dy, dz, re, dr2, drxy2, dr2min, dr2max;
 double qmin, qmax, re2av, re2, drmin, drmax, gridspace, gridspacex_real, gridspacey_real;
 double amax, bmin, amax2, bmin2, ecc, Area, rectangleArea, rectangleXYRatio, xBoxMax, yBoxMax, rshift_max;
-double xBoxMaxd2, yBoxMaxd2;
-double kappa, xold, yold, zold, delphi_max;
+double xBoxMaxd2, yBoxMaxd2, kappa, xold, yold, zold, delphi_max;
 
 int main(void)
 {
-    double ii, jj, kk;
+    double ii, jj;
     input(); // Read data given in the input file
 
     FILE *gp;
