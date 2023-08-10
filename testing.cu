@@ -1,5 +1,6 @@
 #include<stdio.h>
 #include <curand_kernel.h> // Include the CUDA Random Number Generation library
+#include <curand.h>
 
 // Device function to generate a random number using curand
 __device__ double randomNumber(curandState *state) {

@@ -4,7 +4,7 @@
 ARGS= ''
 
 all:
-	nvcc -lm -lcurand testing.cu -o mc.run
+	nvcc -lcurand -Xlinker=-rpath,$$CUDA_PATH/lib64 testing.cu -o mc.run
 	./mc.run
 
 default:
