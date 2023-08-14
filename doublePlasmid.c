@@ -519,7 +519,7 @@ int main()
       {
         state[3]++;
       }
-      else if ((xcm3 < -xBoxMaxd2 && (xcm2 > -xBoxMaxd2 && xcm2 < xBoxMaxd2)) || (xcm2 < -xBoxMaxd2 && (xcm3 > -xBoxMaxd2 && xcm3 < xBoxMaxd2)))
+      else if ((xcm3 > xBoxMaxd2 && (xcm2 > -xBoxMaxd2 && xcm2 < xBoxMaxd2)) || (xcm2 > xBoxMaxd2 && (xcm3 > -xBoxMaxd2 && xcm3 < xBoxMaxd2)))
       {
         state[4]++;
       }
