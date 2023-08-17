@@ -123,24 +123,8 @@ int main()
 
   rep_prob = 0.95;
 
-  ngridx = 2.0 * (amax + xBoxMaxd2) / gridspace + 0.00001;
-  ngridy = 2.0 * bmin / gridspace + 0.00001;
-  gridspacex_real = 2.0 * (amax + xBoxMaxd2) / ngridx;
-  gridspacey_real = 2.0 * bmin / ngridy;
   // printf("ngridx = %ld, ngridy = %ld, gridspacex_real = %lf, gridspacey_real = %lf\n",
   // ngridx, ngridy, gridspacex_real, gridspacey_real);
-  prob1 = dmatrix(0, ngridx - 1, 0, ngridy - 1);
-  probmon = dmatrix(0, ngridx - 1, 0, ngridy - 1);
-
-  for (i = 0; i < ngridx; i++)
-  {
-    for (j = 0; j < ngridy; j++)
-    {
-      prob1[i][j] = 0.0;
-      probmon[i][j] = 0.0;
-    }
-  }
-
   nsamp = 0;
 
   dr2min = drmin * drmin;
@@ -273,6 +257,26 @@ int main()
   printf("Acc. ratio = %lf\n", 1.0 * nacc / ((ncyc * (nseg1)) - nrep));
   printf("Number of reptation attempts = %ld\n", nrep);
   printf("Reptation Acc. ratio = %lf\n", 1.0 * nacc_rep / nrep);
+
+  FILE *fp;
+
+  if ((fp = fopen("probmon.dat", "w")) == NULL)
+  {
+    printf("Cannot open file: probmon.dat\n");
+    exit(0);
+  }
+  else
+  {
+    for (i = 0; i < ngridx; i++)
+    {
+      for (j = 0; j < ngridy; j++)
+      {
+        fprintf(fp, "%lf\n", Rgsq_avg / (ncyc - neq));
+      }
+    }
+    fclose(fp);
+  }
+
   printf("Radius of Gyration = %lf\n", Rgsq_avg / (ncyc - neq));
 
   write_data();
