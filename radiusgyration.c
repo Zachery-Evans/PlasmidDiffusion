@@ -63,7 +63,7 @@ void crank_move_polymer(double[], double[], double[]);
 
 long nseg1, nseg2, nseg3, nseg4, nbin, i, j, k, ii, ncyc, overlap, nacc, kk, itest, iseed;
 long neq, nbintot, ibin, ichain, nsamp, nacc_shift, nshift, xcmPrint, ycmPrint;
-long imov, plasRigid, kmaxtest, freq_samp, cmFreqSamp, freq_mon, freq_mov, ncmt, ngridx, ngridy;
+long imov, plasRigid, kmaxtest, cmFreqSamp, freq_samp, ncmt, ngridx, ngridy;
 
 double L, H, Ld2, Hd2, rmax, xt, yt, zt, dx, dy, dz, re, dr2, drxy2, dr2min, dr2max;
 double drmin, drmax, gridspace, gridspacex_real, gridspacey_real;
@@ -140,7 +140,7 @@ int main()
   // Don't include if statement below in cluster
   if (imov == 1)
   {
-    if (ii % freq_mov == 0 && ii > neq)
+    if (ii % freq_samp == 0 && ii > neq)
     {
       fprintf(fpmov, "%ld\n", nseg1);
       fprintf(fpmov, "Polymer:  %ld\n", ii);
@@ -234,7 +234,7 @@ int main()
 
     if (imov == 1)
     {
-      if (ii % freq_mov == 0 && ii > -1)
+      if (ii % freq_samp == 0 && ii > -1)
       {
         fprintf(fpmov, "%ld\n", nseg1 + nseg2 + nseg3 + nseg4);
         fprintf(fpmov, "Polymer:  %ld\n", ii);
@@ -311,8 +311,7 @@ void input(void)
 
     fscanf(fp, "\n%ld%*s", &freq_samp);
     fscanf(fp, "\n%ld%*s", &cmFreqSamp);
-    fscanf(fp, "\n%ld%*s", &freq_mon);
-    fscanf(fp, "\n%ld%*s", &freq_mov);
+    fscanf(fp, "\n%ld%*s", &freq_samp);
 
     fscanf(fp, "\n%ld%*s", &imov);
     fscanf(fp, "\n%ld%*s", &plasRigid);
@@ -345,14 +344,9 @@ void write_log(void)
 
   printf("freq_samp  %ld\n", freq_samp);
   printf("cmFreqSamp  %ld\n", cmFreqSamp);
-  printf("freq_mon   %ld\n", freq_mon);
-  printf("freq_mov   %ld\n", freq_mov);
   printf("\n");
 
   printf("imov     %ld\n", imov);
-  printf("plasRigid    %ld\n", plasRigid);
-  printf("xcmPrint     %ld\n", xcmPrint);
-  printf("ycmPrint     %ld\n", ycmPrint);
   printf("\n");
 }
 

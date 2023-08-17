@@ -14,8 +14,6 @@
 
 100               freq_samp
 100               cmFreqSamp
-1000              freq_mon
-100               freq_mov
 
 1                 imov
-1                 plasRigid
+
