@@ -25,7 +25,6 @@ There are some pecularities that were implemented into this program in order to 
   5) It is not always the case that measurements for the CM of the plasmids are necessary, to avoid using too much file space on the clusters, input parameters xcmPrint
      and ycmPrint where created in order for user input to determine what particular data should be collected. It should be noted that the x2CM * x3CM etc. data will always
      be collected, as the equilibriumn behaviour of the plasmids is one way of making sure that the data you receive is within expectation.
-
 */
 
 #include <math.h>
@@ -46,10 +45,8 @@ void write_log(void);
 void write_data(void);
 void input(void);
 int check_accept(double[], double[], double[], long);
-int check_shift_chain(double[], double[], double[], long);
 
 int check_poly_energy(double[], double[], double[], long);
-int check_plasmid_energy(double[], double[], double[], long);
 double calc_cosine(int, int, int, double[], double[], double[]);
 
 double **dmatrix(long, long, long, long);
@@ -58,13 +55,11 @@ void free_dmatrix(double **, long, long, long, long);
 void reptation_move_chain1(void);
 
 void shift_move_chain(void);
-void shift_move_plasmid(double[], double[], double[], long);
 
 int check_accept_reptation(double[], double[], double[], long, long);
 void calc_delta_xyz(void);
 
 void crank_move_polymer(double[], double[], double[]);
-void crank_move_plasmid(double[], double[], double[], long);
 
 long nseg1, nseg2, nseg3, nseg4, nbin, i, j, k, ii, ncyc, overlap, nacc, kk, itest, iseed;
 long neq, nbintot, ibin, ichain, nsamp, nacc_shift, nshift, xcmPrint, ycmPrint;
@@ -195,14 +190,7 @@ int main()
 
   imon = 0;
 
-  if (plasRigid == 1)
-  {
-    init_pos(); // function call
-  }
-  else
-  {
-    init_pos_circular();
-  }
+  init_pos(); // function call
 
   // Don't include if statement below in cluster
   if (imov == 1)
@@ -238,15 +226,14 @@ int main()
   nacc_shift = 0;
   nshift = 0;
   nrep = 0;
-
+  ichain = 1;
   for (ii = 0; ii < ncyc; ii++)
   {
     // if (ii % 100 == 0) printf("ii = %ld\n",ii);
     for (j = 0; j < nseg1 + nseg2 + nseg3 + nseg4; j++)
     {
       k = (nseg1)*ran3();
-
-      ichain = 1;
+      
       kmaxtest = nseg1 - 2;
 
       if (ran3() >= rep_prob && (k >= 2 || k < kmaxtest))
@@ -828,124 +815,6 @@ double ran3()
   return (double)mj / mbig;
 }
 
-void shift_move_plasmid(double rx[5000], double ry[5000], double rz[5000], long nseg)
-{
-  double delrx, delry, delrz;
-  double xsold[5000];
-  double ysold[5000];
-  double zsold[5000];
-
-  delrx = rshift_max * (2.0 * ran3() - 1.0);
-  delry = rshift_max * (2.0 * ran3() - 1.0);
-  delrz = rshift_max * (2.0 * ran3() - 1.0);
-
-  for (i = 0; i < nseg; i++)
-  {
-    xsold[i] = rx[i];
-    ysold[i] = ry[i];
-    zsold[i] = rz[i];
-
-    rx[i] += delrx;
-    ry[i] += delry;
-    rz[i] += delrz;
-  }
-
-  // printf("delrx = %lf, delry = %lf, delrz = %lf\n",delrx,delry,delrz);
-
-  overlap = check_shift_chain(rx, ry, rz, nseg);
-
-  nshift += 1;
-  if (overlap == 0)
-  {
-    nacc += 1;
-    nacc_shift += 1;
-  }
-  else if (overlap == 1)
-  {
-    for (i = 0; i < nseg; i++)
-    {
-      rx[i] = xsold[i];
-      ry[i] = ysold[i];
-      rz[i] = zsold[i];
-    }
-  }
-}
-
-int check_shift_chain(double rx[5000], double ry[5000], double rz[5000], long nseg)
-{
-  int accept = 0;
-  int reject = 1;
-
-  for (i = 0; i < nseg; i++)
-  {
-
-    if (squareEllipse(rx[i], ry[i], rz[i]) == reject)
-    {
-      return (reject);
-    }
-
-    for (kk = 0; kk < nseg1 + nseg2 + nseg3 + nseg4; kk++)
-    {
-      // Check to see if iterative constant is greater than the size of all
-      // polymers, if so, break inner loop and continue to next monomer in
-      // checked polymer.
-      if (kk > nseg1 && kk > nseg2 && kk > nseg3 && kk > nseg4)
-      {
-        break;
-      }
-
-      if (kk < nseg1 && ichain != 1)
-      {
-        dx = rx[i] - r1x[kk];
-        dy = ry[i] - r1y[kk];
-        dz = rz[i] - r1z[kk];
-        dr2 = dx * dx + dy * dy + dz * dz;
-        if (dr2 < 1.0)
-        {
-          return (reject);
-        }
-      }
-
-      if (kk < nseg2 && ichain != 2)
-      {
-        dx = rx[i] - r2x[kk];
-        dy = ry[i] - r2y[kk];
-        dz = rz[i] - r2z[kk];
-        dr2 = dx * dx + dy * dy + dz * dz;
-        if (dr2 < 1.0)
-        {
-          return (reject);
-        }
-      }
-
-      if (kk < nseg3 && ichain != 3)
-      {
-        dx = rx[i] - r3x[kk];
-        dy = ry[i] - r3y[kk];
-        dz = rz[i] - r3z[kk];
-        dr2 = dx * dx + dy * dy + dz * dz;
-        if (dr2 < 1.0)
-        {
-          return (reject);
-        }
-      }
-
-      if (kk < nseg4 && ichain != 4)
-      {
-        dx = rx[i] - r4x[kk];
-        dy = ry[i] - r4y[kk];
-        dz = rz[i] - r4z[kk];
-        dr2 = dx * dx + dy * dy + dz * dz;
-        if (dr2 < 1.0)
-        {
-          return (reject);
-        }
-      }
-    }
-  }
-  return (accept);
-}
-
 void reptation_move_chain1()
 {
   double rannum;
@@ -1255,7 +1124,6 @@ void crank_move_polymer(double rx[5000], double ry[5000], double rz[5000])
     rz[k] = zold;
   }
 }
-
 
 double **dmatrix(long nrl, long nrh, long ncl, long nch)
 /* allocate a double matrix with subscript range m[nrl..nrh][ncl..nch] */
