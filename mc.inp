@@ -1,15 +1,10 @@
 1400              nseg1
 
 6.0               kappa
-0.9               drmin
-1.1               drmax
-1.0               gridspace
 
 50000             ncyc
 10000             neq
-0.14              rmax
 3.14159           delphi_max
-0.5               rshift_max
 1348378           iseed
 
 100               freq_samp

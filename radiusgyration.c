@@ -1,30 +1,23 @@
 /*
 This code was written by Dr. James Polson, it has been edited and modified by Zach Evans during the summer of 2023
 
-Email: zdjevans@protonmail.com
+This program was written to quickly calculate the radius of gyration of a linear polymer. 
 
-This program was written to study the equilibrium behaviour of plasmids confined to a dual pit geometry of an elliptically capped rectangle interacting with
-T4 polymer (Much longer linear polymer).
+Input parameters are to be changes in a file labeled "mc.inp", the parameters are as follows:
 
-This program was built with the Compute Canada clusters, as such it should include an input file whose contents are read from the function "void input(void)".
+1) Length of the polymer 
 
-There are some pecularities that were implemented into this program in order to be most effective for file management as well as ease of use:
+2) Bending rigidity of the polymer (Physically relevant scales from 0 -> 10)
 
-  1) If the variable "ecc" (eccentricity of the elliptical caps) is greater than or equal to 1.0, then the geometry is changed into a rectangle.
+3) Number of Monte Carlo Cycles
+4) Number of equilibrium cycles
+5) Maximum angle that can be used for a crank shaft movement (default is PI)
+6) Seed of the random number generator
 
-  2) There is a variable called "plasRigid" that controls whether or not the plasmids have ridigity equal to the linear polymer. If plasRigid == 1 then the plasmiids
-     have rigidity. They have zero rigidity otherwise.
+7) Frequency of sampling the position of the polymer e.g. 1 snapshot every x moves
+8) Frequency of sampling the center mass of the polymer (and Radius of Gyration)
 
-  3) The variable imov determines whether or not the "xyz" files used for VMD visualizations are printed to a file. It should be noted that this variable needs to be
-     set to 0 if doing any work in the Compute Canada clusters, as there is not enough storage in the cloud to support printing these files anywhere but on the local
-     computer.
-
-  4) This code was generalized around adding more plasmids to the system, and was optimized such that if either the polymer or any plasmids were removed from the system
-     (nseg = 0) then no modifications would be necessary for the program to compile, run, and produce relevant data.
-
-  5) It is not always the case that measurements for the CM of the plasmids are necessary, to avoid using too much file space on the clusters, input parameters xcmPrint
-     and ycmPrint where created in order for user input to determine what particular data should be collected. It should be noted that the x2CM * x3CM etc. data will always
-     be collected, as the equilibriumn behaviour of the plasmids is one way of making sure that the data you receive is within expectation.
+9) 1 for writing an xyz file, 0 for omitting the xyz file. 
 */
 
 #include <math.h>
@@ -37,7 +30,7 @@ There are some pecularities that were implemented into this program in order to 
 #define NR_END 1
 #define FREE_ARG char *
 
-// function headers
+// function heade_
 double ran3(void);
 void init_pos(void);
 void init_pos_circular(void);
@@ -65,9 +58,8 @@ long nseg1, nseg2, nseg3, nseg4, nbin, i, j, k, ii, ncyc, overlap, nacc, kk, ite
 long neq, nbintot, ibin, ichain, nsamp, nacc_shift, nshift, xcmPrint, ycmPrint;
 long imov, plasRigid, kmaxtest, cmFreqSamp, freq_samp, ncmt, ngridx, ngridy;
 
-double L, H, Ld2, Hd2, rmax, xt, yt, zt, dx, dy, dz, re, dr2, drxy2, dr2min, dr2max;
-double drmin, drmax, gridspace, gridspacex_real, gridspacey_real;
-double xBoxMax, yBoxMax, rshift_max;
+double L, H, Ld2, Hd2, xt, yt, zt, dx, dy, dz, re, dr2, drxy2, dr2min, dr2max;
+double xBoxMax, yBoxMax;
 double kappa, xold, yold, zold, delphi_max;
 double z1min, z1max, z2min, z2max, zcm1, zcm2, z1bcm, z2bcm;
 
@@ -116,12 +108,7 @@ int main()
 
   rep_prob = 0.95;
 
-  // printf("ngridx = %ld, ngridy = %ld, gridspacex_real = %lf, gridspacey_real = %lf\n",
-  // ngridx, ngridy, gridspacex_real, gridspacey_real);
   nsamp = 0;
-
-  dr2min = drmin * drmin;
-  dr2max = drmax * drmax;
 
   write_log();
 
@@ -298,15 +285,10 @@ void input(void)
     fscanf(fp, "%ld%*s", &nseg1);
 
     fscanf(fp, "%lf%*s", &kappa);
-    fscanf(fp, "%lf%*s", &drmin);
-    fscanf(fp, "%lf%*s", &drmax);
-    fscanf(fp, "%lf%*s", &gridspace);
 
     fscanf(fp, "\n%ld%*s", &ncyc);
     fscanf(fp, "%ld%*s", &neq);
-    fscanf(fp, "%lf%*s", &rmax);
     fscanf(fp, "%lf%*s", &delphi_max);
-    fscanf(fp, "%lf%*s", &rshift_max);
     fscanf(fp, "%ld%*s", &iseed);
 
     fscanf(fp, "\n%ld%*s", &freq_samp);
@@ -329,16 +311,12 @@ void write_log(void)
 
   printf("nseg1    %ld\n", nseg1);
   printf("kappa    %lf\n", kappa);
-  printf("drmin    %lf\n", drmin);
-  printf("drmax    %lf\n", drmax);
 
   printf("\n");
 
   printf("ncyc     %ld\n", ncyc);
   printf("neq      %ld\n", neq);
-  printf("rmax     %lf\n", rmax);
   printf("delphi_max   %lf\n", delphi_max);
-  printf("rshift_max   %lf\n", rshift_max);
   printf("iseed    %ld\n", iseed);
   printf("\n");
 
