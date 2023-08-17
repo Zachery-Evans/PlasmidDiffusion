@@ -66,22 +66,15 @@ long neq, nbintot, ibin, ichain, nsamp, nacc_shift, nshift, xcmPrint, ycmPrint;
 long imov, plasRigid, kmaxtest, freq_samp, cmFreqSamp, freq_mon, freq_mov, ncmt, ngridx, ngridy;
 
 double L, H, Ld2, Hd2, rmax, xt, yt, zt, dx, dy, dz, re, dr2, drxy2, dr2min, dr2max;
-double qmin, qmax, re2av, re2, drmin, drmax, gridspace, gridspacex_real, gridspacey_real;
-double amax, bmin, amax2, bmin2, ecc, Area, rectangleArea, rectangleXYRatio, xBoxMax, yBoxMax, rshift_max;
-double xBoxMaxd2, yBoxMaxd2;
+double drmin, drmax, gridspace, gridspacex_real, gridspacey_real;
+double xBoxMax, yBoxMax, rshift_max;
 double kappa, xold, yold, zold, delphi_max;
 double z1min, z1max, z2min, z2max, zcm1, zcm2, z1bcm, z2bcm;
-double **prob1, **prob2, **prob3, **prob4, **plas, **probmon;
+
 
 FILE *fpmov;
 
 double r1x[5000], r1y[5000], r1z[5000];
-double r2x[5000], r2y[5000], r2z[5000];
-double r3x[5000], r3y[5000], r3z[5000];
-double r4x[5000], r4y[5000], r4z[5000];
-double x2cm[10000], x3cm[10000], x4cm[10000];
-double y2cm[10000], y3cm[10000], y4cm[10000];
-double plas12[10000], plas23[10000], plas13[10000];
 
 double x1, x2, x3, yone, y2, y3, z1, z2, z3;
 double vax, vay, vaz, vbx, vby, vbz;
@@ -260,9 +253,9 @@ int main()
 
   FILE *fp;
 
-  if ((fp = fopen("probmon.dat", "w")) == NULL)
+  if ((fp = fopen("rgsq.dat", "w")) == NULL)
   {
-    printf("Cannot open file: probmon.dat\n");
+    printf("Cannot open file: rgsq.dat\n");
     exit(0);
   }
   else
@@ -278,10 +271,6 @@ int main()
   }
 
   printf("Radius of Gyration = %lf\n", Rgsq_avg / (ncyc - neq));
-
-  write_data();
-
-  // printf("%ld\t%ld\t%ld\n", leftEllipse, rightEllipse, centerBox);
 
   if (imov == 1)
   {
@@ -327,8 +316,6 @@ void input(void)
 
     fscanf(fp, "\n%ld%*s", &imov);
     fscanf(fp, "\n%ld%*s", &plasRigid);
-    fscanf(fp, "\n%ld%*s", &xcmPrint);
-    fscanf(fp, "\n%ld%*s", &ycmPrint);
   }
 
   fclose(fp);
@@ -406,44 +393,6 @@ int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
           {
             return (reject);
           }
-        }
-      }
-
-      // Checking if the plasmid overlaps with the T4 polymer
-      if (kk < nseg2)
-      {
-        dx = rx[k] - r2x[kk];
-        dy = ry[k] - r2y[kk];
-        dz = rz[k] - r2z[kk];
-        dr2 = dx * dx + dy * dy + dz * dz;
-        if (dr2 < 1.0)
-        {
-          return (reject);
-        }
-      }
-
-      // Checking if third plasmid overlaps with T4 polymer
-      if (kk < nseg3)
-      {
-        dx = rx[k] - r3x[kk];
-        dy = ry[k] - r3y[kk];
-        dz = rz[k] - r3z[kk];
-        dr2 = dx * dx + dy * dy + dz * dz;
-        if (dr2 < 1.0)
-        {
-          return (reject);
-        }
-      }
-
-      if (kk < nseg4)
-      {
-        dx = rx[k] - r4x[kk];
-        dy = ry[k] - r4y[kk];
-        dz = rz[k] - r4z[kk];
-        dr2 = dx * dx + dy * dy + dz * dz;
-        if (dr2 < 1.0)
-        {
-          return (reject);
         }
       }
     }
@@ -658,8 +607,8 @@ void init_pos(void)
 {
   double xadd, yadd, xmax, ymax, zplace;
 
-  r1x[0] = -xBoxMaxd2;
-  r1y[0] = -yBoxMaxd2 + 2.0;
+  r1x[0] = - (double) nseg1 / 2.0 ;
+  r1y[0] = 0.0;
   r1z[0] = 1.0;
   xadd = 1.0;
   yadd = 1.0;
@@ -670,53 +619,6 @@ void init_pos(void)
     r1x[i] = r1x[i - 1] + xadd;
     r1y[i] = r1y[i - 1];
     r1z[i] = zplace;
-  }
-}
-
-void write_data(void)
-{
-  FILE *fp;
-
-  if (nseg1 != 0)
-  {
-    if ((fp = fopen("prob1.dat", "w")) == NULL)
-    {
-      printf("Cannot open file: prob1.dat\n");
-      exit(0);
-    }
-    else
-    {
-      for (i = 0; i < ngridx; i++)
-      {
-        for (j = 0; j < ngridy; j++)
-        {
-          fprintf(fp, "%8.2lf  ", prob1[i][j]);
-        }
-        fprintf(fp, "\n");
-      }
-      fclose(fp);
-    }
-  }
-
-  if (nseg1 != 0)
-  {
-    if ((fp = fopen("probmon.dat", "w")) == NULL)
-    {
-      printf("Cannot open file: probmon.dat\n");
-      exit(0);
-    }
-    else
-    {
-      for (i = 0; i < ngridx; i++)
-      {
-        for (j = 0; j < ngridy; j++)
-        {
-          fprintf(fp, "%8.2lf  ", probmon[i][j]);
-        }
-        fprintf(fp, "\n");
-      }
-      fclose(fp);
-    }
   }
 }
 
@@ -893,54 +795,6 @@ void calc_delta_xyz()
       ux = r1x[0] - r1x[1];
       uy = r1y[0] - r1y[1];
       uz = r1z[0] - r1z[1];
-    }
-  }
-
-  else if (ichain == 2)
-  {
-    if (irep == 0)
-    {
-      ux = r2x[nseg2 - 1] - r2x[nseg2 - 2];
-      uy = r2y[nseg2 - 1] - r2y[nseg2 - 2];
-      uz = r2z[nseg2 - 1] - r2z[nseg2 - 2];
-    }
-    else
-    {
-      ux = r2x[0] - r2x[1];
-      uy = r2y[0] - r2y[1];
-      uz = r2z[0] - r2z[1];
-    }
-  }
-
-  else if (ichain == 3)
-  {
-    if (irep == 0)
-    {
-      ux = r3x[nseg3 - 1] - r3x[nseg3 - 2];
-      uy = r3y[nseg3 - 1] - r3y[nseg3 - 2];
-      uz = r3z[nseg3 - 1] - r3z[nseg3 - 2];
-    }
-    else
-    {
-      ux = r3x[0] - r3x[1];
-      uy = r3y[0] - r3y[1];
-      uz = r3z[0] - r3z[1];
-    }
-  }
-
-  else if (ichain == 4)
-  {
-    if (irep == 0)
-    {
-      ux = r4x[nseg4 - 1] - r4x[nseg4 - 2];
-      uy = r4y[nseg4 - 1] - r4y[nseg4 - 2];
-      uz = r4z[nseg4 - 1] - r4z[nseg4 - 2];
-    }
-    else
-    {
-      ux = r4x[0] - r4x[1];
-      uy = r4y[0] - r4y[1];
-      uz = r4z[0] - r4z[1];
     }
   }
 
