@@ -107,6 +107,7 @@ double alpha, beta;
 double cos_alpha, cos_beta, sin_alpha, sin_beta;
 double ux, uy, uz;
 double u, uxy;
+double Rgsum, Rgsq[10000];
 
 // ------------------------------------------------------------------------
 // main function
@@ -114,37 +115,13 @@ double u, uxy;
 int main()
 {
   long imon, indx, indy;
-  double xcm1, ycm1, xcm2, ycm2, xcm3, ycm3, xcm4, ycm4;
+  double Rgsq, Rgsq_avg;
+  double xcm1, ycm1, zcm1;
   clock_t start, end;
 
   input();
 
   rep_prob = 0.95;
-  // defining the area of the ellipse as the total area subtracted by the area
-  // of the rectangle now between two halves of the ellipse.
-
-  // Requires that the y direction of the box is the same height as the semi-minor
-  // axis of the ellipse.
-  if (ecc < 1.0)
-  {
-    amax = bmin / sqrt(1 - ecc * ecc);
-  }
-
-  amax2 = amax * amax;
-  bmin2 = bmin * bmin;
-  rectangleArea = Area - PI * amax * bmin;
-  yBoxMax = 2.0 * bmin;
-  yBoxMaxd2 = bmin; // Width of the rectangle section equivalent to the semi-minor axis
-  xBoxMax = rectangleArea / (2.0 * bmin);
-  xBoxMaxd2 = xBoxMax / 2.0;
-
-  //  printf("%lf \t %lf\n", amax, bmin);
-  //  printf("Length of the box: %lf\n", xBoxMax);
-  //  printf("1/2 Length of the box: %lf\n", xBoxMaxd2);
-  //  printf("Semi-major axis: %lf\n", amax);
-  //  printf("Semi-minor axis: %lf\n", bmin);
-  //  printf("Height of box: %lf\n", yBoxMax);
-  Hd2 = H / 2.0;
 
   ngridx = 2.0 * (amax + xBoxMaxd2) / gridspace + 0.00001;
   ngridy = 2.0 * bmin / gridspace + 0.00001;
@@ -153,11 +130,6 @@ int main()
   // printf("ngridx = %ld, ngridy = %ld, gridspacex_real = %lf, gridspacey_real = %lf\n",
   // ngridx, ngridy, gridspacex_real, gridspacey_real);
   prob1 = dmatrix(0, ngridx - 1, 0, ngridy - 1);
-  prob2 = dmatrix(0, ngridx - 1, 0, ngridy - 1);
-  prob3 = dmatrix(0, ngridx - 1, 0, ngridy - 1);
-  prob3 = dmatrix(0, ngridx - 1, 0, ngridy - 1);
-  prob4 = dmatrix(0, ngridx - 1, 0, ngridy - 1);
-  plas = dmatrix(0, ngridx - 1, 0, ngridy - 1);
   probmon = dmatrix(0, ngridx - 1, 0, ngridy - 1);
 
   for (i = 0; i < ngridx; i++)
@@ -165,10 +137,6 @@ int main()
     for (j = 0; j < ngridy; j++)
     {
       prob1[i][j] = 0.0;
-      prob2[i][j] = 0.0;
-      prob3[i][j] = 0.0;
-      prob4[i][j] = 0.0;
-      plas[i][j] = 0.0;
       probmon[i][j] = 0.0;
     }
   }
@@ -197,26 +165,12 @@ int main()
   {
     if (ii % freq_mov == 0 && ii > neq)
     {
-      fprintf(fpmov, "%ld\n", nseg1 + nseg2 + nseg3 + nseg4);
+      fprintf(fpmov, "%ld\n", nseg1);
       fprintf(fpmov, "Polymer:  %ld\n", ii);
 
       for (i = 0; i < nseg1; i++)
       {
         fprintf(fpmov, "N    %lf  %lf  %lf\n", r1x[i], r1y[i], r1z[i]);
-      }
-      for (i = 0; i < nseg2; i++)
-      {
-        fprintf(fpmov, "O    %lf  %lf  %lf\n", r2x[i], r2y[i], r2z[i]);
-      }
-
-      for (i = 0; i < nseg3; i++)
-      {
-        fprintf(fpmov, "F    %lf  %lf  %lf\n", r3x[i], r3y[i], r3z[i]);
-      }
-
-      for (i = 0; i < nseg4; i++)
-      {
-        fprintf(fpmov, "B    %lf  %lf  %lf\n", r4x[i], r4y[i], r4z[i]);
       }
     }
   }
@@ -233,7 +187,7 @@ int main()
     for (j = 0; j < nseg1 + nseg2 + nseg3 + nseg4; j++)
     {
       k = (nseg1)*ran3();
-      
+
       kmaxtest = nseg1 - 2;
 
       if (ran3() >= rep_prob && (k >= 2 || k < kmaxtest))
@@ -280,11 +234,25 @@ int main()
       {
         xcm1 += r1x[i];
         ycm1 += r1y[i];
+        zcm1 += r1z[i];
       }
       xcm1 /= nseg1;
       ycm1 /= nseg1;
+      zcm1 /= nseg1;
 
       nsamp += 1;
+    }
+
+    for (i = 0; i < nseg1; i++)
+    {
+      Rgsq += (r1x[i] - xcm1) * (r1x[i] - xcm1) + (r1y[i] - ycm1) * (r1y[i] - ycm1) + (r1z[i] - zcm1) * (r1z[i] - zcm1);
+    }
+
+    Rgsq = Rgsq / nseg1;
+
+    if (ii % freq_samp == 0 && ii > neq)
+    {
+      Rgsq_avg += Rgsq;
     }
 
     if (imov == 1)
@@ -305,7 +273,7 @@ int main()
   printf("Acc. ratio = %lf\n", 1.0 * nacc / ((ncyc * (nseg1)) - nrep));
   printf("Number of reptation attempts = %ld\n", nrep);
   printf("Reptation Acc. ratio = %lf\n", 1.0 * nacc_rep / nrep);
-  printf("Shift 2 Acc. ratio = %ld / %ld = %lf\n", nacc_shift, nshift, 1.0 * nacc_shift / nshift);
+  printf("Radius of Gyration = %lf\n", Rgsq_avg / (ncyc - neq));
 
   write_data();
 
@@ -335,13 +303,7 @@ void input(void)
   else
   {
     fscanf(fp, "%ld%*s", &nseg1);
-    fscanf(fp, "%ld%*s", &nseg2);
-    fscanf(fp, "%ld%*s", &nseg3);
-    fscanf(fp, "%ld%*s", &nseg4);
-    fscanf(fp, "%lf%*s", &Area);
-    fscanf(fp, "%lf%*s", &bmin);
-    fscanf(fp, "%lf%*s", &ecc);
-    fscanf(fp, "%lf%*s", &H);
+
     fscanf(fp, "%lf%*s", &kappa);
     fscanf(fp, "%lf%*s", &drmin);
     fscanf(fp, "%lf%*s", &drmax);
@@ -376,23 +338,9 @@ void write_log(void)
 {
 
   printf("nseg1    %ld\n", nseg1);
-  printf("nseg2    %ld\n", nseg2);
-  printf("nseg3    %ld\n", nseg3);
-  printf("nseg4    %ld\n", nseg4);
-  printf("Area     %lf\n", Area);
-  printf("Rect     %lf\n", rectangleArea);
-  printf("ecc      %lf\n", ecc);
-  printf("amax     %lf\n", amax);
-  printf("bmin     %lf\n", bmin);
-  printf("H        %lf\n", H);
   printf("kappa    %lf\n", kappa);
   printf("drmin    %lf\n", drmin);
   printf("drmax    %lf\n", drmax);
-  printf("gridspace %lf\n", gridspace);
-  printf("gridspacex_real %lf\n", gridspacex_real);
-  printf("gridspacey_real %lf\n", gridspacey_real);
-  printf("ngridx  %ld\n", ngridx);
-  printf("ngridy  %ld\n", ngridy);
 
   printf("\n");
 
