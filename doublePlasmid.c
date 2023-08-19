@@ -170,9 +170,6 @@ int main()
     for (j = 0; j < ngridy; j++)
     {
       prob1[i][j] = 0.0;
-      prob2[i][j] = 0.0;
-      prob3[i][j] = 0.0;
-      prob4[i][j] = 0.0;
       plas[i][j] = 0.0;
       probmon[i][j] = 0.0;
     }
@@ -426,7 +423,6 @@ int main()
       }
       if (indx >= 0 && indx < ngridx && indy >= 0 && indy < ngridy)
       {
-        prob2[indx][indy] += 1.0;
         plas[indx][indy] += 1.0;
       }
 
@@ -452,7 +448,6 @@ int main()
 
       if (indx >= 0 && indx < ngridx && indy >= 0 && indy < ngridy)
       {
-        prob3[indx][indy] += 1.0;
         plas[indx][indy] += 1.0;
       }
 
@@ -478,7 +473,6 @@ int main()
 
       if (indx >= 0 && indx < ngridx && indy >= 0 && indy < ngridy)
       {
-        prob4[indx][indy] += 1.0;
         plas[indx][indy] += 1.0;
       }
 
@@ -1508,6 +1502,24 @@ void init_pos_circular(void)
 void write_data(void)
 {
   FILE *fp;
+  
+  if ((fp = fopen("plas.dat", "w")) == NULL)
+  {
+    printf("Cannot open file: plas.dat\n");
+    exit(0);
+  }
+  else
+  {
+    for (i = 0; i < ngridx; i++)
+    {
+      for (j = 0; j < ngridy; j++)
+      {
+        fprintf(fp, "%8.2lf  ", plas[i][j]);
+      }
+      fprintf(fp, "\n");
+    }
+    fclose(fp);
+  }
 
   if (nseg3 != 0 && nseg4 == 0)
   {
@@ -1523,6 +1535,7 @@ void write_data(void)
     }
   }
 
+
   if (nseg1 != 0)
   {
     if ((fp = fopen("prob1.dat", "w")) == NULL)
@@ -1537,67 +1550,6 @@ void write_data(void)
         for (j = 0; j < ngridy; j++)
         {
           fprintf(fp, "%8.2lf  ", prob1[i][j]);
-        }
-        fprintf(fp, "\n");
-      }
-      fclose(fp);
-    }
-  }
-
-  if (nseg2 != 0)
-  {
-    if ((fp = fopen("prob2.dat", "w")) == NULL)
-    {
-      printf("Cannot open file: prob2.dat\n");
-      exit(0);
-    }
-    else
-    {
-      for (i = 0; i < ngridx; i++)
-      {
-        for (j = 0; j < ngridy; j++)
-          fprintf(fp, "%8.2lf  ", prob2[i][j]);
-        fprintf(fp, "\n");
-      }
-      fclose(fp);
-    }
-  }
-
-  if (nseg3 != 0)
-  {
-    if ((fp = fopen("prob3.dat", "w")) == NULL)
-    {
-      printf("Cannot open file: prob3.dat\n");
-      exit(0);
-    }
-    else
-    {
-      for (i = 0; i < ngridx; i++)
-      {
-        for (j = 0; j < ngridy; j++)
-        {
-          fprintf(fp, "%8.2lf  ", prob3[i][j]);
-        }
-        fprintf(fp, "\n");
-      }
-      fclose(fp);
-    }
-  }
-
-  if (nseg4 != 0)
-  {
-    if ((fp = fopen("prob4.dat", "w")) == NULL)
-    {
-      printf("Cannot open file: prob4.dat\n");
-      exit(0);
-    }
-    else
-    {
-      for (i = 0; i < ngridx; i++)
-      {
-        for (j = 0; j < ngridy; j++)
-        {
-          fprintf(fp, "%8.2lf  ", prob4[i][j]);
         }
         fprintf(fp, "\n");
       }
