@@ -1,5 +1,5 @@
 /*
-This code was written by Dr. James Polson, it has been edited and modified by Zach Evans during the summer of 2023
+This code was written by Dr. James Polson, it has been modified by Zach Evans during the summer of 2023
 
 Email: zdjevans@protonmail.com
 
@@ -7,6 +7,39 @@ This program was written to study the equilibrium behaviour of plasmids confined
 T4 polymer (Much longer linear polymer).
 
 This program was built with the Compute Canada clusters, as such it should include an input file whose contents are read from the function "void input(void)".
+
+The input function reads from a file labeled "mc.inp" short for "Monte Carlo Input". The file should be of similar form to:
+
+1000              nseg1   // Number of Monomers in Linear Polymer 
+25                nseg2   // Number of Monomers in Plasmid 1
+25                nseg3   // Number of Monomers in Plasmid 2
+0                 nseg4
+3000.0            Area    // Total area of geometry, note it is possible to make polymer placements impossible
+12.0              bmin    // Length of semi minor axis in monomer widths
+0.8               ecc     // Eccentricy of elliptical caps
+
+15.0              H       // Lateral height of confinement ( Height in the z direction )
+0.0               kappa   // Bending rigidity of polymer & plasmids (physical relevance from 0.0 -> 10.0)
+0.9               drmin
+1.1               drmax
+1.0               gridspace
+
+50000             ncyc    // Number of Monte Carlo Cycles
+10000             neq     // Number of Equilibrium Cycles
+0.14              rmax
+3.14159           delphi_max
+0.5               rshift_max
+1348378           iseed   // Seed for Random Number Generation
+
+100               freq_samp  // Sample frequency for probability distributions (1 sample for every 100 MC Cycles)
+100               cmFreqSamp // Sample frequency for the cm correlation of plasmids
+
+0                 imov       // 1 for writing xyz files for VMD movies
+1                 plasRigid  // Plasmid rigidity
+0                 xcmPrint   // Write center mass data for singular plasmids (if 1, write. else do not write)
+0                 ycmPrint   
+
+Unless otherwise edited. 
 
 There are some pecularities that were implemented into this program in order to be most effective for file management as well as ease of use:
 
@@ -20,7 +53,7 @@ There are some pecularities that were implemented into this program in order to 
      computer.
 
   4) This code was generalized around adding more plasmids to the system, and was optimized such that if either the polymer or any plasmids were removed from the system
-     (nseg = 0) then no modifications would be necessary for the program to compile, run, and produce relevant data.
+     (nseg* = 0) then no modifications would be necessary for the program to compile, run, and produce relevant data.
 
   5) It is not always the case that measurements for the CM of the plasmids are necessary, to avoid using too much file space on the clusters, input parameters xcmPrint
      and ycmPrint where created in order for user input to determine what particular data should be collected. It should be noted that the x2CM * x3CM etc. data will always
@@ -66,17 +99,16 @@ void calc_delta_xyz(void);
 void crank_move_polymer(double[], double[], double[]);
 void crank_move_plasmid(double[], double[], double[], long);
 
-long nseg1, nseg2, nseg3, nseg4, nbin, i, j, k, ii, ncyc, overlap, nacc, kk, itest, iseed;
-long neq, nbintot, ibin, ichain, nsamp, nacc_shift, nshift, xcmPrint, ycmPrint;
-long imov, plasRigid, kmaxtest, freq_samp, cmFreqSamp, freq_mon, freq_mov, ncmt, ngridx, ngridy;
+long nseg1, nseg2, nseg3, nseg4, i, j, k, ii, ncyc, overlap, nacc, kk, iseed;
+long neq, ichain, nsamp, nacc_shift, nshift, xcmPrint, ycmPrint;
+long imov, plasRigid, kmaxtest, freq_samp, cmFreqSamp, ngridx, ngridy;
 
-double L, H, Ld2, Hd2, rmax, xt, yt, zt, dx, dy, dz, re, dr2, drxy2, dr2min, dr2max;
-double qmin, qmax, re2av, re2, drmin, drmax, gridspace, gridspacex_real, gridspacey_real;
-double amax, bmin, amax2, bmin2, ecc, Area, rectangleArea, rectangleXYRatio, xBoxMax, yBoxMax, rshift_max;
+double L, H, Ld2, Hd2, rmax, dx, dy, dz, dr2;
+double drmin, drmax, gridspace, gridspacex_real, gridspacey_real;
+double amax, bmin, amax2, bmin2, ecc, Area, rectangleArea, xBoxMax, yBoxMax, rshift_max;
 double xBoxMaxd2, yBoxMaxd2;
 double kappa, xold, yold, zold, delphi_max;
-double z1min, z1max, z2min, z2max, zcm1, zcm2, z1bcm, z2bcm;
-double **prob1, **prob2, **prob3, **prob4, **plas, **probmon;
+double **prob1, **plas, **probmon;
 
 FILE *fpmov;
 
@@ -158,10 +190,6 @@ int main()
   // printf("ngridx = %ld, ngridy = %ld, gridspacex_real = %lf, gridspacey_real = %lf\n",
   // ngridx, ngridy, gridspacex_real, gridspacey_real);
   prob1 = dmatrix(0, ngridx - 1, 0, ngridy - 1);
-  prob2 = dmatrix(0, ngridx - 1, 0, ngridy - 1);
-  prob3 = dmatrix(0, ngridx - 1, 0, ngridy - 1);
-  prob3 = dmatrix(0, ngridx - 1, 0, ngridy - 1);
-  prob4 = dmatrix(0, ngridx - 1, 0, ngridy - 1);
   plas = dmatrix(0, ngridx - 1, 0, ngridy - 1);
   probmon = dmatrix(0, ngridx - 1, 0, ngridy - 1);
 
@@ -176,9 +204,6 @@ int main()
   }
 
   nsamp = 0;
-
-  dr2min = drmin * drmin;
-  dr2max = drmax * drmax;
 
   write_log();
 
@@ -204,7 +229,7 @@ int main()
   // Don't include if statement below in cluster
   if (imov == 1)
   {
-    if (ii % freq_mov == 0 && ii > neq)
+    if (ii % freq_samp == 0 && ii > neq)
     {
       fprintf(fpmov, "%ld\n", nseg1 + nseg2 + nseg3 + nseg4);
       fprintf(fpmov, "Polymer:  %ld\n", ii);
@@ -525,7 +550,7 @@ int main()
 
     if (imov == 1)
     {
-      if (ii % freq_mov == 0 && ii > -1)
+      if (ii % freq_samp == 0 && ii > -1)
       {
         fprintf(fpmov, "%ld\n", nseg1 + nseg2 + nseg3 + nseg4);
         fprintf(fpmov, "Polymer:  %ld\n", ii);
@@ -606,8 +631,6 @@ void input(void)
 
     fscanf(fp, "\n%ld%*s", &freq_samp);
     fscanf(fp, "\n%ld%*s", &cmFreqSamp);
-    fscanf(fp, "\n%ld%*s", &freq_mon);
-    fscanf(fp, "\n%ld%*s", &freq_mov);
 
     fscanf(fp, "\n%ld%*s", &imov);
     fscanf(fp, "\n%ld%*s", &plasRigid);
@@ -656,8 +679,6 @@ void write_log(void)
 
   printf("freq_samp  %ld\n", freq_samp);
   printf("cmFreqSamp  %ld\n", cmFreqSamp);
-  printf("freq_mon   %ld\n", freq_mon);
-  printf("freq_mov   %ld\n", freq_mov);
   printf("\n");
 
   printf("imov     %ld\n", imov);

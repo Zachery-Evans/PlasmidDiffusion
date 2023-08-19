@@ -7,7 +7,7 @@ void input(void);
 
 long nseg1, nseg2, nseg3, nseg4, ncyc, overlap, nacc, kk, itest, iseed;
 long neq, nbintot, ibin, ichain, nsamp, nacc_shift, nshift;
-long imov, kmaxtest, freq_samp, cmFreqSamp, freq_mon, freq_mov, ncmt, ngridx, ngridy;
+long imov, kmaxtest, freq_samp, cmFreqSamp, freq_mon, freq_samp, ncmt, ngridx, ngridy;
 
 double L, H, Ld2, Hd2, rmax, xt, yt, zt, dx, dy, dz, re, dr2, drxy2, dr2min, dr2max;
 double qmin, qmax, re2av, re2, drmin, drmax, gridspace, gridspacex_real, gridspacey_real;
@@ -132,7 +132,7 @@ void input(void)
         fscanf(fp, "\n%ld%*s", &freq_samp);
         fscanf(fp, "\n%ld%*s", &cmFreqSamp);
         fscanf(fp, "\n%ld%*s", &freq_mon);
-        fscanf(fp, "\n%ld%*s", &freq_mov);
+        fscanf(fp, "\n%ld%*s", &freq_samp);
 
         fscanf(fp, "\n%ld%*s", &imov);
     }
