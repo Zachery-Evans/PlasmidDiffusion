@@ -1,7 +1,8 @@
 /*
 This code was written by Dr. James Polson, it has been edited and modified by Zach Evans during the summer of 2023
 
-This program was written to quickly calculate the radius of gyration of a linear polymer. 
+This program was quickly written to calculate the radius of gyration of a linear polymer, as such, there are some redundant if statements 
+and confusing variable names that exist in a different context. 
 
 Input parameters are to be changes in a file labeled "mc.inp", the parameters are as follows:
 
@@ -55,7 +56,7 @@ void calc_delta_xyz(void);
 void crank_move_polymer(double[], double[], double[]);
 
 long nseg1, nseg2, nseg3, nseg4, nbin, i, j, k, ii, ncyc, overlap, nacc, kk, itest, iseed;
-long neq, nbintot, ibin, ichain, nsamp, nacc_shift, nshift, xcmPrint, ycmPrint;
+long neq, nbintot, ibin, ichain, nsamp, nacc_shift, nshift;
 long imov, kmaxtest, cmFreqSamp, freq_samp, ncmt, ngridx, ngridy;
 
 double L, H, Ld2, Hd2, xt, yt, zt, dx, dy, dz, re, dr2, drxy2, dr2min, dr2max;
