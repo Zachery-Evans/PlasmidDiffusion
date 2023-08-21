@@ -1,12 +1,12 @@
 /*
 This code was written by Dr. James Polson, it has been edited and modified by Zach Evans during the summer of 2023
 
-This program was quickly written to calculate the radius of gyration of a linear polymer, as such, there are some redundant if statements 
-and confusing variable names that exist in a different context. 
+This program was quickly written to calculate the radius of gyration of a linear polymer, as such, there are some redundant if statements
+and confusing variable names that exist in a different context.
 
 Input parameters are to be changes in a file labeled "mc.inp", the parameters are as follows:
 
-1) Length of the polymer 
+1) Length of the polymer
 
 2) Bending rigidity of the polymer (Physically relevant scales from 0 -> 10)
 
@@ -18,7 +18,7 @@ Input parameters are to be changes in a file labeled "mc.inp", the parameters ar
 7) Frequency of sampling the position of the polymer e.g. 1 snapshot every x moves
 8) Frequency of sampling the center mass of the polymer (and Radius of Gyration)
 
-9) 1 for writing an xyz file, 0 for omitting the xyz file. 
+9) 1 for writing an xyz file, 0 for omitting the xyz file.
 */
 
 #include <math.h>
@@ -36,7 +36,6 @@ double ran3(void);
 void init_pos(void);
 void init_pos_circular(void);
 void write_log(void);
-void write_data(void);
 void input(void);
 int check_accept(double[], double[], double[], long);
 
@@ -63,7 +62,6 @@ double L, H, Ld2, Hd2, xt, yt, zt, dx, dy, dz, re, dr2, drxy2, dr2min, dr2max;
 double xBoxMax, yBoxMax;
 double kappa, xold, yold, zold, delphi_max;
 double z1min, z1max, z2min, z2max, zcm1, zcm2, z1bcm, z2bcm;
-
 
 FILE *fpmov;
 
@@ -93,7 +91,6 @@ double alpha, beta;
 double cos_alpha, cos_beta, sin_alpha, sin_beta;
 double ux, uy, uz;
 double u, uxy;
-double Rgsum, Rgsq[10000];
 
 // ------------------------------------------------------------------------
 // main function
@@ -101,9 +98,10 @@ double Rgsum, Rgsq[10000];
 int main()
 {
   long imon, indx, indy;
-  double Rgsq, Rgsq_avg;
+  double Rgsq, Rgsq_avg, Rgsq_hist[10000];
   double xcm1, ycm1, zcm1;
   clock_t start, end;
+  long RgHistIter = 0;
 
   input();
 
@@ -217,6 +215,12 @@ int main()
 
     if (ii % freq_samp == 0 && ii > neq)
     {
+      Rgsq_hist[RgHistIter] = Rgsq;
+      RgHistIter++;
+    }
+
+    if (ii % freq_samp == 0 && ii > neq)
+    {
       Rgsq_avg += Rgsq;
     }
 
@@ -248,12 +252,9 @@ int main()
   }
   else
   {
-    for (i = 0; i < ngridx; i++)
+    for (i = 0; i < RgHistIter; i++)
     {
-      for (j = 0; j < ngridy; j++)
-      {
-        fprintf(fp, "%lf\n", Rgsq_avg / (ncyc - neq));
-      }
+      fprintf(fp, "%lf\n", Rgsq_hist[i]);
     }
     fclose(fp);
   }
@@ -285,16 +286,15 @@ void input(void)
   {
     fscanf(fp, "%ld%*s", &nseg1);
 
-    fscanf(fp, "%lf%*s", &kappa);
+    fscanf(fp, "\n%lf%*s", &kappa);
 
     fscanf(fp, "\n%ld%*s", &ncyc);
-    fscanf(fp, "%ld%*s", &neq);
-    fscanf(fp, "%lf%*s", &delphi_max);
-    fscanf(fp, "%ld%*s", &iseed);
+    fscanf(fp, "\n%ld%*s", &neq);
+    fscanf(fp, "\n%lf%*s", &delphi_max);
+    fscanf(fp, "\n%ld%*s", &iseed);
 
     fscanf(fp, "\n%ld%*s", &freq_samp);
     fscanf(fp, "\n%ld%*s", &cmFreqSamp);
-    fscanf(fp, "\n%ld%*s", &freq_samp);
 
     fscanf(fp, "\n%ld%*s", &imov);
   }
@@ -311,19 +311,15 @@ void write_log(void)
 
   printf("nseg1    %ld\n", nseg1);
   printf("kappa    %lf\n", kappa);
-
   printf("\n");
-
   printf("ncyc     %ld\n", ncyc);
   printf("neq      %ld\n", neq);
   printf("delphi_max   %lf\n", delphi_max);
   printf("iseed    %ld\n", iseed);
   printf("\n");
-
   printf("freq_samp  %ld\n", freq_samp);
   printf("cmFreqSamp  %ld\n", cmFreqSamp);
   printf("\n");
-
   printf("imov     %ld\n", imov);
   printf("\n");
 }
@@ -579,7 +575,7 @@ void init_pos(void)
 {
   double xadd, yadd, xmax, ymax, zplace;
 
-  r1x[0] = - (double) nseg1 / 2.0 ;
+  r1x[0] = -(double)nseg1 / 2.0;
   r1y[0] = 0.0;
   r1z[0] = 1.0;
   xadd = 1.0;
