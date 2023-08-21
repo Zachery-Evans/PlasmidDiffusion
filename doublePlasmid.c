@@ -637,6 +637,7 @@ void write_log(void)
   printf("nseg4    %ld\n", nseg4);
   printf("Area     %lf\n", Area);
   printf("Rect     %lf\n", rectangleArea);
+  printf("Ltot     %lf\n", amax + xBoxMax);
   printf("ecc      %lf\n", ecc);
   printf("amax     %lf\n", amax);
   printf("bmin     %lf\n", bmin);
