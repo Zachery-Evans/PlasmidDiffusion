@@ -56,7 +56,7 @@ void crank_move_polymer(double[], double[], double[]);
 
 long nseg1, nseg2, nseg3, nseg4, nbin, i, j, k, ii, ncyc, overlap, nacc, kk, itest, iseed;
 long neq, nbintot, ibin, ichain, nsamp, nacc_shift, nshift, xcmPrint, ycmPrint;
-long imov, plasRigid, kmaxtest, cmFreqSamp, freq_samp, ncmt, ngridx, ngridy;
+long imov, kmaxtest, cmFreqSamp, freq_samp, ncmt, ngridx, ngridy;
 
 double L, H, Ld2, Hd2, xt, yt, zt, dx, dy, dz, re, dr2, drxy2, dr2min, dr2max;
 double xBoxMax, yBoxMax;
@@ -296,7 +296,6 @@ void input(void)
     fscanf(fp, "\n%ld%*s", &freq_samp);
 
     fscanf(fp, "\n%ld%*s", &imov);
-    fscanf(fp, "\n%ld%*s", &plasRigid);
   }
 
   fclose(fp);
