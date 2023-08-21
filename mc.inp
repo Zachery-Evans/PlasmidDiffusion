@@ -1,4 +1,4 @@
-1400              nseg1
+500              nseg1
 
 6.0               kappa
 
@@ -7,8 +7,8 @@
 3.14159           delphi_max
 1348378           iseed
 
-1000               freq_samp
-1000               cmFreqSamp
+100               freq_samp
+100               cmFreqSamp
 
 1                 imov
 

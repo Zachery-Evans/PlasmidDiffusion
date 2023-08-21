@@ -91,7 +91,7 @@ double alpha, beta;
 double cos_alpha, cos_beta, sin_alpha, sin_beta;
 double ux, uy, uz;
 double u, uxy;
-
+long RgHistIter = 0;
 // ------------------------------------------------------------------------
 // main function
 // ------------------------------------------------------------------------
@@ -101,7 +101,6 @@ int main()
   double Rgsq, Rgsq_avg, Rgsq_hist[10000];
   double xcm1, ycm1, zcm1;
   clock_t start, end;
-  long RgHistIter = 0;
 
   input();
 
@@ -124,6 +123,7 @@ int main()
   init_pos(); // function call
 
   // Don't include if statement below in cluster
+  /* Write the inital starting position to xyz file
   if (imov == 1)
   {
     if (ii % freq_samp == 0 && ii > neq)
@@ -137,13 +137,14 @@ int main()
       }
     }
   }
-
+  */
   nacc = 0; // will hold number of accepted moves
   nacc_rep = 0;
   nacc_shift = 0;
   nshift = 0;
   nrep = 0;
   ichain = 1;
+
   for (ii = 0; ii < ncyc; ii++)
   {
     // if (ii % 100 == 0) printf("ii = %ld\n",ii);
@@ -217,16 +218,12 @@ int main()
     {
       Rgsq_hist[RgHistIter] = Rgsq;
       RgHistIter++;
-    }
-
-    if (ii % freq_samp == 0 && ii > neq)
-    {
       Rgsq_avg += Rgsq;
     }
 
     if (imov == 1)
     {
-      if (ii % freq_samp == 0 && ii > -1)
+      if (ii % freq_samp == 0 && ii > 0)
       {
         fprintf(fpmov, "%ld\n", nseg1 + nseg2 + nseg3 + nseg4);
         fprintf(fpmov, "Polymer:  %ld\n", ii);
@@ -259,7 +256,7 @@ int main()
     fclose(fp);
   }
 
-  printf("Radius of Gyration = %lf\n", Rgsq_avg / (ncyc - neq));
+  printf("Radius of Gyration = %lf\n", (double) Rgsq_avg / RgHistIter);
 
   if (imov == 1)
   {
