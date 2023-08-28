@@ -630,12 +630,12 @@ void input(void)
     fscanf(fp, "%ld%*s", &iseed);
 
     fscanf(fp, "\n%ld%*s", &freq_samp);
-    fscanf(fp, "\n%ld%*s", &cmFreqSamp);
+    fscanf(fp, "%ld%*s", &cmFreqSamp);
 
     fscanf(fp, "\n%ld%*s", &imov);
-    fscanf(fp, "\n%ld%*s", &plasRigid);
-    fscanf(fp, "\n%ld%*s", &xcmPrint);
-    fscanf(fp, "\n%ld%*s", &ycmPrint);
+    fscanf(fp, "%ld%*s", &plasRigid);
+    fscanf(fp, "%ld%*s", &xcmPrint);
+    fscanf(fp, "%ld%*s", &ycmPrint);
   }
 
   fclose(fp);
