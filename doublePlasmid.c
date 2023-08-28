@@ -13,7 +13,7 @@ The input function reads from a file labeled "mc.inp" short for "Monte Carlo Inp
 1000              nseg1   // Number of Monomers in Linear Polymer 
 25                nseg2   // Number of Monomers in Plasmid 1
 25                nseg3   // Number of Monomers in Plasmid 2
-0                 nseg4
+0                 nseg4   // Number of Monomers in Plasmid 3
 3000.0            Area    // Total area of geometry, note it is possible to make polymer placements impossible
 12.0              bmin    // Length of semi minor axis in monomer widths
 0.8               ecc     // Eccentricy of elliptical caps
