@@ -10,7 +10,7 @@ This program was built with the Compute Canada clusters, as such it should inclu
 
 The input function reads from a file labeled "mc.inp" short for "Monte Carlo Input". The file should be of similar form to:
 
-1000              nseg1   // Number of Monomers in Linear Polymer 
+1000              nseg1   // Number of Monomers in Linear Polymer
 25                nseg2   // Number of Monomers in Plasmid 1
 25                nseg3   // Number of Monomers in Plasmid 2
 0                 nseg4   // Number of Monomers in Plasmid 3
@@ -37,9 +37,9 @@ The input function reads from a file labeled "mc.inp" short for "Monte Carlo Inp
 0                 imov       // 1 for writing xyz files for VMD movies
 1                 plasRigid  // Plasmid rigidity
 0                 xcmPrint   // Write center mass data for singular plasmids (if 1, write. else do not write)
-0                 ycmPrint   
+0                 ycmPrint
 
-Unless otherwise edited. 
+Unless otherwise edited.
 
 There are some pecularities that were implemented into this program in order to be most effective for file management as well as ease of use:
 
@@ -1330,42 +1330,41 @@ double calc_cosine(int i1, int i2, int i3, double rx[5000], double ry[5000], dou
 void init_pos(void)
 {
 
-  double xadd, yadd, xmax, ymax, zplace;
+  double xadd, yadd, xmax, ymax, zplace, echeck;
 
-  r1x[0] = -xBoxMaxd2;
-  r1y[0] = -yBoxMaxd2 + 2.0;
+  r1x[0] = -xBoxMaxd2 + 0.5;
+  r1y[0] = -bmin + 2.0;
   r1z[0] = 1.0;
   xadd = 1.0;
   yadd = 1.0;
   zplace = 1.0;
+
+  xmax = xBoxMaxd2;
+  ymax = yBoxMaxd2;
 
   for (i = 1; i < nseg1; i++)
   {
     r1x[i] = r1x[i - 1] + xadd;
     r1y[i] = r1y[i - 1];
     r1z[i] = zplace;
-    xmax = xBoxMaxd2; // Changed to be inside of the rectangle structure
-    // xmax = amax * sqrt(1.0 - pow(r1y[i] / bmin, 2.0)) - 3.0;
+    echeck = (((r1x[i] - xBoxMaxd2) * (r1x[i] - xBoxMaxd2)) / amax2) + ((r1y[i] * r1y[i]) / bmin2); // Changed to be inside of the rectangle structure
 
-    if (r1x[i] > xmax || r1x[i] < -xmax)
+    if (r1x[i] > xBoxMaxd2 || r1x[i] < -xBoxMaxd2)
     {
-      if (r1y[i] + 2.0 > ymax || r1y[i] - 2.0 < -ymax)
+      if (echeck > 0.9)
       {
-        zplace -= 1.0;
-        yadd = -1.0 * yadd;
-        // printf("%ld   %lf\n", i, yadd);
+        if (r1y[i] + 4.0 > ymax || r1y[i] - 4.0 < -ymax)
+        {
+          zplace -= 1;
+        }
+        r1x[i] -= xadd;
+        r1y[i] = r1y[i] + yadd;
+        xadd *= -1.0;
       }
-
-      r1x[i] -= xadd;
-      r1y[i] = r1y[i] + yadd;
-      ymax = yBoxMaxd2;
-
-      if (r1y[i] > ymax || r1y[i] < -ymax)
-      {
-        printf("Can't place polymer... exiting...\n");
-        exit(0);
-      }
-      xadd *= -1.0;
+    }
+    else
+    {
+      continue;
     }
   }
 
@@ -1375,48 +1374,48 @@ void init_pos(void)
 
     if (i < nseg2 / 2)
     {
-      r2x[i] = (double)-i - xBoxMaxd2 + nseg2;
+      r2x[i] = (double)-i - xBoxMaxd2;
       r2y[i] = 0.0;
     }
     if (i == nseg2 / 2 + 0.5 || i == nseg2 / 2)
     {
-      r2x[i] = (double)-i - xBoxMaxd2 + nseg2 + 1.0;
+      r2x[i] = (double)-i - xBoxMaxd2;
       r2y[i] = -1.0;
     }
     if (i > nseg2 / 2 && i < nseg2 - 1)
     {
-      r2x[i] = (double)+i - nseg2 - xBoxMaxd2 + nseg2 + 1.0;
+      r2x[i] = (double)+i - nseg2 - xBoxMaxd2;
       r2y[i] = -2.0;
     }
     if (i == nseg2 - 1)
     {
-      r2x[i] = (double)+i - nseg2 - xBoxMaxd2 + nseg2 + 1.0;
+      r2x[i] = (double)+i - nseg2 - xBoxMaxd2;
       r2y[i] = -1.0;
     }
   }
 
   for (i = 0; i < nseg3; i++)
   {
-    r3z[i] = -2.0;
+    r3z[i] = 2.0;
 
     if (i < nseg3 / 2)
     {
-      r3x[i] = (double)-i - xBoxMaxd2 + nseg3;
+      r3x[i] = (double)-i - xBoxMaxd2;
       r3y[i] = 0.0;
     }
     if (i == nseg3 / 2 + 0.5 || i == nseg3 / 2)
     {
-      r3x[i] = (double)-i - xBoxMaxd2 + nseg3 + 1.0;
+      r3x[i] = (double)-i - xBoxMaxd2;
       r3y[i] = -1.0;
     }
     if (i > nseg3 / 2 && i < nseg3 - 1)
     {
-      r3x[i] = (double)+i - nseg3 - xBoxMaxd2 + nseg3 + 1.0;
+      r3x[i] = (double)+i - nseg3 - xBoxMaxd2;
       r3y[i] = -2.0;
     }
     if (i == nseg3 - 1)
     {
-      r3x[i] = (double)+i - nseg3 - xBoxMaxd2 + nseg3 + 1.0;
+      r3x[i] = (double)+i - nseg3 - xBoxMaxd2;
       r3y[i] = -1.0;
     }
   }
@@ -1437,12 +1436,12 @@ void init_pos(void)
     }
     if (i > nseg4 / 2 && i < nseg2 - 1)
     {
-      r4x[i] = (double)-i - nseg4 + xBoxMaxd2 + nseg4 - 1.0;
+      r4x[i] = (double)-i + xBoxMaxd2 - 1.0;
       r4y[i] = -2.0;
     }
     if (i == nseg4 - 1)
     {
-      r4x[i] = (double)-i - nseg4 + xBoxMaxd2 + nseg4 - 1.0;
+      r4x[i] = (double)-i + xBoxMaxd2 - 1.0;
       r4y[i] = -1.0;
     }
   }
@@ -1524,7 +1523,7 @@ void init_pos_circular(void)
 void write_data(void)
 {
   FILE *fp;
-  
+
   if ((fp = fopen("plas.dat", "w")) == NULL)
   {
     printf("Cannot open file: plas.dat\n");
@@ -1556,7 +1555,6 @@ void write_data(void)
       fclose(fp);
     }
   }
-
 
   if (nseg1 != 0)
   {
