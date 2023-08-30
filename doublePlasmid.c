@@ -183,9 +183,24 @@ int main()
   //  printf("Height of box: %lf\n", yBoxMax);
   Hd2 = H / 2.0;
 
-  ngridx = 2.0 * (amax + xBoxMaxd2) / gridspace + 0.00001;
+  if (rectangleArea > 0.0)
+  {
+    ngridx = 2.0 * (amax + xBoxMaxd2) / gridspace + 0.00001;
+  }
+  else
+  {
+    ngridx = 2.0 * (amax + xBoxMaxd2) / gridspace + 0.00001;
+  }
+
   ngridy = 2.0 * bmin / gridspace + 0.00001;
-  gridspacex_real = 2.0 * (amax + xBoxMaxd2) / ngridx;
+  if (rectangleArea > 0.0)
+  {
+    gridspacex_real = 2.0 * (amax + xBoxMaxd2) / ngridx;
+  }
+  else
+  {
+    gridspacex_real = 2.0 * amax / ngridx;
+  }
   gridspacey_real = 2.0 * bmin / ngridy;
   // printf("ngridx = %ld, ngridy = %ld, gridspacex_real = %lf, gridspacey_real = %lf\n",
   // ngridx, ngridy, gridspacex_real, gridspacey_real);
@@ -400,7 +415,14 @@ int main()
       xcm1 /= nseg1;
       ycm1 /= nseg1;
 
-      indx = (xcm1 + amax + xBoxMaxd2) / gridspacex_real;
+      if (rectangleArea > 0.0)
+      {
+        indx = (xcm1 + amax + xBoxMaxd2) / gridspacex_real;
+      }
+      else
+      {
+        (xcm1 + amax) / gridspacex_real;
+      }
       indy = (ycm1 + bmin) / gridspacey_real;
       /*
        * printf statements after the following conditions are met:
@@ -419,7 +441,14 @@ int main()
 
       for (i = 0; i < nseg1; i++)
       {
-        indx = (r1x[i] + amax + xBoxMaxd2) / gridspacex_real;
+        if (rectangleArea > 0.0)
+        {
+          indx = (r1x[i] + amax + xBoxMaxd2) / gridspacex_real;
+        }
+        else
+        {
+          indx = (r1x[i] + amax) / gridspacex_real;
+        }
         indy = (r1y[i] + bmin) / gridspacey_real;
         if (indx >= 0 && indx < ngridx && indy >= 0 && indy < ngridy)
         {
@@ -437,7 +466,15 @@ int main()
       xcm2 /= nseg2;
       ycm2 /= nseg2;
 
-      indx = (xcm2 + amax + xBoxMaxd2) / gridspacex_real;
+      if (rectangleArea > 0.0)
+      {
+        indx = (xcm2 + amax + xBoxMaxd2) / gridspacex_real;
+      }
+      else
+      {
+        indx = (xcm2 + amax) / gridspacex_real;
+      }
+
       indy = (ycm2 + bmin) / gridspacey_real;
 
       if (indx >= ngridx || indy >= ngridy)
@@ -461,7 +498,14 @@ int main()
       xcm3 /= nseg3;
       ycm3 /= nseg3;
 
-      indx = (xcm3 + amax + xBoxMaxd2) / gridspacex_real;
+      if (rectangleArea > 0.0)
+      {
+        indx = (xcm3 + amax + xBoxMaxd2) / gridspacex_real;
+      }
+      else
+      {
+        indx = (xcm3 + amax) / gridspacex_real;
+      }
       indy = (ycm3 + bmin) / gridspacey_real;
 
       if (indx >= ngridx || indy >= ngridy)
@@ -486,7 +530,14 @@ int main()
       xcm4 /= nseg4;
       ycm4 /= nseg4;
 
-      indx = (xcm4 + amax + xBoxMaxd2) / gridspacex_real;
+      if (rectangleArea > 0.0)
+      {
+        indx = (xcm4 + amax + xBoxMaxd2) / gridspacex_real;
+      }
+      else
+      {
+        indx = (xcm4 + amax) / gridspacex_real;
+      }
       indy = (ycm4 + bmin) / gridspacey_real;
 
       if (indx >= ngridx || indy >= ngridy)
@@ -718,17 +769,24 @@ int checkEllipse(double xPos, double yPos, double zPos)
 
   if (xPos > xBoxMaxd2 && ecc < 1.0)
   { // If the polymer is outside of the leftmost semi-ellipse, reject
-    if ((xPos - xBoxMaxd2) * (xPos - xBoxMaxd2) > amax2 * (1 - (yPos * yPos) / bmin2))
+    if ((xPos - xBoxMaxd2) * (xPos - xBoxMaxd2) > amax2 * (1 - (yPos * yPos) / bmin2) && rectangleArea > 0.0)
     {
       return reject;
     }
 
-    if (yPos * yPos > bmin2 * (1 - (xPos - xBoxMaxd2) * (xPos - xBoxMaxd2) / amax2))
+    if (yPos * yPos > bmin2 * (1 - (xPos - xBoxMaxd2) * (xPos - xBoxMaxd2) / amax2) && rectangleArea > 0.0)
     {
       return reject;
     }
 
-    echeck = (((xPos - xBoxMaxd2) * (xPos - xBoxMaxd2)) / amax2) + ((yPos * yPos) / bmin2);
+    if (rectangleArea > 0.0)
+    {
+      echeck = (((xPos - xBoxMaxd2) * (xPos - xBoxMaxd2)) / amax2) + ((yPos * yPos) / bmin2);
+    }
+    else
+    {
+      echeck = (((xPos) * (xPos)) / amax2) + ((yPos * yPos) / bmin2);
+    }
 
     if (echeck > 1.0)
     {
@@ -738,17 +796,24 @@ int checkEllipse(double xPos, double yPos, double zPos)
 
   else if (xPos < -xBoxMaxd2 && ecc < 1.0)
   { // Checking if outside of left elliptical end
-    if ((xPos + xBoxMaxd2) * (xPos + xBoxMaxd2) > amax2 * (1 - (yPos * yPos) / bmin2))
+    if ((xPos + xBoxMaxd2) * (xPos + xBoxMaxd2) > amax2 * (1 - (yPos * yPos) / bmin2) && rectangleArea > 0.0)
     {
       return reject;
     }
 
-    if (yPos * yPos > bmin2 * (1 - (xPos + xBoxMaxd2) * (xPos + xBoxMaxd2) / amax2))
+    if (yPos * yPos > bmin2 * (1 - (xPos + xBoxMaxd2) * (xPos + xBoxMaxd2) / amax2) && rectangleArea > 0.0)
     {
       return reject;
     }
 
-    echeck = ((xPos + xBoxMaxd2) * (xPos + xBoxMaxd2) / amax2) + (yPos * yPos / bmin2);
+    if (rectangleArea > 0.0)
+    {
+      echeck = (((xPos + xBoxMaxd2) * (xPos + xBoxMaxd2)) / amax2) + ((yPos * yPos) / bmin2);
+    }
+    else
+    {
+      echeck = (((xPos) * (xPos)) / amax2) + ((yPos * yPos) / bmin2);
+    }
 
     if (echeck > 1.0)
     {
@@ -1332,8 +1397,8 @@ void init_pos(void)
 
   double xadd, yadd, xmax, ymax, zplace, echeck;
 
-  r1x[0] = -xBoxMaxd2 + 0.5;
-  r1y[0] = -bmin + 2.0;
+  r1x[0] = -0.0;
+  r1y[0] = -bmin + 4.0;
   r1z[0] = 1.0;
   xadd = 1.0;
   yadd = 1.0;
@@ -1347,13 +1412,35 @@ void init_pos(void)
     r1x[i] = r1x[i - 1] + xadd;
     r1y[i] = r1y[i - 1];
     r1z[i] = zplace;
-    echeck = (((r1x[i] - xBoxMaxd2) * (r1x[i] - xBoxMaxd2)) / amax2) + ((r1y[i] * r1y[i]) / bmin2); // Changed to be inside of the rectangle structure
-
-    if (r1x[i] > xBoxMaxd2 || r1x[i] < -xBoxMaxd2)
+    if (rectangleArea > 0.0)
     {
-      if (echeck > 0.9)
+      echeck = (((r1x[i] - xBoxMaxd2) * (r1x[i] - xBoxMaxd2)) / amax2) + ((r1y[i] * r1y[i]) / bmin2); // Changed to be inside of the rectangle structure
+      if (r1x[i] > xBoxMaxd2 || r1x[i] < -xBoxMaxd2)
       {
-        if (r1y[i] + 4.0 > ymax || r1y[i] - 4.0 < -ymax)
+        if (echeck > 0.8)
+        {
+          if (r1y[i] + 1.0 > ymax || r1y[i] - 1.0 < -ymax)
+          {
+            zplace -= 1;
+          }
+          r1x[i] -= xadd;
+          r1y[i] = r1y[i] + yadd;
+          xadd *= -1.0;
+        }
+      }
+      else
+      {
+        continue;
+      }
+    }
+
+    else
+    {
+      echeck = ((r1x[i] * r1x[i]) / amax2) + ((r1y[i] * r1y[i]) / bmin2);
+
+      if (echeck > 0.8)
+      {
+        if (r1y[i] + 1.0 > ymax || r1y[i] - 1.0 < -ymax)
         {
           zplace -= 1;
         }
@@ -1361,10 +1448,6 @@ void init_pos(void)
         r1y[i] = r1y[i] + yadd;
         xadd *= -1.0;
       }
-    }
-    else
-    {
-      continue;
     }
   }
 
