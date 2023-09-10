@@ -1453,78 +1453,78 @@ void init_pos(void)
 
   for (i = 0; i < nseg2; i++)
   {
-    r2z[i] = 4.0;
+    r2z[i] = 2.0;
 
     if (i < nseg2 / 2)
     {
-      r2x[i] = (double)-i - xBoxMaxd2;
+      r2x[i] = (double) -i ;
       r2y[i] = 0.0;
     }
     if (i == nseg2 / 2 + 0.5 || i == nseg2 / 2)
     {
-      r2x[i] = (double)-i - xBoxMaxd2;
+      r2x[i] = (double)-i ;
       r2y[i] = -1.0;
     }
     if (i > nseg2 / 2 && i < nseg2 - 1)
     {
-      r2x[i] = (double)+i - nseg2 - xBoxMaxd2;
+      r2x[i] = (double)+i - nseg2 ;
       r2y[i] = -2.0;
     }
     if (i == nseg2 - 1)
     {
-      r2x[i] = (double)+i - nseg2 - xBoxMaxd2;
+      r2x[i] = (double)+i - nseg2;
       r2y[i] = -1.0;
     }
   }
 
   for (i = 0; i < nseg3; i++)
   {
-    r3z[i] = 2.0;
+    r3z[i] = 4.0;
 
     if (i < nseg3 / 2)
     {
-      r3x[i] = (double)-i - xBoxMaxd2;
+      r3x[i] = (double)-i;
       r3y[i] = 0.0;
     }
     if (i == nseg3 / 2 + 0.5 || i == nseg3 / 2)
     {
-      r3x[i] = (double)-i - xBoxMaxd2;
+      r3x[i] = (double)-i;
       r3y[i] = -1.0;
     }
     if (i > nseg3 / 2 && i < nseg3 - 1)
     {
-      r3x[i] = (double)+i - nseg3 - xBoxMaxd2;
+      r3x[i] = (double)+i - nseg3;
       r3y[i] = -2.0;
     }
     if (i == nseg3 - 1)
     {
-      r3x[i] = (double)+i - nseg3 - xBoxMaxd2;
+      r3x[i] = (double)+i - nseg3;
       r3y[i] = -1.0;
     }
   }
 
   for (i = 0; i < nseg4; i++)
   {
-    r4z[i] = 2.0;
+    r4z[i] = 6.0;
 
     if (i < nseg4 / 2)
     {
-      r4x[i] = (double)+i + xBoxMaxd2 - nseg4;
+      r4x[i] = (double)+i - nseg4;
       r4y[i] = 0.0;
     }
     if (i == nseg4 / 2 + 0.5 || i == nseg4 / 2)
     {
-      r4x[i] = (double)+i + xBoxMaxd2 - nseg4 - 1.0;
+      r4x[i] = (double)+i - nseg4 - 1.0;
       r4y[i] = -1.0;
     }
     if (i > nseg4 / 2 && i < nseg2 - 1)
     {
-      r4x[i] = (double)-i + xBoxMaxd2 - 1.0;
+      r4x[i] = (double)-i - 1.0;
       r4y[i] = -2.0;
     }
     if (i == nseg4 - 1)
     {
-      r4x[i] = (double)-i + xBoxMaxd2 - 1.0;
+      r4x[i] = (double)-i - 1.0;
       r4y[i] = -1.0;
     }
   }
