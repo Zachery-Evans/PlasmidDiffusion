@@ -38,7 +38,7 @@ __device__ void randomKernelDevice(double *output, int n)
 	}
 }
 
-__global__ void init_pos_dev(double *xout, double *yout, double *zout, long N)
+void init_pos_dev(double *xout, double *yout, double *zout, long N)
 {
 	for (int i = 0; i < N; i++)
 	{
@@ -57,48 +57,46 @@ __global__ void init_pos_dev(double *xout, double *yout, double *zout, long N)
 	}
 }
 
-__global__ void crank_dev(double *x, double *y, double *z, long k, long N)
+void crank_dev(double *xout, double *yout, double *zout, long k, long N)
 {
-
+	// k is the random number, N is the number of monomers in the polymer chain
 	double xold = 0.0, yold = 0.0, zold = 0.0, delrVec[3], uVec[3], uHat[3], uVec_mag = 0.0, delrVec_mag = 0.0;
 	double vVec[3], vprimeVec[3], vVec_mag, vHat[3], wVec[3], wVec_mag[3], wHat[3], delrprimeVec[3];
 	double delx, dely, delz, uHat_dot_delrVec, delrVec_dot_uHat, *phi;
-	*phi = 0.5;
-
 	// randomKernel<<<1,1>>>(phi, 1);
 	*phi = 3.141592653;
 
 	if (k == 0) // DO NOT TOUCH !!!
 	{
-		delrVec[0] = x[k + 1] - x[k];
-		delrVec[1] = y[k + 1] - y[k];
-		delrVec[2] = z[k + 1] - z[k];
+		delrVec[0] = xout[k + 1] - xout[k];
+		delrVec[1] = yout[k + 1] - yout[k];
+		delrVec[2] = zout[k + 1] - zout[k];
 
-		uVec[0] = x[k + 1] - x[k + 2];
-		uVec[1] = y[k + 1] - y[k + 2];
-		uVec[2] = z[k + 1] - z[k + 2];
+		uVec[0] = xout[k + 1] - xout[k + 2];
+		uVec[1] = yout[k + 1] - yout[k + 2];
+		uVec[2] = zout[k + 1] - zout[k + 2];
 	}
 
 	else if (k == N) // DO NOT TOUCH !!!
 	{
-		delrVec[0] = x[k] - x[k - 1];
-		delrVec[1] = y[k] - y[k - 1];
-		delrVec[2] = z[k] - z[k - 1];
+		delrVec[0] = xout[k] - xout[k - 1];
+		delrVec[1] = yout[k] - yout[k - 1];
+		delrVec[2] = zout[k] - zout[k - 1];
 
-		uVec[0] = x[k - 1] - x[k - 2];
-		uVec[1] = y[k - 1] - y[k - 2];
-		uVec[2] = z[k - 1] - z[k - 2];
+		uVec[0] = xout[k - 1] - xout[k - 2];
+		uVec[1] = yout[k - 1] - yout[k - 2];
+		uVec[2] = zout[k - 1] - zout[k - 2];
 	}
 
 	else // DO NOT TOUCH !!!
 	{
-		delrVec[0] = x[k - 1] - x[k]; // delrVec is vector from k-1 to k
-		delrVec[1] = y[k - 1] - y[k];
-		delrVec[2] = z[k - 1] - z[k];
+		delrVec[0] = xout[k - 1] - xout[k]; // delrVec is vector from k-1 to k
+		delrVec[1] = yout[k - 1] - yout[k];
+		delrVec[2] = zout[k - 1] - zout[k];
 
-		uVec[0] = x[k + 1] - x[k - 1]; // uVec is vector from k+1 to k-1
-		uVec[1] = y[k + 1] - y[k - 1];
-		uVec[2] = z[k + 1] - z[k - 1];
+		uVec[0] = xout[k + 1] - xout[k - 1]; // uVec is vector from k+1 to k-1
+		uVec[1] = yout[k + 1] - yout[k - 1];
+		uVec[2] = zout[k + 1] - zout[k - 1];
 	}
 
 	delrVec_mag = delrVec[0] * delrVec[0] + delrVec[1] * delrVec[1] + delrVec[2] * delrVec[2];
@@ -149,18 +147,18 @@ __global__ void crank_dev(double *x, double *y, double *z, long k, long N)
 	dely = delrVec[1] - delrprimeVec[1];
 	delz = delrVec[2] - delrprimeVec[2];
 
-	xold = x[k]; // Save current position as old position
-	yold = y[k];
-	zold = z[k];
+	xold = xout[k]; // Save current position as old position
+	yold = yout[k];
+	zold = zout[k];
 
-	x[k] += delx; // Change position of current particle
-	y[k] += dely;
-	z[k] += delz;
+	xout[k] += delx; // Change position of current particle
+	yout[k] += dely;
+	zout[k] += delz;
 }
 
 int main()
 {
-	long n = 1000;				  // Number of elements to generate
+	long n = 10;				  // Number of elements to generate
 	double *ran3Device = nullptr; // Device array to store random numbers
 	double *ran3 = nullptr;		  // Host array to store random numbers
 	double *xhost = nullptr, *yhost = nullptr, *zhost = nullptr;
@@ -168,7 +166,7 @@ int main()
 	long threadsPerBlock, blocksPerGrid, ncyc = 10, freq_samp = 1;
 	long mon, monDev;
 
-	int imov = 1;
+	int imov = 0;
 
 	FILE *fp;
 
@@ -213,7 +211,7 @@ int main()
 	cudaStatus = cudaMalloc((void **)&x, n * sizeof(double));
 	if (cudaStatus != cudaSuccess)
 	{
-		printf("cudaMalloc failed: %s\n", cudaGetErrorString(cudaStatus));
+		printf("cudaMalloc x failed: %s\n", cudaGetErrorString(cudaStatus));
 		free(ran3);
 		return 1;
 	}
@@ -221,7 +219,7 @@ int main()
 	cudaStatus = cudaMalloc((void **)&y, n * sizeof(double));
 	if (cudaStatus != cudaSuccess)
 	{
-		printf("cudaMalloc failed: %s\n", cudaGetErrorString(cudaStatus));
+		printf("cudaMalloc y failed: %s\n", cudaGetErrorString(cudaStatus));
 		free(ran3);
 		return 1;
 	}
@@ -229,7 +227,7 @@ int main()
 	cudaStatus = cudaMalloc((void **)&z, n * sizeof(double));
 	if (cudaStatus != cudaSuccess)
 	{
-		printf("cudaMalloc failed: %s\n", cudaGetErrorString(cudaStatus));
+		printf("cudaMalloc z failed: %s\n", cudaGetErrorString(cudaStatus));
 		free(ran3);
 		return 1;
 	}
@@ -240,7 +238,7 @@ int main()
 		fprintf(fp, "%ld\n", n);
 	}
 
-	init_pos_dev<<<1, 1>>>(x, y, z, n);
+	init_pos_dev(xhost, yhost, zhost, n);
 
 	// Begin MC Cycles
 	for (long ii = 0; ii < ncyc; ii++)
@@ -277,7 +275,7 @@ int main()
 		cudaStatus = cudaMemcpy(ran3, ran3Device, n * sizeof(double), cudaMemcpyDeviceToHost);
 		if (cudaStatus != cudaSuccess)
 		{
-			printf("cudaMemcpy failed: %s\n", cudaGetErrorString(cudaStatus));
+			printf("cudaMemcpy ran3 failed: %s\n", cudaGetErrorString(cudaStatus));
 			cudaFree(ran3Device);
 			free(ran3);
 			return 1;
@@ -286,37 +284,50 @@ int main()
 		for (int jj = 0; jj < n; jj++)
 		{
 			mon = n * ran3[jj];
-			
-			cudaMemcpy(&monDev, &mon, n*sizeof(long), cudaMemcpyHostToDevice);
 
-			crank_dev<<<1, 1>>>(x, y, z, monDev, n);
-		}
+			crank_dev(x, y, z, mon, n);
+			printf("%ld %ld\n", ii, jj);
 
-		cudaStatus = cudaMemcpy(xhost, x, n * sizeof(double), cudaMemcpyDeviceToHost);
-		cudaStatus = cudaMemcpy(yhost, y, n * sizeof(double), cudaMemcpyDeviceToHost);
-		cudaStatus = cudaMemcpy(zhost, z, n * sizeof(double), cudaMemcpyDeviceToHost);
-
-		if (cudaStatus != cudaSuccess)
-		{
-			printf("cudaMemcpy failed: %s\n", cudaGetErrorString(cudaStatus));
-			cudaFree(x);
-			cudaFree(y);
-			cudaFree(z);
-			free(xhost);
-			free(yhost);
-			free(zhost);
-			return 1;
-		}
-
-		// Print the generated random numbers on the host
-		if (imov == 1 && ii % freq_samp == 0)
-		{
-			fprintf(fp, "Polymer: %ld\n", ii);
-			for (int i = 0; i < n; ++i)
+			cudaStatus = cudaMemcpy(x, xhost, n * sizeof(double), cudaMemcpyHostToDevice);
+			if (cudaStatus != cudaSuccess)
 			{
-				fprintf(fp, "%lf  %lf  %lf\n", xhost[i], yhost[i], zhost[i]);
+				printf("cudaMemcpy x failed: %s\n", cudaGetErrorString(cudaStatus));
+				cudaFree(x);
+				free(xhost);
+				return 1;
+			}
+
+			cudaStatus = cudaMemcpy(y, yhost, n * sizeof(double), cudaMemcpyHostToDevice);
+			if (cudaStatus != cudaSuccess)
+			{
+				printf("cudaMemcpy y failed: %s\n", cudaGetErrorString(cudaStatus));
+				cudaFree(y);
+				free(yhost);
+				return 1;
+			}
+
+			cudaStatus = cudaMemcpy(z, zhost, n * sizeof(double), cudaMemcpyHostToDevice);
+			if (cudaStatus != cudaSuccess)
+			{
+				printf("cudaMemcpy z failed: %s\n", cudaGetErrorString(cudaStatus));
+				cudaFree(z);
+				free(zhost);
+				return 1;
+			}
+
+			// Print the generated random numbers on the host
+			if (imov == 1 && ii % freq_samp == 0)
+			{
+				fprintf(fp, "Polymer: %ld\n", ii);
+				for (int i = 0; i < n; ++i)
+				{
+					fprintf(fp, "%lf  %lf  %lf\n", xhost[i], yhost[i], zhost[i]);
+				}
 			}
 		}
+
+		free(ran3);
+		cudaFree(ran3Device);
 	}
 
 	if (imov == 1)
