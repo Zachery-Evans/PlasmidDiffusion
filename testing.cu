@@ -284,38 +284,12 @@ int main()
 		for (int jj = 0; jj < n; jj++)
 		{
 			mon = n * ran3[jj];
-
-			crank_dev(x, y, z, mon, n);
-			printf("%ld %ld\n", ii, jj);
-
-			cudaStatus = cudaMemcpy(x, xhost, n * sizeof(double), cudaMemcpyHostToDevice);
-			if (cudaStatus != cudaSuccess)
-			{
-				printf("cudaMemcpy x failed: %s\n", cudaGetErrorString(cudaStatus));
-				cudaFree(x);
-				free(xhost);
-				return 1;
-			}
-
-			cudaStatus = cudaMemcpy(y, yhost, n * sizeof(double), cudaMemcpyHostToDevice);
-			if (cudaStatus != cudaSuccess)
-			{
-				printf("cudaMemcpy y failed: %s\n", cudaGetErrorString(cudaStatus));
-				cudaFree(y);
-				free(yhost);
-				return 1;
-			}
-
-			cudaStatus = cudaMemcpy(z, zhost, n * sizeof(double), cudaMemcpyHostToDevice);
-			if (cudaStatus != cudaSuccess)
-			{
-				printf("cudaMemcpy z failed: %s\n", cudaGetErrorString(cudaStatus));
-				cudaFree(z);
-				free(zhost);
-				return 1;
-			}
+			// printf("%ld\n", mon);
+			// printf("%ld\n", jj);
+			crank_dev(xhost, yhost, zhost, mon, n);
 
 			// Print the generated random numbers on the host
+			/*
 			if (imov == 1 && ii % freq_samp == 0)
 			{
 				fprintf(fp, "Polymer: %ld\n", ii);
@@ -324,6 +298,7 @@ int main()
 					fprintf(fp, "%lf  %lf  %lf\n", xhost[i], yhost[i], zhost[i]);
 				}
 			}
+			*/
 		}
 
 		free(ran3);
