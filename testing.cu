@@ -62,9 +62,9 @@ void crank_dev(double *xout, double *yout, double *zout, long k, long N)
 	// k is the random number, N is the number of monomers in the polymer chain
 	double xold = 0.0, yold = 0.0, zold = 0.0, delrVec[3], uVec[3], uHat[3], uVec_mag = 0.0, delrVec_mag = 0.0;
 	double vVec[3], vprimeVec[3], vVec_mag, vHat[3], wVec[3], wVec_mag[3], wHat[3], delrprimeVec[3];
-	double delx, dely, delz, uHat_dot_delrVec, delrVec_dot_uHat, *phi;
+	double delx, dely, delz, uHat_dot_delrVec, delrVec_dot_uHat, phi;
 	// randomKernel<<<1,1>>>(phi, 1);
-	*phi = 3.141592653;
+	phi = 3.141592653;
 
 	if (k == 0) // DO NOT TOUCH !!!
 	{
@@ -131,9 +131,9 @@ void crank_dev(double *xout, double *yout, double *zout, long k, long N)
 	wVec[1] = wHat[1] * vVec_mag;
 	wVec[2] = wHat[2] * vVec_mag;
 
-	vprimeVec[0] = vVec[0] * cos(*phi) + wVec[0] * sin(*phi);
-	vprimeVec[1] = vVec[1] * cos(*phi) + wVec[1] * sin(*phi);
-	vprimeVec[2] = vVec[2] * cos(*phi) + wVec[2] * sin(*phi);
+	vprimeVec[0] = vVec[0] * cos(phi) + wVec[0] * sin(phi);
+	vprimeVec[1] = vVec[1] * cos(phi) + wVec[1] * sin(phi);
+	vprimeVec[2] = vVec[2] * cos(phi) + wVec[2] * sin(phi);
 
 	// printf("%lf %lf %lf\n", vprimeVec[0], vprimeVec[1], vprimeVec[2]);
 
@@ -164,9 +164,9 @@ int main()
 	double *xhost = nullptr, *yhost = nullptr, *zhost = nullptr;
 	double *x = nullptr, *y = nullptr, *z = nullptr;
 	long threadsPerBlock, blocksPerGrid, ncyc = 10, freq_samp = 1;
-	long mon, monDev;
+	long mon;
 
-	int imov = 0;
+	int imov = 1;
 
 	FILE *fp;
 
@@ -284,12 +284,12 @@ int main()
 		for (int jj = 0; jj < n; jj++)
 		{
 			mon = n * ran3[jj];
-			// printf("%ld\n", mon);
+			printf("%ld\n", mon);
 			// printf("%ld\n", jj);
 			crank_dev(xhost, yhost, zhost, mon, n);
 
 			// Print the generated random numbers on the host
-			/*
+			
 			if (imov == 1 && ii % freq_samp == 0)
 			{
 				fprintf(fp, "Polymer: %ld\n", ii);
@@ -298,11 +298,8 @@ int main()
 					fprintf(fp, "%lf  %lf  %lf\n", xhost[i], yhost[i], zhost[i]);
 				}
 			}
-			*/
+			
 		}
-
-		free(ran3);
-		cudaFree(ran3Device);
 	}
 
 	if (imov == 1)
