@@ -1457,17 +1457,17 @@ void init_pos(void)
 
     if (i < nseg2 / 2)
     {
-      r2x[i] = (double) -i ;
+      r2x[i] = (double)-i;
       r2y[i] = 0.0;
     }
     if (i == nseg2 / 2 + 0.5 || i == nseg2 / 2)
     {
-      r2x[i] = (double)-i ;
+      r2x[i] = (double)-i;
       r2y[i] = -1.0;
     }
     if (i > nseg2 / 2 && i < nseg2 - 1)
     {
-      r2x[i] = (double)+i - nseg2 ;
+      r2x[i] = (double)+i - nseg2;
       r2y[i] = -2.0;
     }
     if (i == nseg2 - 1)
@@ -1484,7 +1484,7 @@ void init_pos(void)
     if (i < nseg3 / 2)
     {
       r3x[i] = (double)-i;
-      r3y[i] = 0.0;
+      r3y[i] = -0.0;
     }
     if (i == nseg3 / 2 + 0.5 || i == nseg3 / 2)
     {
@@ -1509,22 +1509,22 @@ void init_pos(void)
 
     if (i < nseg4 / 2)
     {
-      r4x[i] = (double)+i - nseg4;
+      r4x[i] = (double)-i;
       r4y[i] = 0.0;
     }
     if (i == nseg4 / 2 + 0.5 || i == nseg4 / 2)
     {
-      r4x[i] = (double)+i - nseg4 - 1.0;
+      r4x[i] = (double)-i;
       r4y[i] = -1.0;
     }
-    if (i > nseg4 / 2 && i < nseg2 - 1)
+    if (i > nseg4 / 2 && i < nseg4 - 1)
     {
-      r4x[i] = (double)-i - 1.0;
+      r4x[i] = (double)+i - nseg4;
       r4y[i] = -2.0;
     }
     if (i == nseg4 - 1)
     {
-      r4x[i] = (double)-i - 1.0;
+      r4x[i] = (double)+i - nseg4;
       r4y[i] = -1.0;
     }
   }
@@ -1597,8 +1597,8 @@ void init_pos_circular(void)
 
   for (i = 0; i < nseg4; i++)
   {
-    r4z[i] = 4.0; // Initialized just above the first plasmid
-    r4x[i] = Rplasmid4 * cos(i * theta_plasmid4) + xBoxMaxd2 - Rplasmid4;
+    r4z[i] = 6.0; // Initialized just above the first plasmid
+    r4x[i] = Rplasmid4 * cos(i * theta_plasmid4) - xBoxMaxd2 + Rplasmid4;
     r4y[i] = Rplasmid4 * sin(i * theta_plasmid4) - Rplasmid4 / 2.0;
   }
 }
