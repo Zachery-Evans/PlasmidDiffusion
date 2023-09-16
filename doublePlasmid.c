@@ -63,6 +63,7 @@ There are some pecularities that were implemented into this program in order to 
 
 #include <math.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
@@ -87,6 +88,10 @@ double calc_cosine(int, int, int, double[], double[], double[]);
 
 double **dmatrix(long, long, long, long);
 void free_dmatrix(double **, long, long, long, long);
+
+void stateCheckSingle(double);
+void stateCheckDouble(double, double);
+void stateCheckTriple(double, double, double);
 
 void reptation_move_chain1(void);
 
@@ -578,29 +583,17 @@ int main()
       x4cm[thing] = xcm4;
       y4cm[thing] = ycm4;
 
-      if (xcm2 < -xBoxMaxd2 && xcm3 < -xBoxMaxd2)
+      if (nseg2 == 0 && nseg3 == 0)
       {
-        state[0]++;
+        stateCheckSingle(xcm2);
       }
-      else if ((xcm2 < -xBoxMaxd2 && (xcm3 > -xBoxMaxd2 && xcm3 < xBoxMaxd2)) || (xcm3 < -xBoxMaxd2 && (xcm2 > -xBoxMaxd2 && xcm2 < xBoxMaxd2)))
+      else if (nseg3 == 0)
       {
-        state[1]++;
+        stateCheckDouble(xcm2, xcm3);
       }
-      else if ((xcm3 > xBoxMaxd2 && xcm2 < -xBoxMaxd2) || ((xcm2 > xBoxMaxd2 && xcm3 < -xBoxMaxd2)))
+      else if (nseg2 != 0 && nseg3 != 0 && nseg4 != 0)
       {
-        state[2]++;
-      }
-      else if ((xcm3 > -xBoxMaxd2 && xcm3 < xBoxMaxd2) && (xcm2 > -xBoxMaxd2 && xcm2 < xBoxMaxd2))
-      {
-        state[3]++;
-      }
-      else if ((xcm3 > xBoxMaxd2 && (xcm2 > -xBoxMaxd2 && xcm2 < xBoxMaxd2)) || (xcm2 > xBoxMaxd2 && (xcm3 > -xBoxMaxd2 && xcm3 < xBoxMaxd2)))
-      {
-        state[4]++;
-      }
-      else if (xcm3 > xBoxMaxd2 && xcm2 > xBoxMaxd2)
-      {
-        state[5]++;
+        stateCheckTriple(xcm2, xcm3, xcm4);
       }
     }
 
@@ -743,6 +736,86 @@ void write_log(void)
   printf("xcmPrint     %ld\n", xcmPrint);
   printf("ycmPrint     %ld\n", ycmPrint);
   printf("\n");
+}
+
+void stateCheckSingle(double cmx)
+{
+  if (cmx < -xBoxMaxd2 || cmx > xBoxMaxd2)
+  {
+    state[0]++;
+  }
+  else if (cmx > -xBoxMaxd2 && cmx < xBoxMaxd2)
+  {
+    state[1]++;
+  }
+  else
+  {
+    printf("Missing a microstate.");
+  }
+}
+
+void stateCheckDouble(double cmx2, double cmx3)
+{
+  if (cmx2 < -xBoxMaxd2 && cmx3 < -xBoxMaxd2)
+  {
+    state[0]++;
+  }
+  else if ((cmx2 < -xBoxMaxd2 && (cmx3 > -xBoxMaxd2 && cmx3 < xBoxMaxd2)) || (cmx3 < -xBoxMaxd2 && (cmx2 > -xBoxMaxd2 && cmx2 < xBoxMaxd2)))
+  {
+    state[1]++;
+  }
+  else if ((cmx3 > xBoxMaxd2 && cmx2 < -xBoxMaxd2) || ((cmx2 > xBoxMaxd2 && cmx3 < -xBoxMaxd2)))
+  {
+    state[2]++;
+  }
+  else if ((cmx3 > -xBoxMaxd2 && cmx3 < xBoxMaxd2) && (cmx2 > -xBoxMaxd2 && cmx2 < xBoxMaxd2))
+  {
+    state[3]++;
+  }
+  else if ((cmx3 > xBoxMaxd2 && (cmx2 > -xBoxMaxd2 && cmx2 < xBoxMaxd2)) || (cmx2 > xBoxMaxd2 && (cmx3 > -xBoxMaxd2 && cmx3 < xBoxMaxd2)))
+  {
+    state[1]++;
+  }
+  else if (cmx3 > xBoxMaxd2 && cmx2 > xBoxMaxd2)
+  {
+    state[0]++;
+  }
+  else
+  {
+    printf("Missing a microstate.");
+  }
+}
+
+void stateCheckTriple(double cmx2, double cmx3, double cmx4)
+{ // "E" for inside of an ellipse, "B" for inside the rectangle box area.
+  bool cmx2E1 = cmx2<-xBoxMaxd2, cmx2E2 = cmx2> xBoxMaxd2, cmx2B = cmx2 > -xBoxMaxd2 && cmx2 < xBoxMaxd2;
+  bool cmx3E1 = cmx3<-xBoxMaxd2, cmx3E2 = cmx3> xBoxMaxd2, cmx3B = cmx3 > -xBoxMaxd2 && cmx3 < xBoxMaxd2;
+  bool cmx4E1 = cmx4<-xBoxMaxd2, cmx4E2 = cmx4> xBoxMaxd2, cmx4B = cmx4 > -xBoxMaxd2 && cmx4 < xBoxMaxd2;
+
+  if ((cmx2E1 && cmx3E1 && cmx4E1) || (cmx2B && cmx3B && cmx4B) || (cmx2E2 && cmx3E2 && cmx4E2))
+  {
+    state[0]++;
+  }
+  else if ((cmx2B && cmx3E1 && cmx4E1 || cmx2B && cmx3E2 && cmx4E2) || (cmx3B && cmx2E1 && cmx4E1 || cmx3B && cmx2E2 && cmx4E2) || (cmx4B && cmx3E1 && cmx2E1 || cmx4B && cmx3E2 && cmx2E2))
+  {
+    state[1]++;
+  }
+  else if ((cmx2E1 && cmx3E2 && cmx4E2 || cmx2E2 && cmx3E1 && cmx4E1) || (cmx3E1 && cmx2E2 && cmx4E2 || cmx3E2 && cmx2E1 && cmx4E1) || (cmx4E1 && cmx3E2 && cmx2E2 || cmx4E2 && cmx3E1 && cmx2E1))
+  {
+    state[2]++;
+  }
+  else if ((cmx2E1 && cmx3B && cmx4B || cmx2E2 && cmx3B && cmx4B) || (cmx3E1 && cmx2B && cmx4B || cmx3E2 && cmx2B && cmx4B) || (cmx4E1 && cmx3B && cmx2B || cmx4E2 && cmx3B && cmx2B))
+  {
+    state[3]++;
+  }
+  else if ((cmx2E1 && cmx3B && cmx4E2 || cmx2E2 && cmx3B && cmx4E1) || (cmx3E1 && cmx2B && cmx4E2 || cmx3E2 && cmx2B && cmx4E1) || (cmx3E1 && cmx4B && cmx2E2 || cmx3E2 && cmx4B && cmx2E1))
+  {
+    state[4]++;
+  }
+  else
+  {
+    printf("Missing a microstate.");
+  }
 }
 
 /* squareEllipse and checkEllipse Code written by Zach Evans to create geometry of rectangle between two halves of an ellipse */
@@ -1630,18 +1703,32 @@ void write_data(void)
     fclose(fp);
   }
 
-  if (nseg3 != 0 && nseg4 == 0)
+  if ((fp = fopen("areaProb.dat", "w")) == NULL)
   {
-    if ((fp = fopen("areaProb.dat", "w")) == NULL)
+    printf("Cannot open file: areaProb.dat\n");
+    exit(0);
+  }
+  else
+  {
+    int number;
+    if (nseg2 == 0 && nseg3 == 0)
     {
-      printf("Cannot open file: areaProb.dat\n");
-      exit(0);
+      number = 2;
     }
-    else
+    else if (nseg3 == 0)
     {
-      fprintf(fp, "%ld\t%ld\n%ld\t%ld\n%ld\t%ld\n%ld\t%ld\n%ld\t%ld\n%ld\t%ld\n", 1, state[0], 2, state[1], 3, state[2], 4, state[3], 5, state[4], 6, state[5]);
-      fclose(fp);
+      number = 4;
     }
+    else if (nseg2 != 0 && nseg3 != 0 && nseg4 != 0)
+    {
+      number = 6;
+    }
+    
+    for (int i = 0; i < number; i++)
+    {
+      fprintf(fp, "%ld\t%ld\n", i + 1, state[i]);
+    }
+    fclose(fp);
   }
 
   if (nseg1 != 0)
