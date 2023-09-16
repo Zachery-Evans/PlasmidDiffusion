@@ -170,6 +170,11 @@ int main()
   amax2 = amax * amax;
   bmin2 = bmin * bmin;
   rectangleArea = Area - PI * amax * bmin;
+  if (rectangleArea < 0.0)
+  {
+    rectangleArea = 0.0;
+  }
+
   yBoxMax = 2.0 * bmin;
   yBoxMaxd2 = bmin; // Width of the rectangle section equivalent to the semi-minor axis
   xBoxMax = rectangleArea / (2.0 * bmin);

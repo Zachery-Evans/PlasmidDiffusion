@@ -35,13 +35,18 @@ int main(void)
             amax = bmin;
         }
         rectangleArea = Area - PI * amax * bmin;
+
+        if (rectangleArea < 0.0)
+        {
+            rectangleArea = 0.0;
+        }
         yBoxMax = 2.0 * bmin;
         yBoxMaxd2 = bmin; // Width of the rectangle section equivalent to the semi-minor axis
         xBoxMax = rectangleArea / (2.0 * bmin);
         xBoxMaxd2 = xBoxMax / 2.0;
         Hd2 = H / 2.0;
 
-        fprintf(gp, "%ld\n", 12133);
+        fprintf(gp, "%ld\n", 12459);
         fprintf(gp, "Surface:  %ld\n", 0);
 
         for (double ii = 0.0; ii < xBoxMax; ii += 0.5)
@@ -86,7 +91,7 @@ int main(void)
                 {
                     fprintf(gp, "N  %lf  %lf  %lf\n", ii, jj, Hd2);
                 }
-                else if ( ecc < 1.0)
+                else if (ecc < 1.0)
                 {
                     if (jj < bmin * bmin * (1 - (ii + xBoxMaxd2) * (ii + xBoxMaxd2) / amax * amax) && jj < bmin * bmin * (1 - (ii - xBoxMaxd2) * (ii - xBoxMaxd2) / amax * amax))
                     {
@@ -97,7 +102,6 @@ int main(void)
         }
     }
 }
-
 
 void input(void)
 {
