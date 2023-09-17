@@ -20,11 +20,11 @@ int main(void)
     double ii, jj;
     input(); // Read data given in the input file
 
-    FILE *gp;
+    FILE *fp;
     FILE *fPtr;
     FILE *fTemp;
 
-    int Nsim = 0, line, count, fgetwc(FILE *stream);
+    int Nsim = 0, count, fgetwc(FILE * stream);
     char path[100] = "geometry.xyz", buffer[BUFFER_SIZE], newline[BUFFER_SIZE], c;
 
     // c will store each char in the file as we read them in one at a time,
@@ -36,10 +36,10 @@ int main(void)
     //
     // --------------------------------------------------------------
 
-    if ((gp = fopen("geometry.xyz", "w")) == NULL)
+    if ((fp = fopen("geometry.txt", "w")) == NULL)
     { // reading mc.inp
-        printf("Cannot open file: geometry.xyz\n");
-        return(0);
+        printf("Cannot open file: geometry.txt\n");
+        return (0);
     }
     else
     {
@@ -63,21 +63,21 @@ int main(void)
         xBoxMaxd2 = xBoxMax / 2.0;
         Hd2 = H / 2.0;
 
-        fprintf(gp, "%d\n", 1);
-        fprintf(gp, "Surface:  %d\n", 0);
+        fprintf(fp, "%d\n", 1);
+        fprintf(fp, "Surface:  %d\n", 0);
 
         for (double ii = 0.0; ii < xBoxMax; ii += 0.5)
         {
-            fprintf(gp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 + ii, bmin, Hd2);
-            fprintf(gp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 + ii, -bmin, Hd2);
+            fprintf(fp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 + ii, bmin, Hd2);
+            fprintf(fp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 + ii, -bmin, Hd2);
         }
 
         if (ecc < 1.0)
         {
             for (double ii = -PI / 2; ii < PI / 2; ii += 0.01)
             {
-                fprintf(gp, "N    %lf  %lf  %lf\n", xBoxMaxd2 + amax * cos(ii), bmin + bmin * sin(ii) - bmin, Hd2);
-                fprintf(gp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 - amax * cos(ii), -bmin + bmin * sin(ii) + bmin, Hd2);
+                fprintf(fp, "N    %lf  %lf  %lf\n", xBoxMaxd2 + amax * cos(ii), bmin + bmin * sin(ii) - bmin, Hd2);
+                fprintf(fp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 - amax * cos(ii), -bmin + bmin * sin(ii) + bmin, Hd2);
             }
         }
 
@@ -92,7 +92,7 @@ int main(void)
                 { // If the polymer is outside of the rightmost semi-ellipse, write only if inside elliptical cavity
                     if ((ii - xBoxMaxd2) * (ii - xBoxMaxd2) < amax2 * (1 - (jj * jj) / bmin2) && jj < bmin2 * (1 - (ii - xBoxMaxd2) * (ii - xBoxMaxd2) / amax2))
                     {
-                        fprintf(gp, "N  %lf  %lf  %lf\n", ii, jj, Hd2);
+                        fprintf(fp, "N  %lf  %lf  %lf\n", ii, jj, Hd2);
                     }
                 }
 
@@ -100,19 +100,19 @@ int main(void)
                 { // If the polymer is outside of the leftmost semi-ellipse, write only if inside elliptical cavity
                     if ((ii + xBoxMaxd2) * (ii + xBoxMaxd2) < amax2 * (1 - (jj * jj) / bmin2) && jj < bmin2 * (1 - (ii + xBoxMaxd2) * (ii + xBoxMaxd2) / amax2))
                     {
-                        fprintf(gp, "N  %lf  %lf  %lf\n", ii, jj, Hd2);
+                        fprintf(fp, "N  %lf  %lf  %lf\n", ii, jj, Hd2);
                     }
                 }
 
                 if (ii < xBoxMaxd2 && ii > -xBoxMaxd2)
                 {
-                    fprintf(gp, "N  %lf  %lf  %lf\n", ii, jj, Hd2);
+                    fprintf(fp, "N  %lf  %lf  %lf\n", ii, jj, Hd2);
                 }
                 else if (ecc < 1.0)
                 {
                     if (jj < bmin * bmin * (1 - (ii + xBoxMaxd2) * (ii + xBoxMaxd2) / amax * amax) && jj < bmin * bmin * (1 - (ii - xBoxMaxd2) * (ii - xBoxMaxd2) / amax * amax))
                     {
-                        fprintf(gp, "N  %lf  %lf  %lf\n", ii, jj, Hd2);
+                        fprintf(fp, "N  %lf  %lf  %lf\n", ii, jj, Hd2);
                     }
                 }
             }
@@ -125,20 +125,36 @@ int main(void)
     //
     // --------------------------------------------------------------
 
-    gp = fopen("geometry.xyz", "r");
-    // Check if file exists
-    if (gp == NULL)
-    {
-        printf("Could not open file %s", path);
-        return(0);
+    fp = fopen("geometry.xyz", "r");
+
+    // Check if the file exists and can be opened
+    if (fp == NULL) {
+        printf("Could not open file %s\n", "geometry.xyz");
+        return 1; // Return an error code to indicate failure
     }
-    // Extract characters from file and store in character c
-    // Extract characters from file and store in character c
-    for (c = fgetc(gp); c != EOF; c = fgetc(gp))
-        if (c == '\n') // Increment count if this character is newline
+
+    do {
+        // Read the next character from the file
+        c = fgetc(fp);
+
+        // Check for newline characters
+        if (c == '\n') {
             Nsim++;
+        } else if (c == '\r') {
+            // Check for possible Windows-style newline ('\r\n') or spaces
+            int next = fgetc(fp);
+            if (next == '\n' || next == ' ') {
+                Nsim++;
+            }
+            // Handle other cases where '\r' is not followed by '\n' or space
+        }
+    } while (c != EOF);
+
     // Close the file
-    fclose(gp);
+    fclose(fp);
+
+    // Output the count of newline characters
+    printf("Number of newline characters: %d\n", Nsim);
 
     // --------------------------------------------------------------
     //
@@ -146,11 +162,10 @@ int main(void)
     //
     // --------------------------------------------------------------
 
-    line = Nsim;
     if ((fTemp = fopen("replace.tmp", "w")) == NULL)
     { // reading mc.inp
         printf("Cannot open file: replace.tmp\n");
-        return(0);
+        return (0);
     }
     else
     {
@@ -174,21 +189,21 @@ int main(void)
         xBoxMaxd2 = xBoxMax / 2.0;
         Hd2 = H / 2.0;
 
-        fprintf(gp, "%ld\n", line);
-        fprintf(gp, "Surface:  %ld\n", 0);
+        fprintf(fp, "%ld\n", Nsim - 2);
+        fprintf(fp, "Surface:  %ld\n", 0);
 
         for (double ii = 0.0; ii < xBoxMax; ii += 0.5)
         {
-            fprintf(gp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 + ii, bmin, Hd2);
-            fprintf(gp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 + ii, -bmin, Hd2);
+            fprintf(fp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 + ii, bmin, Hd2);
+            fprintf(fp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 + ii, -bmin, Hd2);
         }
 
         if (ecc < 1.0)
         {
             for (double ii = -PI / 2; ii < PI / 2; ii += 0.01)
             {
-                fprintf(gp, "N    %lf  %lf  %lf\n", xBoxMaxd2 + amax * cos(ii), bmin + bmin * sin(ii) - bmin, Hd2);
-                fprintf(gp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 - amax * cos(ii), -bmin + bmin * sin(ii) + bmin, Hd2);
+                fprintf(fp, "N    %lf  %lf  %lf\n", xBoxMaxd2 + amax * cos(ii), bmin + bmin * sin(ii) - bmin, Hd2);
+                fprintf(fp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 - amax * cos(ii), -bmin + bmin * sin(ii) + bmin, Hd2);
             }
         }
 
@@ -203,7 +218,7 @@ int main(void)
                 { // If the polymer is outside of the rightmost semi-ellipse, write only if inside elliptical cavity
                     if ((ii - xBoxMaxd2) * (ii - xBoxMaxd2) < amax2 * (1 - (jj * jj) / bmin2) && jj < bmin2 * (1 - (ii - xBoxMaxd2) * (ii - xBoxMaxd2) / amax2))
                     {
-                        fprintf(gp, "N  %lf  %lf  %lf\n", ii, jj, Hd2);
+                        fprintf(fp, "N  %lf  %lf  %lf\n", ii, jj, Hd2);
                     }
                 }
 
@@ -211,19 +226,19 @@ int main(void)
                 { // If the polymer is outside of the leftmost semi-ellipse, write only if inside elliptical cavity
                     if ((ii + xBoxMaxd2) * (ii + xBoxMaxd2) < amax2 * (1 - (jj * jj) / bmin2) && jj < bmin2 * (1 - (ii + xBoxMaxd2) * (ii + xBoxMaxd2) / amax2))
                     {
-                        fprintf(gp, "N  %lf  %lf  %lf\n", ii, jj, Hd2);
+                        fprintf(fp, "N  %lf  %lf  %lf\n", ii, jj, Hd2);
                     }
                 }
 
                 if (ii < xBoxMaxd2 && ii > -xBoxMaxd2)
                 {
-                    fprintf(gp, "N  %lf  %lf  %lf\n", ii, jj, Hd2);
+                    fprintf(fp, "N  %lf  %lf  %lf\n", ii, jj, Hd2);
                 }
                 else if (ecc < 1.0)
                 {
                     if (jj < bmin * bmin * (1 - (ii + xBoxMaxd2) * (ii + xBoxMaxd2) / amax * amax) && jj < bmin * bmin * (1 - (ii - xBoxMaxd2) * (ii - xBoxMaxd2) / amax * amax))
                     {
-                        fprintf(gp, "N  %lf  %lf  %lf\n", ii, jj, Hd2);
+                        fprintf(fp, "N  %lf  %lf  %lf\n", ii, jj, Hd2);
                     }
                 }
             }
@@ -231,11 +246,11 @@ int main(void)
 
         /* Delete original source file */
         remove(path);
+        remove("geometry.txt");
         /* Rename temporary file as original file */
         rename("replace.tmp", path);
     }
 }
-
 // --------------------------------------------------------------
 //
 // COLLECT INPUT PARAMETERS FOR GRAPHING GEOMETRY
