@@ -264,7 +264,7 @@ int squareEllipse(double xPos, double yPos, double zPos)
 	return accept;
 }
 
-int check_accept(double rx, double ry, double rz, long nseg)
+__global__ void check_accept(double *rx, double *ry, double *rz, long n, bool *check)
 {
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -277,10 +277,12 @@ int check_accept(double rx, double ry, double rz, long nseg)
 
 	if (tid < n)
 	{
+		/* Not restricting to a geometry for now.
 		if (squareEllipse(rx[kk], ry[kk], rz[kk]) == reject)
 		{
 			return (reject);
 		}
+		*/
 		if (kk < k - 1 || kk > k + 1)
 		{
 			dx = rx[k] - rx[kk];
@@ -289,41 +291,39 @@ int check_accept(double rx, double ry, double rz, long nseg)
 			dr2 = dx * dx + dy * dy + dz * dz;
 			if (dr2 < 1.0)
 			{
-				return (reject);
+				*check = false;
 			}
 		}
 	}
 
-	return accept; // apply rigidity
+	*check = true;
 }
 
 // overlap checks if the particle overlaps with the one that came before it.
-__global__ void overlap(double x_pos[], double y_pos[], double z_pos[], long k, long N)
+__global__ void overlap(double *x_pos, double *y_pos, double *z_pos, long k, long N, bool *check)
 {
 	double dx_pos, dy_pos, dz_pos, dist_tot;
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-	// check non-bonded particles distance
-	for (int i = 0; i < k - 1; i++) // NOTE: "k-1" instead of "k"
+	if (tid < N)
 	{
-		dx_pos = x_pos[k] - x_pos[i]; // Measure x y z distance from particle a to particle b
-		dy_pos = y_pos[k] - y_pos[i];
-		dz_pos = z_pos[k] - z_pos[i];
+		// check non-bonded particles distance
 
-		dist_tot = dx_pos * dx_pos + dy_pos * dy_pos + dz_pos * dz_pos; // Calculate magnitude of dist squared
-
-		if (dist_tot < 1.0)
+		if (k != tid)
 		{
-			overlapCheck = 0;
-		}
-	}
+			dx_pos = x_pos[k] - x_pos[tid]; // Measure x y z distance from particle a to particle b
+			dy_pos = y_pos[k] - y_pos[tid];
+			dz_pos = z_pos[k] - z_pos[tid];
 
-	if (overlapCheck == NULL)
-	{
-		overlapCheck = 1;
-	}
-	else
-	{
-		overlapCheck = 0;
+			dist_tot = dx_pos * dx_pos + dy_pos * dy_pos + dz_pos * dz_pos; // Calculate magnitude of dist squared
+
+			if (dist_tot < 1.0)
+			{
+				check[tid] = false;
+			}
+		}
+
+		check[tid] = true;
 	}
 }
 
@@ -333,57 +333,67 @@ __global__ void overlap(double x_pos[], double y_pos[], double z_pos[], long k, 
 // ----------------------------------------------------------------------
 void input(void)
 {
-  FILE *fp;
+	FILE *fp;
 
-  if ((fp = fopen("mc.inp", "r")) == NULL)
-  { // reading mc.inp
-    printf("Cannot open file: mc.inp\n");
-  }
-  else
-  {
-    fscanf(fp, "%ld%*s", &nseg1);
-    fscanf(fp, "%ld%*s", &nseg2);
-    fscanf(fp, "%ld%*s", &nseg3);
-    fscanf(fp, "%ld%*s", &nseg4);
-    fscanf(fp, "%lf%*s", &Area);
-    fscanf(fp, "%lf%*s", &bmin);
-    fscanf(fp, "%lf%*s", &ecc);
-    fscanf(fp, "%lf%*s", &H);
-    fscanf(fp, "%lf%*s", &kappa);
-    fscanf(fp, "%lf%*s", &drmin);
-    fscanf(fp, "%lf%*s", &drmax);
-    fscanf(fp, "%lf%*s", &gridspace);
+	if ((fp = fopen("mc.inp", "r")) == NULL)
+	{ // reading mc.inp
+		printf("Cannot open file: mc.inp\n");
+	}
+	else
+	{
+		fscanf(fp, "%ld%*s", &nseg1);
+		fscanf(fp, "%ld%*s", &nseg2);
+		fscanf(fp, "%ld%*s", &nseg3);
+		fscanf(fp, "%ld%*s", &nseg4);
+		fscanf(fp, "%lf%*s", &Area);
+		fscanf(fp, "%lf%*s", &bmin);
+		fscanf(fp, "%lf%*s", &ecc);
+		fscanf(fp, "%lf%*s", &H);
+		fscanf(fp, "%lf%*s", &kappa);
+		fscanf(fp, "%lf%*s", &drmin);
+		fscanf(fp, "%lf%*s", &drmax);
+		fscanf(fp, "%lf%*s", &gridspace);
 
-    fscanf(fp, "\n%ld%*s", &ncyc);
-    fscanf(fp, "%ld%*s", &neq);
-    fscanf(fp, "%lf%*s", &rmax);
-    fscanf(fp, "%lf%*s", &delphi_max);
-    fscanf(fp, "%lf%*s", &rshift_max);
-    fscanf(fp, "%ld%*s", &iseed);
+		fscanf(fp, "\n%ld%*s", &ncyc);
+		fscanf(fp, "%ld%*s", &neq);
+		fscanf(fp, "%lf%*s", &rmax);
+		fscanf(fp, "%lf%*s", &delphi_max);
+		fscanf(fp, "%lf%*s", &rshift_max);
+		fscanf(fp, "%ld%*s", &iseed);
 
-    fscanf(fp, "\n%ld%*s", &freq_samp);
-    fscanf(fp, "%ld%*s", &cmFreqSamp);
+		fscanf(fp, "\n%ld%*s", &freq_samp);
+		fscanf(fp, "%ld%*s", &cmFreqSamp);
 
-    fscanf(fp, "\n%ld%*s", &imov);
-    fscanf(fp, "%ld%*s", &plasRigid);
-    fscanf(fp, "%ld%*s", &xcmPrint);
-    fscanf(fp, "%ld%*s", &ycmPrint);
-  }
+		fscanf(fp, "\n%ld%*s", &imov);
+		fscanf(fp, "%ld%*s", &plasRigid);
+		fscanf(fp, "%ld%*s", &xcmPrint);
+		fscanf(fp, "%ld%*s", &ycmPrint);
+	}
 
-  fclose(fp);
+	fclose(fp);
 }
 
-int posCheck, overlapCheck;
+long nseg1, nseg2, nseg3, nseg4, i, j, k, ii, ncyc, nacc, kk, iseed;
+long neq, ichain, nsamp, nacc_shift, nshift, xcmPrint, ycmPrint;
+long imov, plasRigid, kmaxtest, freq_samp, cmFreqSamp, ngridx, ngridy;
+
+double L, H, Ld2, Hd2, rmax, dx, dy, dz, dr2;
+double drmin, drmax, gridspace, gridspacex_real, gridspacey_real;
+double amax, bmin, amax2, bmin2, ecc, Area, rectangleArea, xBoxMax, yBoxMax, rshift_max;
+double xBoxMaxd2, yBoxMaxd2;
+double kappa, xold, yold, zold, delphi_max;
+double **prob1, **plas, **probmon;
 
 int main()
 {
-	long n = 10;				  // Number of elements to generate
+	long n = 10; // Number of elements to generate
+	long threadsPerBlock, blocksPerGrid, freq_samp = 1, mon;
 	double *ran3Device = nullptr; // Device array to store random numbers
 	double *ran3 = nullptr;		  // Host array to store random numbers
 	double *xhost = nullptr, *yhost = nullptr, *zhost = nullptr;
 	double *x = nullptr, *y = nullptr, *z = nullptr;
-	long threadsPerBlock, blocksPerGrid, ncyc = 10, freq_samp = 1;
-	long mon;
+
+	bool *overlapCheck;
 
 	int imov = 1;
 
