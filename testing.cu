@@ -156,6 +156,100 @@ void crank_dev(double *xout, double *yout, double *zout, long k, long N)
 	zout[k] += delz;
 }
 
+__global__ void position_check(double *x_pos, double *y_pos, double *z_pos, long k, long N)
+{
+	double dx_pos, dy_pos, dz_pos, dist_tot;
+
+	// check bonded particles distance
+
+	if (k != 0)
+	{
+		dx_pos = x_pos[k] - x_pos[k - 1];
+		dy_pos = y_pos[k] - y_pos[k - 1];
+		dz_pos = z_pos[k] - z_pos[k - 1];
+
+		dist_tot = dx_pos * dx_pos + dy_pos * dy_pos + dz_pos * dz_pos;
+
+		if (dist_tot < 0.99 || 1.01 < dist_tot) // 0.9*0.9 since dist_tot is not in sqrt() for speed
+		{
+			posCheck = 0;
+		}
+	}
+
+	if (k != N - 1)
+	{
+		dx_pos = x_pos[k + 1] - x_pos[k];
+		dy_pos = y_pos[k + 1] - y_pos[k];
+		dz_pos = z_pos[k + 1] - z_pos[k];
+
+		dist_tot = dx_pos * dx_pos + dy_pos * dy_pos + dz_pos * dz_pos;
+
+		// if dist w/n acceptable values
+		if (dist_tot < 0.99 || 1.01 < dist_tot)
+		{
+			posCheck = 0;
+		}
+	}
+
+	// check non-bonded particles distance
+	for (int i = 0; i < N - 1; i++) // NOTE: "N-1" instead of "N"
+	{
+		if (i != k)
+		{
+			dx_pos = x_pos[k] - x_pos[i]; // Measure x y z distance from particle a to particle b
+			dy_pos = y_pos[k] - y_pos[i];
+			dz_pos = z_pos[k] - z_pos[i];
+
+			dist_tot = dx_pos * dx_pos + dy_pos * dy_pos + dz_pos * dz_pos; // Calculate magnitude of dist squared
+
+			if (dist_tot < 1.0)
+			{
+				posCheck = 0;
+			}
+		}
+	}
+	if (posCheck == NULL)
+	{
+		posCheck = 1;
+	}
+	else
+	{
+		posCheck = 0;
+	}
+}
+
+// overlap checks if the particle overlaps with the one that came before it.
+__global__ void overlap(double x_pos[], double y_pos[], double z_pos[], long k, long N)
+{
+	double dx_pos, dy_pos, dz_pos, dist_tot;
+
+	// check non-bonded particles distance
+	for (int i = 0; i < k - 1; i++) // NOTE: "k-1" instead of "k"
+	{
+		dx_pos = x_pos[k] - x_pos[i]; // Measure x y z distance from particle a to particle b
+		dy_pos = y_pos[k] - y_pos[i];
+		dz_pos = z_pos[k] - z_pos[i];
+
+		dist_tot = dx_pos * dx_pos + dy_pos * dy_pos + dz_pos * dz_pos; // Calculate magnitude of dist squared
+
+		if (dist_tot < 1.0)
+		{
+			overlapCheck = 0;
+		}
+	}
+
+	if (overlapCheck == NULL)
+	{
+		overlapCheck = 1;
+	}
+	else
+	{
+		overlapCheck = 0;
+	}
+}
+
+int posCheck, overlapCheck;
+
 int main()
 {
 	long n = 10;				  // Number of elements to generate
@@ -289,7 +383,7 @@ int main()
 			crank_dev(xhost, yhost, zhost, mon, n);
 
 			// Print the generated random numbers on the host
-			
+
 			if (imov == 1 && ii % freq_samp == 0)
 			{
 				fprintf(fp, "Polymer: %ld\n", ii);
@@ -298,7 +392,6 @@ int main()
 					fprintf(fp, "%lf  %lf  %lf\n", xhost[i], yhost[i], zhost[i]);
 				}
 			}
-			
 		}
 	}
 
