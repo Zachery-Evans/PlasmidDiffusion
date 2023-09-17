@@ -156,66 +156,37 @@ void crank_dev(double *xout, double *yout, double *zout, long k, long N)
 	zout[k] += delz;
 }
 
-__global__ void position_check(double *x_pos, double *y_pos, double *z_pos, long k, long N)
+int check_accept(double rx, double ry, double rz, long nseg)
 {
-	double dx_pos, dy_pos, dz_pos, dist_tot;
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-	// check bonded particles distance
+	int accept, reject;
+	long klow, khigh;
+	double dx, dy, dz, dr, dr2;
 
-	if (k != 0)
+	accept = 0;
+	reject = 1;
+
+	if (tid < n)
 	{
-		dx_pos = x_pos[k] - x_pos[k - 1];
-		dy_pos = y_pos[k] - y_pos[k - 1];
-		dz_pos = z_pos[k] - z_pos[k - 1];
-
-		dist_tot = dx_pos * dx_pos + dy_pos * dy_pos + dz_pos * dz_pos;
-
-		if (dist_tot < 0.99 || 1.01 < dist_tot) // 0.9*0.9 since dist_tot is not in sqrt() for speed
+		if (squareEllipse(rx[kk], ry[kk], rz[kk]) == reject)
 		{
-			posCheck = 0;
+			return (reject);
 		}
-	}
-
-	if (k != N - 1)
-	{
-		dx_pos = x_pos[k + 1] - x_pos[k];
-		dy_pos = y_pos[k + 1] - y_pos[k];
-		dz_pos = z_pos[k + 1] - z_pos[k];
-
-		dist_tot = dx_pos * dx_pos + dy_pos * dy_pos + dz_pos * dz_pos;
-
-		// if dist w/n acceptable values
-		if (dist_tot < 0.99 || 1.01 < dist_tot)
+		if (kk < k - 1 || kk > k + 1)
 		{
-			posCheck = 0;
-		}
-	}
-
-	// check non-bonded particles distance
-	for (int i = 0; i < N - 1; i++) // NOTE: "N-1" instead of "N"
-	{
-		if (i != k)
-		{
-			dx_pos = x_pos[k] - x_pos[i]; // Measure x y z distance from particle a to particle b
-			dy_pos = y_pos[k] - y_pos[i];
-			dz_pos = z_pos[k] - z_pos[i];
-
-			dist_tot = dx_pos * dx_pos + dy_pos * dy_pos + dz_pos * dz_pos; // Calculate magnitude of dist squared
-
-			if (dist_tot < 1.0)
+			dx = rx[k] - rx[kk];
+			dy = ry[k] - ry[kk];
+			dz = rz[k] - rz[kk];
+			dr2 = dx * dx + dy * dy + dz * dz;
+			if (dr2 < 1.0)
 			{
-				posCheck = 0;
+				return (reject);
 			}
 		}
 	}
-	if (posCheck == NULL)
-	{
-		posCheck = 1;
-	}
-	else
-	{
-		posCheck = 0;
-	}
+	
+	return accept; // apply rigidity
 }
 
 // overlap checks if the particle overlaps with the one that came before it.
