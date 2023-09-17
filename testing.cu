@@ -327,6 +327,52 @@ __global__ void overlap(double x_pos[], double y_pos[], double z_pos[], long k, 
 	}
 }
 
+// ----------------------------------------------------------------------
+// Initializes several global variables using mc.inp (formatted into 2
+// columns). The file, mc.inp is left unchanged
+// ----------------------------------------------------------------------
+void input(void)
+{
+  FILE *fp;
+
+  if ((fp = fopen("mc.inp", "r")) == NULL)
+  { // reading mc.inp
+    printf("Cannot open file: mc.inp\n");
+  }
+  else
+  {
+    fscanf(fp, "%ld%*s", &nseg1);
+    fscanf(fp, "%ld%*s", &nseg2);
+    fscanf(fp, "%ld%*s", &nseg3);
+    fscanf(fp, "%ld%*s", &nseg4);
+    fscanf(fp, "%lf%*s", &Area);
+    fscanf(fp, "%lf%*s", &bmin);
+    fscanf(fp, "%lf%*s", &ecc);
+    fscanf(fp, "%lf%*s", &H);
+    fscanf(fp, "%lf%*s", &kappa);
+    fscanf(fp, "%lf%*s", &drmin);
+    fscanf(fp, "%lf%*s", &drmax);
+    fscanf(fp, "%lf%*s", &gridspace);
+
+    fscanf(fp, "\n%ld%*s", &ncyc);
+    fscanf(fp, "%ld%*s", &neq);
+    fscanf(fp, "%lf%*s", &rmax);
+    fscanf(fp, "%lf%*s", &delphi_max);
+    fscanf(fp, "%lf%*s", &rshift_max);
+    fscanf(fp, "%ld%*s", &iseed);
+
+    fscanf(fp, "\n%ld%*s", &freq_samp);
+    fscanf(fp, "%ld%*s", &cmFreqSamp);
+
+    fscanf(fp, "\n%ld%*s", &imov);
+    fscanf(fp, "%ld%*s", &plasRigid);
+    fscanf(fp, "%ld%*s", &xcmPrint);
+    fscanf(fp, "%ld%*s", &ycmPrint);
+  }
+
+  fclose(fp);
+}
+
 int posCheck, overlapCheck;
 
 int main()
