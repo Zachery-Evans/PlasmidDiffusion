@@ -1,0 +1,28 @@
+1000              nseg1
+50                nseg2
+50                nseg3
+50                nseg4
+3000.0            Area
+12.0              bmin
+0.9               ecc
+
+15.0              H
+0.0               kappa
+0.9               drmin
+1.1               drmax
+1.0               gridspace
+
+50000             ncyc
+10000             neq
+0.14              rmax
+3.14159           delphi_max
+0.5               rshift_max
+1344378           iseed
+
+100               freq_samp
+100               cmFreqSamp
+
+1                 imov
+1                 plasRigid
+0                 xcmPrint
+0                 ycmPrint
