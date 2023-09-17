@@ -156,6 +156,114 @@ void crank_dev(double *xout, double *yout, double *zout, long k, long N)
 	zout[k] += delz;
 }
 
+/*
+ *
+ * checkEllipse is the function that, if it is determined the check is required to take into account the ellipse, checks whether or not
+ * the polymer is overlapping with the geometry.
+ *
+ */
+int checkEllipse(double xPos, double yPos, double zPos)
+{
+	int reject = 1, accept = 0;
+	double echeck;
+
+	if (zPos > Hd2 || zPos < -Hd2) // If z position is greater than flat surface of container, reject move
+	{
+		return reject;
+	}
+
+	if (ecc >= 1.0)
+	{
+		if (xPos > xBoxMaxd2 || xPos < -xBoxMaxd2)
+		{
+			return (reject);
+		}
+	}
+
+	if (xPos > xBoxMaxd2 && ecc < 1.0)
+	{ // If the polymer is outside of the leftmost semi-ellipse, reject
+		if ((xPos - xBoxMaxd2) * (xPos - xBoxMaxd2) > amax2 * (1 - (yPos * yPos) / bmin2) && rectangleArea > 0.0)
+		{
+			return reject;
+		}
+
+		if (yPos * yPos > bmin2 * (1 - (xPos - xBoxMaxd2) * (xPos - xBoxMaxd2) / amax2) && rectangleArea > 0.0)
+		{
+			return reject;
+		}
+
+		if (rectangleArea > 0.0)
+		{
+			echeck = (((xPos - xBoxMaxd2) * (xPos - xBoxMaxd2)) / amax2) + ((yPos * yPos) / bmin2);
+		}
+		else
+		{
+			echeck = (((xPos) * (xPos)) / amax2) + ((yPos * yPos) / bmin2);
+		}
+
+		if (echeck > 1.0)
+		{
+			return (reject);
+		}
+	}
+
+	else if (xPos < -xBoxMaxd2 && ecc < 1.0)
+	{ // Checking if outside of left elliptical end
+		if ((xPos + xBoxMaxd2) * (xPos + xBoxMaxd2) > amax2 * (1 - (yPos * yPos) / bmin2) && rectangleArea > 0.0)
+		{
+			return reject;
+		}
+
+		if (yPos * yPos > bmin2 * (1 - (xPos + xBoxMaxd2) * (xPos + xBoxMaxd2) / amax2) && rectangleArea > 0.0)
+		{
+			return reject;
+		}
+
+		if (rectangleArea > 0.0)
+		{
+			echeck = (((xPos + xBoxMaxd2) * (xPos + xBoxMaxd2)) / amax2) + ((yPos * yPos) / bmin2);
+		}
+		else
+		{
+			echeck = (((xPos) * (xPos)) / amax2) + ((yPos * yPos) / bmin2);
+		}
+
+		if (echeck > 1.0)
+		{
+			return reject;
+		}
+	}
+
+	return accept; // If inside container, accept move
+}
+
+/*
+ * squareEllipse takes the position vectors of each monomer in the polymer and then determines:
+ * A) Whether or not we are required to take into account the rectangular or the ellipse geometry of the system
+ * B) Whether or not the move is accepted or rejected based on the move that was just made.
+ */
+int squareEllipse(double xPos, double yPos, double zPos)
+{
+	int reject = 1, accept = 0;
+
+	if (zPos < -Hd2 || zPos > Hd2) // Check if outside of the flat surface of the container
+	{
+		return (reject);
+	}
+
+	if (xPos < -xBoxMaxd2 || xPos > xBoxMaxd2) // If monomer is outside of the rectangle, check if outside of ellipse
+	{
+		return checkEllipse(xPos, yPos, zPos);
+	}
+
+	if (yPos > yBoxMaxd2 || yPos < -yBoxMaxd2)
+	{
+		return (reject);
+	}
+
+	return accept;
+}
+
 int check_accept(double rx, double ry, double rz, long nseg)
 {
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -185,7 +293,7 @@ int check_accept(double rx, double ry, double rz, long nseg)
 			}
 		}
 	}
-	
+
 	return accept; // apply rigidity
 }
 
