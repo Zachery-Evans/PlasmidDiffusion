@@ -138,7 +138,7 @@ double delta_E;
 long ind;
 
 long irep;
-long iter = 0, state[6] = {0, 0, 0, 0, 0, 0};
+long iter = 0, state[5] = {0, 0, 0, 0, 0};
 double rep_prob;
 long nacc_rep;
 long nrep;
@@ -155,7 +155,7 @@ double u, uxy;
 // ------------------------------------------------------------------------
 int main()
 {
-  long imon, indx, indy;
+  long indx, indy;
   double xcm1, ycm1, xcm2, ycm2, xcm3, ycm3, xcm4, ycm4;
   clock_t start, end;
 
@@ -239,8 +239,6 @@ int main()
     fpmov = fopen("chain.xyz", "w");
     start = clock();
   }
-
-  imon = 0;
 
   if (plasRigid == 1)
   {
@@ -737,6 +735,14 @@ void write_log(void)
   printf("ycmPrint     %ld\n", ycmPrint);
   printf("\n");
 }
+
+// ----------------------------------------------------------------------
+// stateCheckSingle (Double, Triple etc) documents the number of times
+// for every measurement cycle the system enters a particular microstate.
+//
+//
+//
+// ----------------------------------------------------------------------
 
 void stateCheckSingle(double cmx)
 {
@@ -1661,14 +1667,14 @@ void init_pos_circular(void)
 
   for (i = 0; i < nseg2; i++)
   {
-    r2z[i] = 4.0;
+    r2z[i] = 2.0;
     r2x[i] = Rplasmid2 * cos(i * theta_plasmid2) - xBoxMaxd2 + Rplasmid2;
     r2y[i] = Rplasmid2 * sin(i * theta_plasmid2) - Rplasmid2 / 2.0;
   }
 
   for (i = 0; i < nseg3; i++)
   {
-    r3z[i] = 2.0; // Initialized just above the first plasmid
+    r3z[i] = 4.0; // Initialized just above the first plasmid
     r3x[i] = Rplasmid3 * cos(i * theta_plasmid3) - xBoxMaxd2 + Rplasmid3;
     r3y[i] = Rplasmid3 * sin(i * theta_plasmid3) - Rplasmid3 / 2.0;
   }
@@ -1715,7 +1721,7 @@ void write_data(void)
     {
       number = 2;
     }
-    else if (nseg3 == 0)
+    else if (nseg3 == 0 && nseg2 != 0 && nseg4 == 0)
     {
       number = 4;
     }
@@ -1723,7 +1729,7 @@ void write_data(void)
     {
       number = 6;
     }
-    
+
     for (int i = 0; i < number; i++)
     {
       fprintf(fp, "%ld\t%ld\n", i + 1, state[i]);

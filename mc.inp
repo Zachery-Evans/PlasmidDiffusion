@@ -3,7 +3,7 @@
 50                nseg3
 50                 nseg4
 3000.0            Area
-16.0              bmin
+12.0              bmin
 0.9               ecc
 
 15.0              H
@@ -17,7 +17,7 @@
 0.14              rmax
 3.14159           delphi_max
 0.5               rshift_max
-1348378           iseed
+1344378           iseed
 
 100               freq_samp
 100               cmFreqSamp
