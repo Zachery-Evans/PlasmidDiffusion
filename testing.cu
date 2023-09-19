@@ -393,7 +393,8 @@ int main()
 	double *xhost = nullptr, *yhost = nullptr, *zhost = nullptr;
 	double *x = nullptr, *y = nullptr, *z = nullptr;
 
-	bool *overlapCheck;
+	bool *validityCheck = nullptr;
+	bool *validityCheckHost = nullptr;
 
 	int imov = 1;
 
@@ -428,6 +429,13 @@ int main()
 		return 1;
 	}
 
+	validityCheckHost = (bool *)malloc(n * sizeof(bool));
+	if (validityCheckHost == nullptr)
+	{
+		printf("Memory allocation error on the host validityCheckHost.\n");
+		return 1;
+	}
+
 	// Allocate memory on the device
 	cudaError_t cudaStatus = cudaMalloc((void **)&ran3Device, n * sizeof(double));
 	if (cudaStatus != cudaSuccess)
@@ -441,7 +449,7 @@ int main()
 	if (cudaStatus != cudaSuccess)
 	{
 		printf("cudaMalloc x failed: %s\n", cudaGetErrorString(cudaStatus));
-		free(ran3);
+		free(x);
 		return 1;
 	}
 
@@ -449,7 +457,7 @@ int main()
 	if (cudaStatus != cudaSuccess)
 	{
 		printf("cudaMalloc y failed: %s\n", cudaGetErrorString(cudaStatus));
-		free(ran3);
+		free(y);
 		return 1;
 	}
 
@@ -457,7 +465,15 @@ int main()
 	if (cudaStatus != cudaSuccess)
 	{
 		printf("cudaMalloc z failed: %s\n", cudaGetErrorString(cudaStatus));
-		free(ran3);
+		free(z);
+		return 1;
+	}
+
+	cudaStatus = cudaMalloc((void **)&validityCheck, n * sizeof(bool));
+	if (cudaStatus != cudaSuccess)
+	{
+		printf("cudaMalloc z failed: %s\n", cudaGetErrorString(cudaStatus));
+		free(validityCheck);
 		return 1;
 	}
 
@@ -516,6 +532,12 @@ int main()
 			printf("%ld\n", mon);
 			// printf("%ld\n", jj);
 			crank_dev(xhost, yhost, zhost, mon, n);
+
+			cudaMemcpy(x, xhost, n * sizeof(double), cudaMemcpyHostToDevice);
+			cudaMemcpy(y, yhost, n * sizeof(double), cudaMemcpyHostToDevice);
+			cudaMemcpy(z, xhost, n * sizeof(double), cudaMemcpyHostToDevice);
+
+			check_accept<<<threadsPerBlock, blocksPerGrid>>>(x, y, z, n, validityCheck);
 
 			// Print the generated random numbers on the host
 
