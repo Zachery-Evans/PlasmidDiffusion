@@ -138,7 +138,7 @@ double delta_E;
 long ind;
 
 long irep;
-long iter = 0, state[5] = {0, 0, 0, 0, 0, 0};
+long iter = 0, state[6] = {0, 0, 0, 0, 0, 0};
 double rep_prob;
 long nacc_rep;
 long nrep;
