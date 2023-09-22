@@ -798,7 +798,7 @@ void stateCheckTriple(double cmx2, double cmx3, double cmx4)
   bool cmx3E1 = cmx3<-xBoxMaxd2, cmx3E2 = cmx3> xBoxMaxd2, cmx3B = cmx3 > -xBoxMaxd2 && cmx3 < xBoxMaxd2;
   bool cmx4E1 = cmx4<-xBoxMaxd2, cmx4E2 = cmx4> xBoxMaxd2, cmx4B = cmx4 > -xBoxMaxd2 && cmx4 < xBoxMaxd2;
 
-  if ((cmx2E1 && cmx3E1 && cmx4E1) || (cmx2B && cmx3B && cmx4B) || (cmx2E2 && cmx3E2 && cmx4E2))
+  if ((cmx2E1 && cmx3E1 && cmx4E1) || (cmx2E2 && cmx3E2 && cmx4E2))
   {
     state[0]++;
   }
@@ -817,6 +817,9 @@ void stateCheckTriple(double cmx2, double cmx3, double cmx4)
   else if ((cmx2E1 && cmx3B && cmx4E2 || cmx2E2 && cmx3B && cmx4E1) || (cmx3E1 && cmx2B && cmx4E2 || cmx3E2 && cmx2B && cmx4E1) || (cmx3E1 && cmx4B && cmx2E2 || cmx3E2 && cmx4B && cmx2E1))
   {
     state[4]++;
+  }
+  else if ((cmx2B && cmx3B && cmx4B)){
+    state[5]++;
   }
   else
   {
