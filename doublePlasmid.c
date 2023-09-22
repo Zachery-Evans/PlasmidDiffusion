@@ -818,7 +818,8 @@ void stateCheckTriple(double cmx2, double cmx3, double cmx4)
   {
     state[4]++;
   }
-  else if ((cmx2B && cmx3B && cmx4B)){
+  else if ((cmx2B && cmx3B && cmx4B))
+  {
     state[5]++;
   }
   else
