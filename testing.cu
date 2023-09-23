@@ -2,6 +2,253 @@
 #include <curand_kernel.h> // Include the CUDA Random Number Generation library
 #include <curand.h>
 
+#define PI 3.14159265
+
+void input(void);
+void init_pos_dev(double *, double *, double *, long);
+void crank_dev(double *, double *, double *, long, long);
+
+__global__ void check_accept(double *, double *, double *, long, bool *);
+__global__ void randomKernel(double *, int);
+
+long nseg1, nseg2, nseg3, nseg4, i, j, k, ii, ncyc, nacc, kk, iseed;
+long neq, ichain, nsamp, nacc_shift, nshift, xcmPrint, ycmPrint;
+long imov, plasRigid, kmaxtest, freq_samp, cmFreqSamp, ngridx, ngridy;
+
+__device__ long *monDev = nullptr;
+
+double L, H, Ld2, Hd2, rmax, dx, dy, dz, dr2;
+double drmin, drmax, gridspace, gridspacex_real, gridspacey_real;
+double amax, bmin, amax2, bmin2, ecc, Area, rectangleArea, xBoxMax, yBoxMax, rshift_max;
+double xBoxMaxd2, yBoxMaxd2;
+double kappa, xold, yold, zold, delphi_max;
+double **prob1, **plas, **probmon;
+
+int main()
+{
+	long n = 10; // Number of elements to generate
+	long threadsPerBlock, blocksPerGrid, freq_samp = 1, *mon = nullptr;
+	double *ran3Device = nullptr; // Device array to store random numbers
+	double *ran3 = nullptr;		  // Host array to store random numbers
+	double *xhost = nullptr, *yhost = nullptr, *zhost = nullptr;
+	double *x = nullptr, *y = nullptr, *z = nullptr;
+
+	bool *validityCheck = nullptr;
+	bool *validityCheckHost = nullptr;
+
+	int imov = 1;
+
+	FILE *fp;
+
+	input();
+
+	if (ecc < 1.0)
+	{
+		amax = bmin / sqrt(1 - ecc * ecc);
+	}
+
+	amax2 = amax * amax;
+	bmin2 = bmin * bmin;
+	rectangleArea = Area - PI * amax * bmin;
+	if (rectangleArea < 0.0)
+	{
+		rectangleArea = 0.0;
+	}
+
+	yBoxMax = 2.0 * bmin;
+	yBoxMaxd2 = bmin; // Width of the rectangle section equivalent to the semi-minor axis
+	xBoxMax = rectangleArea / (2.0 * bmin);
+	xBoxMaxd2 = xBoxMax / 2.0;
+
+	//  printf("%lf \t %lf\n", amax, bmin);
+	//  printf("Length of the box: %lf\n", xBoxMax);
+	//  printf("1/2 Length of the box: %lf\n", xBoxMaxd2);
+	//  printf("Semi-major axis: %lf\n", amax);
+	//  printf("Semi-minor axis: %lf\n", bmin);
+	//  printf("Height of box: %lf\n", yBoxMax);
+	Hd2 = H / 2.0;
+
+	xhost = (double *)malloc(n * sizeof(double));
+	if (xhost == nullptr)
+	{
+		printf("Memory allocation error on the host xhost.\n");
+		return 1;
+	}
+
+	yhost = (double *)malloc(n * sizeof(double));
+	if (yhost == nullptr)
+	{
+		printf("Memory allocation error on the host yhost.\n");
+		return 1;
+	}
+
+	zhost = (double *)malloc(n * sizeof(double));
+	if (zhost == nullptr)
+	{
+		printf("Memory allocation error on the host zhost.\n");
+		return 1;
+	}
+
+	// Allocate memory on the host
+	ran3 = (double *)malloc(n * sizeof(double));
+	if (ran3 == nullptr)
+	{
+		printf("Memory allocation error on the host ran3.\n");
+		return 1;
+	}
+
+	validityCheckHost = (bool *)malloc(n * sizeof(bool));
+	if (validityCheckHost == nullptr)
+	{
+		printf("Memory allocation error on the host validityCheckHost.\n");
+		return 1;
+	}
+
+	mon = (long *)malloc(sizeof(long));
+	if (mon == nullptr)
+	{
+		printf("Memory allocation error on the host validityCheckHost.\n");
+		return 1;
+	}
+
+	// Allocate memory on the device
+	cudaError_t cudaStatus = cudaMalloc((void **)&ran3Device, n * sizeof(double));
+	if (cudaStatus != cudaSuccess)
+	{
+		printf("cudaMalloc failed: %s\n", cudaGetErrorString(cudaStatus));
+		free(ran3);
+		return 1;
+	}
+
+	cudaStatus = cudaMalloc((void **)&x, n * sizeof(double));
+	if (cudaStatus != cudaSuccess)
+	{
+		printf("cudaMalloc x failed: %s\n", cudaGetErrorString(cudaStatus));
+		free(x);
+		return 1;
+	}
+
+	cudaStatus = cudaMalloc((void **)&y, n * sizeof(double));
+	if (cudaStatus != cudaSuccess)
+	{
+		printf("cudaMalloc y failed: %s\n", cudaGetErrorString(cudaStatus));
+		free(y);
+		return 1;
+	}
+
+	cudaStatus = cudaMalloc((void **)&z, n * sizeof(double));
+	if (cudaStatus != cudaSuccess)
+	{
+		printf("cudaMalloc z failed: %s\n", cudaGetErrorString(cudaStatus));
+		free(z);
+		return 1;
+	}
+
+	cudaStatus = cudaMalloc((void **)&validityCheck, n * sizeof(bool));
+	if (cudaStatus != cudaSuccess)
+	{
+		printf("cudaMalloc validityCheck failed: %s\n", cudaGetErrorString(cudaStatus));
+		free(validityCheck);
+		return 1;
+	}
+
+	cudaStatus = cudaMalloc((void **)&monDev, sizeof(long));
+	if (cudaStatus != cudaSuccess)
+	{
+		printf("cudaMalloc monDev failed: %s\n", cudaGetErrorString(cudaStatus));
+		cudaFree(monDev);
+		return 1;
+	}
+
+	if (imov == 1)
+	{
+		fp = fopen("chain.xyz", "w");
+		fprintf(fp, "%ld\n", n);
+	}
+
+	init_pos_dev(xhost, yhost, zhost, n);
+
+	// Begin MC Cycles
+	for (long ii = 0; ii < ncyc; ii++)
+	{
+		// Launch the kernel
+		threadsPerBlock = 1;
+		blocksPerGrid = (n + threadsPerBlock - 1) / threadsPerBlock;
+		randomKernel<<<blocksPerGrid, threadsPerBlock>>>(ran3Device, n);
+
+		// Check for kernel launch errors
+		cudaStatus = cudaGetLastError();
+		if (cudaStatus != cudaSuccess)
+		{
+			printf("Kernel launch failed: %s\n", cudaGetErrorString(cudaStatus));
+			cudaFree(ran3Device);
+			free(ran3);
+			return 1;
+		}
+
+		cudaStatus = cudaGetLastError();
+		if (cudaStatus != cudaSuccess)
+		{
+			printf("Kernal launch failed: %s\n", cudaGetErrorString(cudaStatus));
+			cudaFree(x);
+			cudaFree(y);
+			cudaFree(z);
+			free(xhost);
+			free(yhost);
+			free(zhost);
+			return 1;
+		}
+
+		// Copy the results back to the host
+		cudaStatus = cudaMemcpy(ran3, ran3Device, n * sizeof(double), cudaMemcpyDeviceToHost);
+		if (cudaStatus != cudaSuccess)
+		{
+			printf("cudaMemcpy ran3 failed: %s\n", cudaGetErrorString(cudaStatus));
+			cudaFree(ran3Device);
+			free(ran3);
+			return 1;
+		}
+
+		for (int jj = 0; jj < n; jj++)
+		{
+			*mon = (long) n * ran3[jj];
+			// printf("%ld\n", mon);
+			//  printf("%ld\n", jj);
+			cudaMemcpy(monDev, mon, n * sizeof(double), cudaMemcpyHostToDevice);
+
+			crank_dev(xhost, yhost, zhost, *monDev, n);
+
+			cudaMemcpy(x, xhost, n * sizeof(double), cudaMemcpyHostToDevice);
+			cudaMemcpy(y, yhost, n * sizeof(double), cudaMemcpyHostToDevice);
+			cudaMemcpy(z, xhost, n * sizeof(double), cudaMemcpyHostToDevice);
+
+			check_accept<<<threadsPerBlock, blocksPerGrid>>>(x, y, z, n, validityCheck);
+
+			// Print the generated random numbers on the host
+
+			if (imov == 1 && ii % freq_samp == 0)
+			{
+				fprintf(fp, "Polymer: %ld\n", ii);
+				for (int i = 0; i < n; ++i)
+				{
+					fprintf(fp, "%lf  %lf  %lf\n", xhost[i], yhost[i], zhost[i]);
+				}
+			}
+		}
+	}
+
+	if (imov == 1)
+	{
+		fclose(fp);
+	}
+
+	// Free device and host memory
+	cudaFree(ran3Device);
+	free(ran3);
+
+	return 0;
+}
+
 // Device function to generate a random number using curand
 __device__ double randomNumber(curandState *state)
 {
@@ -283,11 +530,11 @@ __global__ void check_accept(double *rx, double *ry, double *rz, long n, bool *c
 			return (reject);
 		}
 		*/
-		if (kk < k - 1 || kk > k + 1)
+		if (tid < *monDev - 1 || tid > *monDev + 1)
 		{
-			dx = rx[k] - rx[kk];
-			dy = ry[k] - ry[kk];
-			dz = rz[k] - rz[kk];
+			dx = rx[*monDev] - rx[tid];
+			dy = ry[*monDev] - ry[tid];
+			dz = rz[*monDev] - rz[tid];
 			dr2 = dx * dx + dy * dy + dz * dz;
 			if (dr2 < 1.0)
 			{
@@ -371,195 +618,4 @@ void input(void)
 	}
 
 	fclose(fp);
-}
-
-long nseg1, nseg2, nseg3, nseg4, i, j, k, ii, ncyc, nacc, kk, iseed;
-long neq, ichain, nsamp, nacc_shift, nshift, xcmPrint, ycmPrint;
-long imov, plasRigid, kmaxtest, freq_samp, cmFreqSamp, ngridx, ngridy;
-
-double L, H, Ld2, Hd2, rmax, dx, dy, dz, dr2;
-double drmin, drmax, gridspace, gridspacex_real, gridspacey_real;
-double amax, bmin, amax2, bmin2, ecc, Area, rectangleArea, xBoxMax, yBoxMax, rshift_max;
-double xBoxMaxd2, yBoxMaxd2;
-double kappa, xold, yold, zold, delphi_max;
-double **prob1, **plas, **probmon;
-
-int main()
-{
-	long n = 10; // Number of elements to generate
-	long threadsPerBlock, blocksPerGrid, freq_samp = 1, mon;
-	double *ran3Device = nullptr; // Device array to store random numbers
-	double *ran3 = nullptr;		  // Host array to store random numbers
-	double *xhost = nullptr, *yhost = nullptr, *zhost = nullptr;
-	double *x = nullptr, *y = nullptr, *z = nullptr;
-
-	bool *validityCheck = nullptr;
-	bool *validityCheckHost = nullptr;
-
-	int imov = 1;
-
-	FILE *fp;
-
-	xhost = (double *)malloc(n * sizeof(double));
-	if (xhost == nullptr)
-	{
-		printf("Memory allocation error on the host xhost.\n");
-		return 1;
-	}
-
-	yhost = (double *)malloc(n * sizeof(double));
-	if (yhost == nullptr)
-	{
-		printf("Memory allocation error on the host yhost.\n");
-		return 1;
-	}
-
-	zhost = (double *)malloc(n * sizeof(double));
-	if (zhost == nullptr)
-	{
-		printf("Memory allocation error on the host zhost.\n");
-		return 1;
-	}
-
-	// Allocate memory on the host
-	ran3 = (double *)malloc(n * sizeof(double));
-	if (ran3 == nullptr)
-	{
-		printf("Memory allocation error on the host ran3.\n");
-		return 1;
-	}
-
-	validityCheckHost = (bool *)malloc(n * sizeof(bool));
-	if (validityCheckHost == nullptr)
-	{
-		printf("Memory allocation error on the host validityCheckHost.\n");
-		return 1;
-	}
-
-	// Allocate memory on the device
-	cudaError_t cudaStatus = cudaMalloc((void **)&ran3Device, n * sizeof(double));
-	if (cudaStatus != cudaSuccess)
-	{
-		printf("cudaMalloc failed: %s\n", cudaGetErrorString(cudaStatus));
-		free(ran3);
-		return 1;
-	}
-
-	cudaStatus = cudaMalloc((void **)&x, n * sizeof(double));
-	if (cudaStatus != cudaSuccess)
-	{
-		printf("cudaMalloc x failed: %s\n", cudaGetErrorString(cudaStatus));
-		free(x);
-		return 1;
-	}
-
-	cudaStatus = cudaMalloc((void **)&y, n * sizeof(double));
-	if (cudaStatus != cudaSuccess)
-	{
-		printf("cudaMalloc y failed: %s\n", cudaGetErrorString(cudaStatus));
-		free(y);
-		return 1;
-	}
-
-	cudaStatus = cudaMalloc((void **)&z, n * sizeof(double));
-	if (cudaStatus != cudaSuccess)
-	{
-		printf("cudaMalloc z failed: %s\n", cudaGetErrorString(cudaStatus));
-		free(z);
-		return 1;
-	}
-
-	cudaStatus = cudaMalloc((void **)&validityCheck, n * sizeof(bool));
-	if (cudaStatus != cudaSuccess)
-	{
-		printf("cudaMalloc z failed: %s\n", cudaGetErrorString(cudaStatus));
-		free(validityCheck);
-		return 1;
-	}
-
-	if (imov == 1)
-	{
-		fp = fopen("chain.xyz", "w");
-		fprintf(fp, "%ld\n", n);
-	}
-
-	init_pos_dev(xhost, yhost, zhost, n);
-
-	// Begin MC Cycles
-	for (long ii = 0; ii < ncyc; ii++)
-	{
-		// Launch the kernel
-		threadsPerBlock = 1;
-		blocksPerGrid = (n + threadsPerBlock - 1) / threadsPerBlock;
-		randomKernel<<<blocksPerGrid, threadsPerBlock>>>(ran3Device, n);
-
-		// Check for kernel launch errors
-		cudaStatus = cudaGetLastError();
-		if (cudaStatus != cudaSuccess)
-		{
-			printf("Kernel launch failed: %s\n", cudaGetErrorString(cudaStatus));
-			cudaFree(ran3Device);
-			free(ran3);
-			return 1;
-		}
-
-		cudaStatus = cudaGetLastError();
-		if (cudaStatus != cudaSuccess)
-		{
-			printf("Kernal launch failed: %s\n", cudaGetErrorString(cudaStatus));
-			cudaFree(x);
-			cudaFree(y);
-			cudaFree(z);
-			free(xhost);
-			free(yhost);
-			free(zhost);
-			return 1;
-		}
-
-		// Copy the results back to the host
-		cudaStatus = cudaMemcpy(ran3, ran3Device, n * sizeof(double), cudaMemcpyDeviceToHost);
-		if (cudaStatus != cudaSuccess)
-		{
-			printf("cudaMemcpy ran3 failed: %s\n", cudaGetErrorString(cudaStatus));
-			cudaFree(ran3Device);
-			free(ran3);
-			return 1;
-		}
-
-		for (int jj = 0; jj < n; jj++)
-		{
-			mon = n * ran3[jj];
-			printf("%ld\n", mon);
-			// printf("%ld\n", jj);
-			crank_dev(xhost, yhost, zhost, mon, n);
-
-			cudaMemcpy(x, xhost, n * sizeof(double), cudaMemcpyHostToDevice);
-			cudaMemcpy(y, yhost, n * sizeof(double), cudaMemcpyHostToDevice);
-			cudaMemcpy(z, xhost, n * sizeof(double), cudaMemcpyHostToDevice);
-
-			check_accept<<<threadsPerBlock, blocksPerGrid>>>(x, y, z, n, validityCheck);
-
-			// Print the generated random numbers on the host
-
-			if (imov == 1 && ii % freq_samp == 0)
-			{
-				fprintf(fp, "Polymer: %ld\n", ii);
-				for (int i = 0; i < n; ++i)
-				{
-					fprintf(fp, "%lf  %lf  %lf\n", xhost[i], yhost[i], zhost[i]);
-				}
-			}
-		}
-	}
-
-	if (imov == 1)
-	{
-		fclose(fp);
-	}
-
-	// Free device and host memory
-	cudaFree(ran3Device);
-	free(ran3);
-
-	return 0;
 }
