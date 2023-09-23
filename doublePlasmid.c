@@ -138,7 +138,7 @@ double delta_E;
 long ind;
 
 long irep;
-long iter = 0, state[5] = {0, 0, 0, 0, 0, 0};
+long iter = 0, state[6] = {0, 0, 0, 0, 0, 0};
 double rep_prob;
 long nacc_rep;
 long nrep;
@@ -581,11 +581,11 @@ int main()
       x4cm[thing] = xcm4;
       y4cm[thing] = ycm4;
 
-      if (nseg2 == 0 && nseg3 == 0)
+      if (nseg2 != 0 && nseg3 == 0 && nseg4 == 0)
       {
         stateCheckSingle(xcm2);
       }
-      else if (nseg3 == 0)
+      else if (nseg2 != 0 && nseg3 != 0 && nseg4 == 0)
       {
         stateCheckDouble(xcm2, xcm3);
       }
@@ -798,7 +798,7 @@ void stateCheckTriple(double cmx2, double cmx3, double cmx4)
   bool cmx3E1 = cmx3<-xBoxMaxd2, cmx3E2 = cmx3> xBoxMaxd2, cmx3B = cmx3 > -xBoxMaxd2 && cmx3 < xBoxMaxd2;
   bool cmx4E1 = cmx4<-xBoxMaxd2, cmx4E2 = cmx4> xBoxMaxd2, cmx4B = cmx4 > -xBoxMaxd2 && cmx4 < xBoxMaxd2;
 
-  if ((cmx2E1 && cmx3E1 && cmx4E1) || (cmx2B && cmx3B && cmx4B) || (cmx2E2 && cmx3E2 && cmx4E2))
+  if ((cmx2E1 && cmx3E1 && cmx4E1) || (cmx2E2 && cmx3E2 && cmx4E2))
   {
     state[0]++;
   }
@@ -817,6 +817,10 @@ void stateCheckTriple(double cmx2, double cmx3, double cmx4)
   else if ((cmx2E1 && cmx3B && cmx4E2 || cmx2E2 && cmx3B && cmx4E1) || (cmx3E1 && cmx2B && cmx4E2 || cmx3E2 && cmx2B && cmx4E1) || (cmx3E1 && cmx4B && cmx2E2 || cmx3E2 && cmx4B && cmx2E1))
   {
     state[4]++;
+  }
+  else if (cmx2B && cmx3B && cmx4B)
+  {
+    state[5]++;
   }
   else
   {
@@ -1716,23 +1720,14 @@ void write_data(void)
   }
   else
   {
-    int number;
-    if (nseg2 == 0 && nseg3 == 0)
-    {
-      number = 2;
-    }
-    else if (nseg3 == 0 && nseg2 != 0 && nseg4 == 0)
-    {
-      number = 4;
-    }
-    else if (nseg2 != 0 && nseg3 != 0 && nseg4 != 0)
-    {
-      number = 6;
-    }
+    int number = 6;
 
-    for (int i = 0; i < number; i++)
+    for (j = 0; j < number; j++)
     {
-      fprintf(fp, "%ld\t%ld\n", i + 1, state[i]);
+      if (state[j] != 0)
+      {
+        fprintf(fp, "%ld\t%ld\n", j + 1, state[j]);
+      }
     }
     fclose(fp);
   }
