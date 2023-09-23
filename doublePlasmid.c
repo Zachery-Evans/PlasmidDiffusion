@@ -581,11 +581,11 @@ int main()
       x4cm[thing] = xcm4;
       y4cm[thing] = ycm4;
 
-      if (nseg2 == 0 && nseg3 == 0)
+      if (nseg2 != 0 && nseg3 == 0 && nseg4 == 0)
       {
         stateCheckSingle(xcm2);
       }
-      else if (nseg3 == 0)
+      else if (nseg2 != 0 && nseg3 != 0 && nseg4 == 0)
       {
         stateCheckDouble(xcm2, xcm3);
       }
