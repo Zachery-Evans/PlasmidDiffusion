@@ -750,41 +750,36 @@ void stateCheckSingle(double cmx)
   {
     state[0]++;
   }
-  else if (cmx > -xBoxMaxd2 && cmx < xBoxMaxd2)
+  else 
   {
     state[1]++;
-  }
-  else
-  {
-    printf("Missing a microstate.");
   }
 }
 
 void stateCheckDouble(double cmx2, double cmx3)
 {
-  if (cmx2 < -xBoxMaxd2 && cmx3 < -xBoxMaxd2)
+  bool cmx2E1 = cmx2<-xBoxMaxd2, cmx2E2 = cmx2> xBoxMaxd2, cmx2B = cmx2 > -xBoxMaxd2 && cmx2 < xBoxMaxd2;
+  bool cmx3E1 = cmx3<-xBoxMaxd2, cmx3E2 = cmx3> xBoxMaxd2, cmx3B = cmx3 > -xBoxMaxd2 && cmx3 < xBoxMaxd2;
+
+  if ((cmx2E1 && cmx2E1) || (cmx2E2 && cmx3E2))
   {
     state[0]++;
   }
-  else if ((cmx2 < -xBoxMaxd2 && (cmx3 > -xBoxMaxd2 && cmx3 < xBoxMaxd2)) || (cmx3 < -xBoxMaxd2 && (cmx2 > -xBoxMaxd2 && cmx2 < xBoxMaxd2)))
+  else if ((cmx2E1 && cmx3B) || (cmx3E1 && cmx2B))
   {
     state[1]++;
   }
-  else if ((cmx3 > xBoxMaxd2 && cmx2 < -xBoxMaxd2) || ((cmx2 > xBoxMaxd2 && cmx3 < -xBoxMaxd2)))
+  else if ((cmx2E2 && cmx3B) || (cmx3E2 && cmx2B))
+  {
+    state[1]++;
+  }
+  else if ((cmx3E1 && cmx2E2) || (cmx2E1 && cmx3E2))
   {
     state[2]++;
   }
-  else if ((cmx3 > -xBoxMaxd2 && cmx3 < xBoxMaxd2) && (cmx2 > -xBoxMaxd2 && cmx2 < xBoxMaxd2))
+  else if (cmx2B && cmx3B)
   {
     state[3]++;
-  }
-  else if ((cmx3 > xBoxMaxd2 && (cmx2 > -xBoxMaxd2 && cmx2 < xBoxMaxd2)) || (cmx2 > xBoxMaxd2 && (cmx3 > -xBoxMaxd2 && cmx3 < xBoxMaxd2)))
-  {
-    state[1]++;
-  }
-  else if (cmx3 > xBoxMaxd2 && cmx2 > xBoxMaxd2)
-  {
-    state[0]++;
   }
   else
   {
