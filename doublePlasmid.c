@@ -813,7 +813,7 @@ void stateCheckTriple(double cmx2, double cmx3, double cmx4)
   {
     state[4]++;
   }
-  else if ((cmx2B && cmx3B && cmx4B))
+  else if (cmx2B && cmx3B && cmx4B)
   {
     state[5]++;
   }
@@ -1715,23 +1715,14 @@ void write_data(void)
   }
   else
   {
-    int number;
-    if (nseg2 == 0 && nseg3 == 0)
-    {
-      number = 2;
-    }
-    else if (nseg3 == 0 && nseg2 != 0 && nseg4 == 0)
-    {
-      number = 4;
-    }
-    else if (nseg2 != 0 && nseg3 != 0 && nseg4 != 0)
-    {
-      number = 6;
-    }
+    int number = 6;
 
-    for (int i = 0; i < number; i++)
+    for (j = 0; j < number; j++)
     {
-      fprintf(fp, "%ld\t%ld\n", i + 1, state[i]);
+      if (state[j] != 0)
+      {
+        fprintf(fp, "%ld\t%ld\n", j + 1, state[j]);
+      }
     }
     fclose(fp);
   }
