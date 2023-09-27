@@ -5,10 +5,10 @@
 #define PI 3.14159265
 
 void input(void);
-void init_pos_dev(double *, double *, double *, long);
+void init_pos(double *, double *, double *, long);
 void crank_dev(double *, double *, double *, long, long);
 
-__global__ void check_accept(double *, double *, double *, long, bool *);
+__global__ void check_accept(double *, double *, double *, long, volatile bool *);
 __global__ void randomKernel(double *, int);
 
 long nseg1, nseg2, nseg3, nseg4, i, j, k, ii, ncyc, nacc, kk, iseed;
@@ -33,7 +33,6 @@ int main()
 	double *xhost = nullptr, *yhost = nullptr, *zhost = nullptr;
 	double *x = nullptr, *y = nullptr, *z = nullptr;
 
-	bool *validityCheck = nullptr;
 	bool *validityCheckHost = nullptr;
 
 	int imov = 1;
@@ -166,7 +165,7 @@ int main()
 		fprintf(fp, "%ld\n", n);
 	}
 
-	init_pos_dev(xhost, yhost, zhost, n);
+	init_pos(xhost, yhost, zhost, n);
 
 	// Begin MC Cycles
 	for (long ii = 0; ii < ncyc; ii++)
@@ -211,7 +210,8 @@ int main()
 
 		for (int jj = 0; jj < n; jj++)
 		{
-			*mon = (long) n * ran3[jj];
+			volatile bool *validityCheck = false;
+			*mon = (long)n * ran3[jj];
 			// printf("%ld\n", mon);
 			//  printf("%ld\n", jj);
 			cudaMemcpy(monDev, mon, n * sizeof(double), cudaMemcpyHostToDevice);
@@ -285,7 +285,7 @@ __device__ void randomKernelDevice(double *output, int n)
 	}
 }
 
-void init_pos_dev(double *xout, double *yout, double *zout, long N)
+void init_pos(double *xout, double *yout, double *zout, long N)
 {
 	for (int i = 0; i < N; i++)
 	{
@@ -306,101 +306,59 @@ void init_pos_dev(double *xout, double *yout, double *zout, long N)
 
 void crank_dev(double *xout, double *yout, double *zout, long k, long N)
 {
-	// k is the random number, N is the number of monomers in the polymer chain
-	double xold = 0.0, yold = 0.0, zold = 0.0, delrVec[3], uVec[3], uHat[3], uVec_mag = 0.0, delrVec_mag = 0.0;
-	double vVec[3], vprimeVec[3], vVec_mag, vHat[3], wVec[3], wVec_mag[3], wHat[3], delrprimeVec[3];
-	double delx, dely, delz, uHat_dot_delrVec, delrVec_dot_uHat, phi;
-	// randomKernel<<<1,1>>>(phi, 1);
-	phi = 3.141592653;
+	double delrx, delry, delrz, Rx, Ry, Rz, Rmag, rdotRn, Rnx, Rny, Rnz;
+	double ux, uy, uz, vx, vy, vz, vmag, wx, wy, wz, wmag;
+	double cosphi, sinphi, delphi;
 
-	if (k == 0) // DO NOT TOUCH !!!
+	delrx = rx[k] - rx[k - 1];
+	delry = ry[k] - ry[k - 1];
+	delrz = rz[k] - rz[k - 1];
+
+	Rx = rx[k + 1] - rx[k - 1];
+	Ry = ry[k + 1] - ry[k - 1];
+	Rz = rz[k + 1] - rz[k - 1];
+	Rmag = sqrt(Rx * Rx + Ry * Ry + Rz * Rz);
+
+	Rnx = Rx / Rmag;
+	Rny = Ry / Rmag;
+	Rnz = Rz / Rmag;
+
+	rdotRn = delrx * Rnx + delry * Rny + delrz * Rnz;
+	ux = rdotRn * Rnx;
+	uy = rdotRn * Rny;
+	uz = rdotRn * Rnz;
+
+	vx = delrx - ux;
+	vy = delry - uy;
+	vz = delrz - uz;
+	vmag = sqrt(vx * vx + vy * vy + vz * vz);
+	// if (vmag < 0.00000001) printf("vmag = %lf\n",vmag);
+
+	wx = uy * vz - uz * vy;
+	wy = uz * vx - ux * vz;
+	wz = ux * vy - uy * vx;
+	wmag = sqrt(wx * wx + wy * wy + wz * wz);
+
+	if (wmag > 0.00000001)
 	{
-		delrVec[0] = xout[k + 1] - xout[k];
-		delrVec[1] = yout[k + 1] - yout[k];
-		delrVec[2] = zout[k + 1] - zout[k];
+		delphi = (2.0 * ran3() - 1.0) * delphi_max;
+		cosphi = cos(delphi);
+		sinphi = sin(delphi);
 
-		uVec[0] = xout[k + 1] - xout[k + 2];
-		uVec[1] = yout[k + 1] - yout[k + 2];
-		uVec[2] = zout[k + 1] - zout[k + 2];
+		delrx = ux + cosphi * vx + sinphi * vmag * wx / wmag;
+		delry = uy + cosphi * vy + sinphi * vmag * wy / wmag;
+		delrz = uz + cosphi * vz + sinphi * vmag * wz / wmag;
+
+		rx[k] = rx[k - 1] + delrx;
+		ry[k] = ry[k - 1] + delry;
+		rz[k] = rz[k - 1] + delrz;
 	}
-
-	else if (k == N) // DO NOT TOUCH !!!
-	{
-		delrVec[0] = xout[k] - xout[k - 1];
-		delrVec[1] = yout[k] - yout[k - 1];
-		delrVec[2] = zout[k] - zout[k - 1];
-
-		uVec[0] = xout[k - 1] - xout[k - 2];
-		uVec[1] = yout[k - 1] - yout[k - 2];
-		uVec[2] = zout[k - 1] - zout[k - 2];
+	else
+	{ // bonds are parallel
+		rx[k] = xold;
+		ry[k] = yold;
+		rz[k] = zold;
 	}
-
-	else // DO NOT TOUCH !!!
-	{
-		delrVec[0] = xout[k - 1] - xout[k]; // delrVec is vector from k-1 to k
-		delrVec[1] = yout[k - 1] - yout[k];
-		delrVec[2] = zout[k - 1] - zout[k];
-
-		uVec[0] = xout[k + 1] - xout[k - 1]; // uVec is vector from k+1 to k-1
-		uVec[1] = yout[k + 1] - yout[k - 1];
-		uVec[2] = zout[k + 1] - zout[k - 1];
-	}
-
-	delrVec_mag = delrVec[0] * delrVec[0] + delrVec[1] * delrVec[1] + delrVec[2] * delrVec[2];
-	// printf("%s %lf\n", "delrVec_mag:", delrVec_mag);
-
-	uVec_mag = uVec[0] * uVec[0] + uVec[1] * uVec[1] + uVec[2] * uVec[2];
-
-	uHat[0] = uVec[0] / uVec_mag;
-	uHat[1] = uVec[1] / uVec_mag;
-	uHat[2] = uVec[2] / uVec_mag;
-
-	uHat_dot_delrVec = uHat[0] * delrVec[0] + uHat[1] * delrVec[1] + uHat[2] * delrVec[2];
-
-	// printf("%lf\n", uHat_dot_delrVec);
-
-	vVec[0] = delrVec[0] - uHat[0] * uHat_dot_delrVec;
-	vVec[1] = delrVec[1] - uHat[1] * uHat_dot_delrVec;
-	vVec[2] = delrVec[2] - uHat[2] * uHat_dot_delrVec;
-
-	vVec_mag = vVec[0] * vVec[0] + vVec[1] * vVec[1] + vVec[2] * vVec[2];
-	// printf("%s %f\n", "vVec_mag:", vVec_mag); // Is zero sometimes somehow
-
-	vHat[0] = vVec[0] / vVec_mag;
-	vHat[1] = vVec[1] / vVec_mag;
-	vHat[2] = vVec[2] / vVec_mag;
-
-	wHat[0] = uHat[1] * vHat[2] - uHat[2] * vHat[1]; // Does a cross product of uVec and vVec, sets wVec parameters to x,y,z values
-	wHat[1] = uHat[0] * vHat[2] - uHat[2] * vHat[0];
-	wHat[2] = uHat[0] * vHat[1] - uHat[1] * vHat[0];
-
-	wVec[0] = wHat[0] * vVec_mag;
-	wVec[1] = wHat[1] * vVec_mag;
-	wVec[2] = wHat[2] * vVec_mag;
-
-	vprimeVec[0] = vVec[0] * cos(phi) + wVec[0] * sin(phi);
-	vprimeVec[1] = vVec[1] * cos(phi) + wVec[1] * sin(phi);
-	vprimeVec[2] = vVec[2] * cos(phi) + wVec[2] * sin(phi);
-
-	// printf("%lf %lf %lf\n", vprimeVec[0], vprimeVec[1], vprimeVec[2]);
-
-	delrVec_dot_uHat = delrVec[0] * uHat[0] + delrVec[1] * uHat[1] + delrVec[2] * uHat[2];
-
-	delrprimeVec[0] = delrVec_dot_uHat * uHat[0] + vprimeVec[0];
-	delrprimeVec[1] = delrVec_dot_uHat * uHat[1] + vprimeVec[1];
-	delrprimeVec[2] = delrVec_dot_uHat * uHat[2] + vprimeVec[2];
-
-	delx = delrVec[0] - delrprimeVec[0]; // Random number from 0 -> 1 multiplied by maximum movement for each Cartesian coordinate
-	dely = delrVec[1] - delrprimeVec[1];
-	delz = delrVec[2] - delrprimeVec[2];
-
-	xold = xout[k]; // Save current position as old position
-	yold = yout[k];
-	zold = zout[k];
-
-	xout[k] += delx; // Change position of current particle
-	yout[k] += dely;
-	zout[k] += delz;
 }
 
 /*
@@ -409,7 +367,7 @@ void crank_dev(double *xout, double *yout, double *zout, long k, long N)
  * the polymer is overlapping with the geometry.
  *
  */
-int checkEllipse(double xPos, double yPos, double zPos)
+__device__ int checkEllipse(double xPos, double yPos, double zPos)
 {
 	int reject = 1, accept = 0;
 	double echeck;
@@ -489,7 +447,7 @@ int checkEllipse(double xPos, double yPos, double zPos)
  * A) Whether or not we are required to take into account the rectangular or the ellipse geometry of the system
  * B) Whether or not the move is accepted or rejected based on the move that was just made.
  */
-int squareEllipse(double xPos, double yPos, double zPos)
+__device__ int squareEllipse(double xPos, double yPos, double zPos)
 {
 	int reject = 1, accept = 0;
 
@@ -511,7 +469,7 @@ int squareEllipse(double xPos, double yPos, double zPos)
 	return accept;
 }
 
-__global__ void check_accept(double *rx, double *ry, double *rz, long n, bool *check)
+__global__ void check_accept(double *rx, double *ry, double *rz, long n, volatile bool *check)
 {
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -547,7 +505,7 @@ __global__ void check_accept(double *rx, double *ry, double *rz, long n, bool *c
 }
 
 // overlap checks if the particle overlaps with the one that came before it.
-__global__ void overlap(double *x_pos, double *y_pos, double *z_pos, long k, long N, bool *check)
+__global__ void overlap(double *x_pos, double *y_pos, double *z_pos, long k, long N, volatile bool *check)
 {
 	double dx_pos, dy_pos, dz_pos, dist_tot;
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
