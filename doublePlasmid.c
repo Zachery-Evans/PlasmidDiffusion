@@ -788,7 +788,8 @@ void stateCheckDouble(double cmx2, double cmx3)
 }
 
 void stateCheckTriple(double cmx2, double cmx3, double cmx4)
-{ // "E" for inside of an ellipse, "B" for inside the rectangle box area.
+{ // "E" for inside of an ellipse 1 is -ve x or left, 2 is +ve x or right
+  // "B" for inside the rectangle box area.
   bool cmx2E1 = cmx2<-xBoxMaxd2, cmx2E2 = cmx2> xBoxMaxd2, cmx2B = cmx2 > -xBoxMaxd2 && cmx2 < xBoxMaxd2;
   bool cmx3E1 = cmx3<-xBoxMaxd2, cmx3E2 = cmx3> xBoxMaxd2, cmx3B = cmx3 > -xBoxMaxd2 && cmx3 < xBoxMaxd2;
   bool cmx4E1 = cmx4<-xBoxMaxd2, cmx4E2 = cmx4> xBoxMaxd2, cmx4B = cmx4 > -xBoxMaxd2 && cmx4 < xBoxMaxd2;
