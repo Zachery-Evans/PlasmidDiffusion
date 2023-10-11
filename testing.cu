@@ -1,4 +1,7 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <cuda.h>
+#include <math.h>
 #include <curand_kernel.h> // Include the CUDA Random Number Generation library
 #include <curand.h>
 
@@ -6,10 +9,11 @@
 
 void input(void);
 void init_pos(double *, double *, double *, long);
-void crank_dev(double *, double *, double *, long, long);
+void crank_dev(double *, double *, double *, long);
 
 __global__ void check_accept(double *, double *, double *, long, volatile bool *);
 __global__ void randomKernel(double *, int);
+//__host__ void input_dev(void);
 
 long nseg1, nseg2, nseg3, nseg4, i, j, k, ii, ncyc, nacc, kk, iseed;
 long neq, ichain, nsamp, nacc_shift, nshift, xcmPrint, ycmPrint;
@@ -24,31 +28,77 @@ double xBoxMaxd2, yBoxMaxd2;
 double kappa, xold, yold, zold, delphi_max;
 double **prob1, **plas, **probmon;
 
+__device__ double *dev_Ld2 = nullptr, *dev_Hd2 = nullptr, *dev_rmax = nullptr, *dev_dx = nullptr, *dev_dy = nullptr, *dev_dz = nullptr, *dev_dr2 = nullptr;
+__device__ double *dev_amax = nullptr, *dev_bmin = nullptr, *dev_amax2 = nullptr, *dev_bmin2 = nullptr, *dev_ecc = nullptr, *dev_Area = nullptr;
+__device__ double *dev_rectangleArea = nullptr, *dev_xBoxMaxd2 = nullptr, *dev_yBoxMaxd2 = nullptr;
+
 int main()
 {
 	long n = 10; // Number of elements to generate
-	long threadsPerBlock, blocksPerGrid, freq_samp = 1, *mon = nullptr;
+	long threadsPerBlock, blocksPerGrid, freq_samp = 1, mon;
 	double *ran3Device = nullptr; // Device array to store random numbers
 	double *ran3 = nullptr;		  // Host array to store random numbers
 	double *xhost = nullptr, *yhost = nullptr, *zhost = nullptr;
 	double *x = nullptr, *y = nullptr, *z = nullptr;
 
 	bool *validityCheckHost = nullptr;
+	cudaError_t cudaStatus;
 
 	int imov = 1;
 
 	FILE *fp;
 
+	cudaStatus = cudaMalloc(&dev_rectangleArea, sizeof(double));
+	if (cudaStatus != cudaSuccess)
+	{
+		printf("cudaMalloc dev_rectArea failed: %s\n", cudaGetErrorString(cudaStatus));
+		return 1;
+	}
+
+	cudaStatus = cudaMalloc(&dev_Ld2, sizeof(double));
+	if (cudaStatus != cudaSuccess)
+	{
+		printf("cudaMalloc dev_rectArea failed: %s\n", cudaGetErrorString(cudaStatus));
+		return 1;
+	}
+
+	cudaStatus = cudaMalloc(&dev_Hd2, sizeof(double));
+	if (cudaStatus != cudaSuccess)
+	{
+		printf("cudaMalloc dev_rectArea failed: %s\n", cudaGetErrorString(cudaStatus));
+		return 1;
+	}
+
+	cudaStatus = cudaMalloc(&dev_xBoxMaxd2, sizeof(double));
+	if (cudaStatus != cudaSuccess)
+	{
+		printf("cudaMalloc dev_rectArea failed: %s\n", cudaGetErrorString(cudaStatus));
+		return 1;
+	}
+
+	cudaStatus = cudaMalloc(&dev_yBoxMaxd2, sizeof(double));
+	if (cudaStatus != cudaSuccess)
+	{
+		printf("cudaMalloc dev_rectArea failed: %s\n", cudaGetErrorString(cudaStatus));
+		return 1;
+	}
+
+	// puts("Before input");
+
 	input();
+	//input_dev();
+
+	puts("After input");
+
+	bmin2 = bmin * bmin;
 
 	if (ecc < 1.0)
 	{
-		amax = bmin / sqrt(1 - ecc * ecc);
+		amax2 = bmin2 / (1 - ecc * ecc);
 	}
 
-	amax2 = amax * amax;
-	bmin2 = bmin * bmin;
 	rectangleArea = Area - PI * amax * bmin;
+
 	if (rectangleArea < 0.0)
 	{
 		rectangleArea = 0.0;
@@ -96,22 +146,8 @@ int main()
 		return 1;
 	}
 
-	validityCheckHost = (bool *)malloc(n * sizeof(bool));
-	if (validityCheckHost == nullptr)
-	{
-		printf("Memory allocation error on the host validityCheckHost.\n");
-		return 1;
-	}
-
-	mon = (long *)malloc(sizeof(long));
-	if (mon == nullptr)
-	{
-		printf("Memory allocation error on the host validityCheckHost.\n");
-		return 1;
-	}
-
 	// Allocate memory on the device
-	cudaError_t cudaStatus = cudaMalloc((void **)&ran3Device, n * sizeof(double));
+	cudaStatus = cudaMalloc(&ran3Device, n * sizeof(double));
 	if (cudaStatus != cudaSuccess)
 	{
 		printf("cudaMalloc failed: %s\n", cudaGetErrorString(cudaStatus));
@@ -119,7 +155,7 @@ int main()
 		return 1;
 	}
 
-	cudaStatus = cudaMalloc((void **)&x, n * sizeof(double));
+	cudaStatus = cudaMalloc(&x, n * sizeof(double));
 	if (cudaStatus != cudaSuccess)
 	{
 		printf("cudaMalloc x failed: %s\n", cudaGetErrorString(cudaStatus));
@@ -127,7 +163,7 @@ int main()
 		return 1;
 	}
 
-	cudaStatus = cudaMalloc((void **)&y, n * sizeof(double));
+	cudaStatus = cudaMalloc(&y, n * sizeof(double));
 	if (cudaStatus != cudaSuccess)
 	{
 		printf("cudaMalloc y failed: %s\n", cudaGetErrorString(cudaStatus));
@@ -135,7 +171,7 @@ int main()
 		return 1;
 	}
 
-	cudaStatus = cudaMalloc((void **)&z, n * sizeof(double));
+	cudaStatus = cudaMalloc(&z, n * sizeof(double));
 	if (cudaStatus != cudaSuccess)
 	{
 		printf("cudaMalloc z failed: %s\n", cudaGetErrorString(cudaStatus));
@@ -143,19 +179,10 @@ int main()
 		return 1;
 	}
 
-	cudaStatus = cudaMalloc((void **)&validityCheck, n * sizeof(bool));
-	if (cudaStatus != cudaSuccess)
-	{
-		printf("cudaMalloc validityCheck failed: %s\n", cudaGetErrorString(cudaStatus));
-		free(validityCheck);
-		return 1;
-	}
-
-	cudaStatus = cudaMalloc((void **)&monDev, sizeof(long));
+	cudaStatus = cudaMalloc(&monDev, sizeof(long));
 	if (cudaStatus != cudaSuccess)
 	{
 		printf("cudaMalloc monDev failed: %s\n", cudaGetErrorString(cudaStatus));
-		cudaFree(monDev);
 		return 1;
 	}
 
@@ -168,6 +195,7 @@ int main()
 	init_pos(xhost, yhost, zhost, n);
 
 	// Begin MC Cycles
+
 	for (long ii = 0; ii < ncyc; ii++)
 	{
 		// Launch the kernel
@@ -175,54 +203,36 @@ int main()
 		blocksPerGrid = (n + threadsPerBlock - 1) / threadsPerBlock;
 		randomKernel<<<blocksPerGrid, threadsPerBlock>>>(ran3Device, n);
 
-		// Check for kernel launch errors
-		cudaStatus = cudaGetLastError();
-		if (cudaStatus != cudaSuccess)
-		{
-			printf("Kernel launch failed: %s\n", cudaGetErrorString(cudaStatus));
-			cudaFree(ran3Device);
-			free(ran3);
-			return 1;
-		}
-
-		cudaStatus = cudaGetLastError();
-		if (cudaStatus != cudaSuccess)
-		{
-			printf("Kernal launch failed: %s\n", cudaGetErrorString(cudaStatus));
-			cudaFree(x);
-			cudaFree(y);
-			cudaFree(z);
-			free(xhost);
-			free(yhost);
-			free(zhost);
-			return 1;
-		}
-
 		// Copy the results back to the host
 		cudaStatus = cudaMemcpy(ran3, ran3Device, n * sizeof(double), cudaMemcpyDeviceToHost);
 		if (cudaStatus != cudaSuccess)
 		{
 			printf("cudaMemcpy ran3 failed: %s\n", cudaGetErrorString(cudaStatus));
-			cudaFree(ran3Device);
-			free(ran3);
+			return 1;
+		}
+
+		// Check for kernel launch errors
+		cudaStatus = cudaGetLastError();
+		if (cudaStatus != cudaSuccess)
+		{
+			printf("Line 200: Kernel launch failed: %s\n", cudaGetErrorString(cudaStatus));
 			return 1;
 		}
 
 		for (int jj = 0; jj < n; jj++)
 		{
-			volatile bool *validityCheck = false;
-			*mon = (long)n * ran3[jj];
+			mon = (long)n * ran3[jj];
 			// printf("%ld\n", mon);
 			//  printf("%ld\n", jj);
-			cudaMemcpy(monDev, mon, n * sizeof(double), cudaMemcpyHostToDevice);
+			//cudaMemcpy(monDev, &mon, n * sizeof(double), cudaMemcpyHostToDevice);
 
-			crank_dev(xhost, yhost, zhost, *monDev, n);
+			crank_dev(xhost, yhost, zhost, mon);
 
-			cudaMemcpy(x, xhost, n * sizeof(double), cudaMemcpyHostToDevice);
-			cudaMemcpy(y, yhost, n * sizeof(double), cudaMemcpyHostToDevice);
-			cudaMemcpy(z, xhost, n * sizeof(double), cudaMemcpyHostToDevice);
+			// cudaMemcpy(x, xhost, n * sizeof(double), cudaMemcpyHostToDevice);
+			// cudaMemcpy(y, yhost, n * sizeof(double), cudaMemcpyHostToDevice);
+			// cudaMemcpy(z, xhost, n * sizeof(double), cudaMemcpyHostToDevice);
 
-			check_accept<<<threadsPerBlock, blocksPerGrid>>>(x, y, z, n, validityCheck);
+			// check_accept<<<threadsPerBlock, blocksPerGrid>>>(x, y, z, n, validityCheck);
 
 			// Print the generated random numbers on the host
 
@@ -231,7 +241,7 @@ int main()
 				fprintf(fp, "Polymer: %ld\n", ii);
 				for (int i = 0; i < n; ++i)
 				{
-					fprintf(fp, "%lf  %lf  %lf\n", xhost[i], yhost[i], zhost[i]);
+					fprintf(fp, "N\t%lf  %lf  %lf\n", xhost[i], yhost[i], zhost[i]);
 				}
 			}
 		}
@@ -241,10 +251,6 @@ int main()
 	{
 		fclose(fp);
 	}
-
-	// Free device and host memory
-	cudaFree(ran3Device);
-	free(ran3);
 
 	return 0;
 }
@@ -304,33 +310,34 @@ void init_pos(double *xout, double *yout, double *zout, long N)
 	}
 }
 
-void crank_dev(double *xout, double *yout, double *zout, long k, long N)
+void crank_dev(double *xout, double *yout, double *zout, long k)
 {
-	double delrx, delry, delrz, Rx, Ry, Rz, Rmag, rdotRn, Rnx, Rny, Rnz;
+
+	double rx, ry, rz, Rx, Ry, Rz, Rmag, rdotRn, Rnx, Rny, Rnz;
 	double ux, uy, uz, vx, vy, vz, vmag, wx, wy, wz, wmag;
 	double cosphi, sinphi, delphi;
 
-	delrx = rx[k] - rx[k - 1];
-	delry = ry[k] - ry[k - 1];
-	delrz = rz[k] - rz[k - 1];
+	rx = xout[k] - xout[k - 1];
+	ry = yout[k] - yout[k - 1];
+	rz = zout[k] - zout[k - 1];
 
-	Rx = rx[k + 1] - rx[k - 1];
-	Ry = ry[k + 1] - ry[k - 1];
-	Rz = rz[k + 1] - rz[k - 1];
+	Rx = xout[k + 1] - xout[k - 1];
+	Ry = yout[k + 1] - yout[k - 1];
+	Rz = zout[k + 1] - zout[k - 1];
 	Rmag = sqrt(Rx * Rx + Ry * Ry + Rz * Rz);
 
 	Rnx = Rx / Rmag;
 	Rny = Ry / Rmag;
 	Rnz = Rz / Rmag;
 
-	rdotRn = delrx * Rnx + delry * Rny + delrz * Rnz;
+	rdotRn = rx * Rnx + ry * Rny + rz * Rnz;
 	ux = rdotRn * Rnx;
 	uy = rdotRn * Rny;
 	uz = rdotRn * Rnz;
 
-	vx = delrx - ux;
-	vy = delry - uy;
-	vz = delrz - uz;
+	vx = rx - ux;
+	vy = ry - uy;
+	vz = rz - uz;
 	vmag = sqrt(vx * vx + vy * vy + vz * vz);
 	// if (vmag < 0.00000001) printf("vmag = %lf\n",vmag);
 
@@ -341,23 +348,25 @@ void crank_dev(double *xout, double *yout, double *zout, long k, long N)
 
 	if (wmag > 0.00000001)
 	{
-		delphi = (2.0 * ran3() - 1.0) * delphi_max;
+
+		delphi = (2.0 * k - 1.0) * delphi_max;
 		cosphi = cos(delphi);
 		sinphi = sin(delphi);
 
-		delrx = ux + cosphi * vx + sinphi * vmag * wx / wmag;
-		delry = uy + cosphi * vy + sinphi * vmag * wy / wmag;
-		delrz = uz + cosphi * vz + sinphi * vmag * wz / wmag;
+		rx = ux + cosphi * vx + sinphi * vmag * wx / wmag;
+		ry = uy + cosphi * vy + sinphi * vmag * wy / wmag;
+		rz = uz + cosphi * vz + sinphi * vmag * wz / wmag;
 
-		rx[k] = rx[k - 1] + delrx;
-		ry[k] = ry[k - 1] + delry;
-		rz[k] = rz[k - 1] + delrz;
+		xout[k] = xout[k - 1] + rx;
+		yout[k] = yout[k - 1] + ry;
+		zout[k] = zout[k - 1] + rz;
 	}
 	else
 	{ // bonds are parallel
-		rx[k] = xold;
-		ry[k] = yold;
-		rz[k] = zold;
+
+		xout[k] = xold;
+		yout[k] = yold;
+		zout[k] = zold;
 	}
 }
 
@@ -372,38 +381,38 @@ __device__ int checkEllipse(double xPos, double yPos, double zPos)
 	int reject = 1, accept = 0;
 	double echeck;
 
-	if (zPos > Hd2 || zPos < -Hd2) // If z position is greater than flat surface of container, reject move
+	if (zPos > *dev_Hd2 || zPos < -*dev_Hd2) // If z position is greater than flat surface of container, reject move
 	{
 		return reject;
 	}
 
-	if (ecc >= 1.0)
+	if (*dev_ecc >= 1.0)
 	{
-		if (xPos > xBoxMaxd2 || xPos < -xBoxMaxd2)
+		if (xPos > *dev_xBoxMaxd2 || xPos < -*dev_xBoxMaxd2)
 		{
 			return (reject);
 		}
 	}
 
-	if (xPos > xBoxMaxd2 && ecc < 1.0)
+	if (xPos > *dev_xBoxMaxd2 && *dev_ecc < 1.0)
 	{ // If the polymer is outside of the leftmost semi-ellipse, reject
-		if ((xPos - xBoxMaxd2) * (xPos - xBoxMaxd2) > amax2 * (1 - (yPos * yPos) / bmin2) && rectangleArea > 0.0)
+		if ((xPos - *dev_xBoxMaxd2) * (xPos - *dev_xBoxMaxd2) > *dev_amax2 * (1 - (yPos * yPos) / *dev_bmin2) && *dev_rectangleArea > 0.0)
 		{
 			return reject;
 		}
 
-		if (yPos * yPos > bmin2 * (1 - (xPos - xBoxMaxd2) * (xPos - xBoxMaxd2) / amax2) && rectangleArea > 0.0)
+		if (yPos * yPos > *dev_bmin2 * (1 - (xPos - *dev_xBoxMaxd2) * (xPos - *dev_xBoxMaxd2) / *dev_amax2) && *dev_rectangleArea > 0.0)
 		{
 			return reject;
 		}
 
-		if (rectangleArea > 0.0)
+		if (*dev_rectangleArea > 0.0)
 		{
-			echeck = (((xPos - xBoxMaxd2) * (xPos - xBoxMaxd2)) / amax2) + ((yPos * yPos) / bmin2);
+			echeck = (((xPos - *dev_xBoxMaxd2) * (xPos - *dev_xBoxMaxd2)) / *dev_amax2) + ((yPos * yPos) / *dev_bmin2);
 		}
 		else
 		{
-			echeck = (((xPos) * (xPos)) / amax2) + ((yPos * yPos) / bmin2);
+			echeck = (((xPos) * (xPos)) / *dev_amax2) + ((yPos * yPos) / *dev_bmin2);
 		}
 
 		if (echeck > 1.0)
@@ -412,25 +421,25 @@ __device__ int checkEllipse(double xPos, double yPos, double zPos)
 		}
 	}
 
-	else if (xPos < -xBoxMaxd2 && ecc < 1.0)
+	else if (xPos < -*dev_xBoxMaxd2 && *dev_ecc < 1.0)
 	{ // Checking if outside of left elliptical end
-		if ((xPos + xBoxMaxd2) * (xPos + xBoxMaxd2) > amax2 * (1 - (yPos * yPos) / bmin2) && rectangleArea > 0.0)
+		if ((xPos + *dev_xBoxMaxd2) * (xPos + *dev_xBoxMaxd2) > *dev_amax2 * (1 - (yPos * yPos) / *dev_bmin2) && *dev_rectangleArea > 0.0)
 		{
 			return reject;
 		}
 
-		if (yPos * yPos > bmin2 * (1 - (xPos + xBoxMaxd2) * (xPos + xBoxMaxd2) / amax2) && rectangleArea > 0.0)
+		if (yPos * yPos > *dev_bmin2 * (1 - (xPos + *dev_xBoxMaxd2) * (xPos + *dev_xBoxMaxd2) / *dev_amax2) && *dev_rectangleArea > 0.0)
 		{
 			return reject;
 		}
 
-		if (rectangleArea > 0.0)
+		if (*dev_rectangleArea > 0.0)
 		{
-			echeck = (((xPos + xBoxMaxd2) * (xPos + xBoxMaxd2)) / amax2) + ((yPos * yPos) / bmin2);
+			echeck = (((xPos + *dev_xBoxMaxd2) * (xPos + *dev_xBoxMaxd2)) / *dev_amax2) + ((yPos * yPos) / *dev_bmin2);
 		}
 		else
 		{
-			echeck = (((xPos) * (xPos)) / amax2) + ((yPos * yPos) / bmin2);
+			echeck = (((xPos) * (xPos)) / *dev_amax2) + ((yPos * yPos) / *dev_bmin2);
 		}
 
 		if (echeck > 1.0)
@@ -451,17 +460,17 @@ __device__ int squareEllipse(double xPos, double yPos, double zPos)
 {
 	int reject = 1, accept = 0;
 
-	if (zPos < -Hd2 || zPos > Hd2) // Check if outside of the flat surface of the container
+	if (zPos < -*dev_Hd2 || zPos > *dev_Hd2) // Check if outside of the flat surface of the container
 	{
 		return (reject);
 	}
 
-	if (xPos < -xBoxMaxd2 || xPos > xBoxMaxd2) // If monomer is outside of the rectangle, check if outside of ellipse
+	if (xPos < -*dev_xBoxMaxd2 || xPos > *dev_xBoxMaxd2) // If monomer is outside of the rectangle, check if outside of ellipse
 	{
 		return checkEllipse(xPos, yPos, zPos);
 	}
 
-	if (yPos > yBoxMaxd2 || yPos < -yBoxMaxd2)
+	if (yPos > *dev_yBoxMaxd2 || yPos < -*dev_yBoxMaxd2)
 	{
 		return (reject);
 	}
@@ -483,9 +492,9 @@ __global__ void check_accept(double *rx, double *ry, double *rz, long n, volatil
 	if (tid < n)
 	{
 		/* Not restricting to a geometry for now.
-		if (squareEllipse(rx[kk], ry[kk], rz[kk]) == reject)
+		if (squareEllipse(rx[tid], ry[tid], rz[tid]) == reject)
 		{
-			return (reject);
+			*check = (reject);
 		}
 		*/
 		if (tid < *monDev - 1 || tid > *monDev + 1)
@@ -502,10 +511,12 @@ __global__ void check_accept(double *rx, double *ry, double *rz, long n, volatil
 	}
 
 	*check = true;
+
+	__syncthreads();
 }
 
 // overlap checks if the particle overlaps with the one that came before it.
-__global__ void overlap(double *x_pos, double *y_pos, double *z_pos, long k, long N, volatile bool *check)
+__device__ void overlap(double *x_pos, double *y_pos, double *z_pos, long k, long N, bool *check)
 {
 	double dx_pos, dy_pos, dz_pos, dist_tot;
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -553,6 +564,7 @@ void input(void)
 		fscanf(fp, "%lf%*s", &Area);
 		fscanf(fp, "%lf%*s", &bmin);
 		fscanf(fp, "%lf%*s", &ecc);
+
 		fscanf(fp, "%lf%*s", &H);
 		fscanf(fp, "%lf%*s", &kappa);
 		fscanf(fp, "%lf%*s", &drmin);
@@ -577,3 +589,27 @@ void input(void)
 
 	fclose(fp);
 }
+
+// ----------------------------------------------------------------------
+// Copies the relevant input variables to the device
+// ----------------------------------------------------------------------
+/*
+__host__ void input_dev(void)
+{
+	// dev_Ld2, dev_Hd2, dev_rmax, dev_dx, dev_dy, dev_dz, dev_dr2;
+	// dev_amax, dev_bmin, dev_amax2, dev_bmin2, dev_ecc, dev_Area;
+	// dev_rectangleArea, dev_xBoxMaxd2, dev_yBoxMaxd2;
+	cudaError_t cudaStatus;
+	cudaMemcpy(&rectangleArea, dev_rectangleArea, sizeof(double), cudaMemcpyDeviceToHost);
+	cudaMemcpy(&Ld2, dev_Ld2, sizeof(double), cudaMemcpyDeviceToHost);
+	cudaMemcpy(&Hd2, dev_Hd2, sizeof(double), cudaMemcpyDeviceToHost);
+	cudaMemcpy(&xBoxMaxd2, dev_xBoxMaxd2, sizeof(double), cudaMemcpyDeviceToHost);
+	cudaMemcpy(&yBoxMaxd2, dev_yBoxMaxd2, sizeof(double), cudaMemcpyDeviceToHost);
+
+	cudaStatus = cudaGetLastError();
+	if (cudaStatus != cudaSuccess)
+	{
+		printf("Input_dev Kernel launch failed: %s\n", cudaGetErrorString(cudaStatus));
+	}
+}
+*/
