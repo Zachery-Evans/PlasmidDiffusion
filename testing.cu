@@ -41,12 +41,18 @@ int main()
 	double *xhost = nullptr, *yhost = nullptr, *zhost = nullptr;
 	double *x = nullptr, *y = nullptr, *z = nullptr;
 
-	bool *validityCheckHost = nullptr;
 	cudaError_t cudaStatus;
 
 	int imov = 1;
 
 	FILE *fp;
+
+	cudaStatus = cudaMalloc(&monDev, sizeof(double));
+	if (cudaStatus != cudaSuccess)
+	{
+		printf("cudaMalloc monDev failed: %s\n", cudaGetErrorString(cudaStatus));
+		return 1;
+	}
 
 	cudaStatus = cudaMalloc(&dev_rectangleArea, sizeof(double));
 	if (cudaStatus != cudaSuccess)
@@ -86,9 +92,7 @@ int main()
 	// puts("Before input");
 
 	input();
-	//input_dev();
-
-	puts("After input");
+	// input_dev();
 
 	bmin2 = bmin * bmin;
 
@@ -223,14 +227,14 @@ int main()
 		{
 			mon = (long)n * ran3[jj];
 			// printf("%ld\n", mon);
-			//  printf("%ld\n", jj);
-			//cudaMemcpy(monDev, &mon, n * sizeof(double), cudaMemcpyHostToDevice);
+			// printf("%ld\n", jj);
+			cudaMemcpy(monDev, &mon, sizeof(long), cudaMemcpyHostToDevice);
 
 			crank_dev(xhost, yhost, zhost, mon);
 
-			// cudaMemcpy(x, xhost, n * sizeof(double), cudaMemcpyHostToDevice);
-			// cudaMemcpy(y, yhost, n * sizeof(double), cudaMemcpyHostToDevice);
-			// cudaMemcpy(z, xhost, n * sizeof(double), cudaMemcpyHostToDevice);
+			cudaMemcpy(x, xhost, n * sizeof(double), cudaMemcpyHostToDevice);
+			cudaMemcpy(y, yhost, n * sizeof(double), cudaMemcpyHostToDevice);
+			cudaMemcpy(z, xhost, n * sizeof(double), cudaMemcpyHostToDevice);
 
 			// check_accept<<<threadsPerBlock, blocksPerGrid>>>(x, y, z, n, validityCheck);
 
