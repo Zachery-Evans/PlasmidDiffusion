@@ -265,7 +265,7 @@ int main()
 			fprintf(fp, "Polymer: %ld\n", ii);
 			for (int i = 0; i < n; ++i)
 			{
-				fprintf(fp, "N\t%lf  %lf  %lf\n", xhost[i], yhost[i], zhost[i]);
+				fprintf(fp, "N    %lf  %lf  %lf\n", xhost[i], yhost[i], zhost[i]);
 			}
 		}
 	}
