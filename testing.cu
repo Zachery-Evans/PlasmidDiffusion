@@ -11,7 +11,7 @@ void input(void);
 void init_pos(double *, double *, double *, long);
 void crank_dev(double *, double *, double *, long);
 
-__global__ void check_accept(double *, double *, double *, long, int *);
+__global__ void check_accept(double *, double *, double *, long, long, int);
 __global__ void randomKernel(double *, int);
 //__host__ void input_dev(void);
 
@@ -19,7 +19,7 @@ long nseg1, nseg2, nseg3, nseg4, i, j, k, ii, ncyc, nacc, kk, iseed;
 long neq, ichain, nsamp, nacc_shift, nshift, xcmPrint, ycmPrint;
 long imov, plasRigid, kmaxtest, freq_samp, cmFreqSamp, ngridx, ngridy;
 
-__device__ long *monDev = nullptr;
+long *monDev = nullptr;
 
 double L, H, Ld2, Hd2, rmax, dx, dy, dz, dr2;
 double drmin, drmax, gridspace, gridspacex_real, gridspacey_real;
@@ -63,13 +63,6 @@ int main()
 	if (cudaStatus != cudaSuccess)
 	{
 		printf("cudaMalloc dev_validity_check failed: %s\n", cudaGetErrorString(cudaStatus));
-		return 1;
-	}
-
-	cudaStatus = cudaMalloc(&monDev, sizeof(double));
-	if (cudaStatus != cudaSuccess)
-	{
-		printf("cudaMalloc monDev failed: %s\n", cudaGetErrorString(cudaStatus));
 		return 1;
 	}
 
@@ -244,18 +237,26 @@ int main()
 
 		for (int jj = 0; jj < n; jj++)
 		{
-			mon = (long)n * ran3[jj];
+			int validity_check = 1;	  // reset validity check to 1 for each MC cycle
+			mon = (long)n * ran3[jj]; // Choose random number out of total number of random numbers
 			// printf("%ld\n", mon);
-			// printf("%ld\n", jj);			
+			// printf("%ld\n", jj);
+			xold = xhost[mon];
+			yold = yhost[mon];
+			zold = zhost[mon];
+
 			crank_dev(xhost, yhost, zhost, mon);
 
-			cudaMemcpy(monDev, &mon, sizeof(long), cudaMemcpyHostToDevice);
+			// cudaMemcpy(monDev, &mon, sizeof(long), cudaMemcpyHostToDevice);
 			cudaMemcpy(x, xhost, n * sizeof(double), cudaMemcpyHostToDevice);
 			cudaMemcpy(y, yhost, n * sizeof(double), cudaMemcpyHostToDevice);
 			cudaMemcpy(z, xhost, n * sizeof(double), cudaMemcpyHostToDevice);
-			cudaMemcpy(dev_N, &n, sizeof(long), cudaMemcpyHostToDevice);
+			// cudaMemcpy(dev_N, &n, sizeof(long), cudaMemcpyHostToDevice);
+			// cudaMemcpy(dev_validity_check, &validity_check, sizeof(int), cudaMemcpyHostToDevice);
 
-			// check_accept<<<threadsPerBlock, blocksPerGrid>>>(x, y, z, n, dev_validity_check);
+			check_accept<<<threadsPerBlock, blocksPerGrid>>>(x, y, z, n, mon, validity_check);
+
+			printf("%d\n", validity_check);
 
 			// cudaMemcpy(&host_check, dev_validity_check, sizeof(long), cudaMemcpyDeviceToHost);
 		}
@@ -501,18 +502,17 @@ __device__ int squareEllipse(double xPos, double yPos, double zPos)
 	return accept;
 }
 
-__global__ void check_accept(double *rx, double *ry, double *rz, long n, int *check)
+__global__ void check_accept(double *rx, double *ry, double *rz, long n, long monomer, int check)
 {
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
 	int accept, reject;
-	long klow, khigh;
 	double dx, dy, dz, dr, dr2;
 
 	accept = 0;
 	reject = 1;
 
-	if (tid < n)
+	if (tid < n - 1)
 	{
 		/* Not restricting to a geometry for now.
 		if (squareEllipse(rx[tid], ry[tid], rz[tid]) == reject)
@@ -520,26 +520,33 @@ __global__ void check_accept(double *rx, double *ry, double *rz, long n, int *ch
 			*check = (reject);
 		}
 		*/
-		if (tid < *monDev - 1 || tid > *monDev + 1)
+		if (tid < monomer - 1 || tid > monomer + 1)
 		{
-			dx = rx[*monDev] - rx[tid];
-			dy = ry[*monDev] - ry[tid];
-			dz = rz[*monDev] - rz[tid];
+			dx = rx[monomer] - rx[tid];
+			dy = ry[monomer] - ry[tid];
+			dz = rz[monomer] - rz[tid];
 			dr2 = dx * dx + dy * dy + dz * dz;
 			if (dr2 < 1.0)
 			{
-				*check = false;
+				check = reject;
 			}
 		}
-	}
 
-	*check = true;
+		if (check == reject)
+		{
+			check = reject;
+		}
+		else
+		{
+			check = accept;
+		}
+	}
 
 	__syncthreads();
 }
 
 // overlap checks if the particle overlaps with the one that came before it.
-__device__ void overlap(double *x_pos, double *y_pos, double *z_pos, long k, long N, bool *check)
+__device__ void overlap(double *x_pos, double *y_pos, double *z_pos, long k, long N)
 {
 	double dx_pos, dy_pos, dz_pos, dist_tot;
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -558,11 +565,11 @@ __device__ void overlap(double *x_pos, double *y_pos, double *z_pos, long k, lon
 
 			if (dist_tot < 1.0)
 			{
-				check[tid] = false;
+				// check[tid] = false;
 			}
 		}
 
-		check[tid] = true;
+		// check[tid] = true;
 	}
 }
 
