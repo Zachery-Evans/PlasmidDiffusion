@@ -11,7 +11,7 @@ void input(void);
 void init_pos(double *, double *, double *, long);
 void crank_dev(double *, double *, double *, long);
 
-__global__ void check_accept(double *, double *, double *, long, volatile bool *);
+__global__ void check_accept(double *, double *, double *, long, int *);
 __global__ void randomKernel(double *, int);
 //__host__ void input_dev(void);
 
@@ -28,14 +28,19 @@ double xBoxMaxd2, yBoxMaxd2;
 double kappa, xold, yold, zold, delphi_max;
 double **prob1, **plas, **probmon;
 
+int host_check;
+
 __device__ double *dev_Ld2 = nullptr, *dev_Hd2 = nullptr, *dev_rmax = nullptr, *dev_dx = nullptr, *dev_dy = nullptr, *dev_dz = nullptr, *dev_dr2 = nullptr;
 __device__ double *dev_amax = nullptr, *dev_bmin = nullptr, *dev_amax2 = nullptr, *dev_bmin2 = nullptr, *dev_ecc = nullptr, *dev_Area = nullptr;
 __device__ double *dev_rectangleArea = nullptr, *dev_xBoxMaxd2 = nullptr, *dev_yBoxMaxd2 = nullptr;
 
+long *dev_N = nullptr;
+int *dev_validity_check = nullptr;
+
 int main()
 {
 	long n = 10; // Number of elements to generate
-	long threadsPerBlock, blocksPerGrid, freq_samp = 1, mon;
+	long threadsPerBlock, blocksPerGrid, mon;
 	double *ran3Device = nullptr; // Device array to store random numbers
 	double *ran3 = nullptr;		  // Host array to store random numbers
 	double *xhost = nullptr, *yhost = nullptr, *zhost = nullptr;
@@ -46,6 +51,20 @@ int main()
 	int imov = 1;
 
 	FILE *fp;
+
+	cudaStatus = cudaMalloc(&dev_N, sizeof(double));
+	if (cudaStatus != cudaSuccess)
+	{
+		printf("cudaMalloc dev_N failed: %s\n", cudaGetErrorString(cudaStatus));
+		return 1;
+	}
+
+	cudaStatus = cudaMalloc(&dev_validity_check, sizeof(double));
+	if (cudaStatus != cudaSuccess)
+	{
+		printf("cudaMalloc dev_validity_check failed: %s\n", cudaGetErrorString(cudaStatus));
+		return 1;
+	}
 
 	cudaStatus = cudaMalloc(&monDev, sizeof(double));
 	if (cudaStatus != cudaSuccess)
@@ -227,26 +246,26 @@ int main()
 		{
 			mon = (long)n * ran3[jj];
 			// printf("%ld\n", mon);
-			// printf("%ld\n", jj);
-			cudaMemcpy(monDev, &mon, sizeof(long), cudaMemcpyHostToDevice);
-
+			// printf("%ld\n", jj);			
 			crank_dev(xhost, yhost, zhost, mon);
 
+			cudaMemcpy(monDev, &mon, sizeof(long), cudaMemcpyHostToDevice);
 			cudaMemcpy(x, xhost, n * sizeof(double), cudaMemcpyHostToDevice);
 			cudaMemcpy(y, yhost, n * sizeof(double), cudaMemcpyHostToDevice);
 			cudaMemcpy(z, xhost, n * sizeof(double), cudaMemcpyHostToDevice);
+			cudaMemcpy(dev_N, &n, sizeof(long), cudaMemcpyHostToDevice);
 
-			// check_accept<<<threadsPerBlock, blocksPerGrid>>>(x, y, z, n, validityCheck);
+			// check_accept<<<threadsPerBlock, blocksPerGrid>>>(x, y, z, n, dev_validity_check);
 
-			// Print the generated random numbers on the host
+			// cudaMemcpy(&host_check, dev_validity_check, sizeof(long), cudaMemcpyDeviceToHost);
+		}
 
-			if (imov == 1 && ii % freq_samp == 0)
+		if (imov == 1 && ii % freq_samp == 0)
+		{
+			fprintf(fp, "Polymer: %ld\n", ii);
+			for (int i = 0; i < n; ++i)
 			{
-				fprintf(fp, "Polymer: %ld\n", ii);
-				for (int i = 0; i < n; ++i)
-				{
-					fprintf(fp, "N\t%lf  %lf  %lf\n", xhost[i], yhost[i], zhost[i]);
-				}
+				fprintf(fp, "N\t%lf  %lf  %lf\n", xhost[i], yhost[i], zhost[i]);
 			}
 		}
 	}
@@ -482,7 +501,7 @@ __device__ int squareEllipse(double xPos, double yPos, double zPos)
 	return accept;
 }
 
-__global__ void check_accept(double *rx, double *ry, double *rz, long n, volatile bool *check)
+__global__ void check_accept(double *rx, double *ry, double *rz, long n, int *check)
 {
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
