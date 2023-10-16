@@ -39,6 +39,9 @@ int *dev_validity_check = nullptr;
 
 int main()
 {
+
+	int accept = 0;
+	int reject = 1;
 	long n = 10; // Number of elements to generate
 	long threadsPerBlock, blocksPerGrid, mon;
 	double *ran3Device = nullptr; // Device array to store random numbers
@@ -256,9 +259,16 @@ int main()
 
 			check_accept<<<threadsPerBlock, blocksPerGrid>>>(x, y, z, n, mon, validity_check);
 
-			printf("%d\n", validity_check);
-
-			// cudaMemcpy(&host_check, dev_validity_check, sizeof(long), cudaMemcpyDeviceToHost);
+			if (validity_check == accept)
+			{
+				continue;
+			}
+			else if (validity_check == reject)
+			{
+				xhost[mon] = xold;
+				yhost[mon] = yold;
+				zhost[mon] = zold;
+			}
 		}
 
 		if (imov == 1 && ii % freq_samp == 0)
@@ -317,19 +327,20 @@ __device__ void randomKernelDevice(double *output, int n)
 
 void init_pos(double *xout, double *yout, double *zout, long N)
 {
+	double rt2 = sqrt(2);
 	for (int i = 0; i < N; i++)
 	{
-		yout[i] = 0.0;
+		yout[i] = 0.000000000;
 
 		if (i % 2 != 0)
 		{
-			xout[i] = 0.70710678; // This is sqrt(2), not sure how to put this into device variable yet.
-			zout[i] = i * 0.70710678;
+			xout[i] = rt2;
+			zout[i] = i * rt2;
 		}
 		else
 		{
 			xout[i] = 0.0;
-			zout[i] = i * 0.70710678;
+			zout[i] = i * rt2;
 		}
 	}
 }
@@ -504,15 +515,15 @@ __device__ int squareEllipse(double xPos, double yPos, double zPos)
 
 __global__ void check_accept(double *rx, double *ry, double *rz, long n, long monomer, int check)
 {
-	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	long tid = blockIdx.x * blockDim.x + threadIdx.x;
 
 	int accept, reject;
-	double dx, dy, dz, dr, dr2;
+	double dx, dy, dz, dr2;
 
 	accept = 0;
 	reject = 1;
 
-	if (tid < n - 1)
+	if (tid < n)
 	{
 		/* Not restricting to a geometry for now.
 		if (squareEllipse(rx[tid], ry[tid], rz[tid]) == reject)
@@ -520,12 +531,20 @@ __global__ void check_accept(double *rx, double *ry, double *rz, long n, long mo
 			*check = (reject);
 		}
 		*/
+
 		if (tid < monomer - 1 || tid > monomer + 1)
 		{
+			//double testx = rx[monomer] - rx[tid];
+			//double testy = ry[monomer] - ry[tid];
+			//double testz = rz[monomer] - rz[tid];
+			//double testdiff = testx * testx + testy * testy + testz * testz;
+			//printf("Mon: %ld\tDistsq: %lf\tx: %lf\t y: %lf\t z: %lf\n", monomer, testdiff, testx, testy, testz);
+
 			dx = rx[monomer] - rx[tid];
 			dy = ry[monomer] - ry[tid];
 			dz = rz[monomer] - rz[tid];
-			dr2 = dx * dx + dy * dy + dz * dz;
+			dr2 = sqrt(dx * dx + dy * dy + dz * dz);
+
 			if (dr2 < 1.0)
 			{
 				check = reject;
@@ -540,6 +559,8 @@ __global__ void check_accept(double *rx, double *ry, double *rz, long n, long mo
 		{
 			check = accept;
 		}
+
+		// printf("%ld\n", check);
 	}
 
 	__syncthreads();
