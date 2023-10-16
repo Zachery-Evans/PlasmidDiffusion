@@ -9,11 +9,14 @@
 
 void input(void);
 void init_pos(double *, double *, double *, long);
-void crank_dev(double *, double *, double *, long);
+// void crank_dev(double *, double *, double *, long);
 
-__global__ void check_accept(double *, double *, double *, long, long, int);
+__global__ void crank_dev(double *, double *, double *, long, long, int);
+//__global__ void check_accept(double *, double *, double *, long, long, int);
 __global__ void randomKernel(double *, int);
 //__host__ void input_dev(void);
+
+__device__ void check_accept(double *, double *, double *, long, long, int);
 
 long nseg1, nseg2, nseg3, nseg4, i, j, k, ii, ncyc, nacc, kk, iseed;
 long neq, ichain, nsamp, nacc_shift, nshift, xcmPrint, ycmPrint;
@@ -208,18 +211,17 @@ int main()
 	if (imov == 1)
 	{
 		fp = fopen("chain.xyz", "w");
-		fprintf(fp, "%ld\n", n);
 	}
 
 	init_pos(xhost, yhost, zhost, n);
+	threadsPerBlock = 1;
+	blocksPerGrid = (n + threadsPerBlock - 1) / threadsPerBlock;
 
 	// Begin MC Cycles
 
 	for (long ii = 0; ii < ncyc; ii++)
 	{
 		// Launch the kernel
-		threadsPerBlock = 1;
-		blocksPerGrid = (n + threadsPerBlock - 1) / threadsPerBlock;
 		randomKernel<<<blocksPerGrid, threadsPerBlock>>>(ran3Device, n);
 
 		// Copy the results back to the host
@@ -238,26 +240,31 @@ int main()
 			return 1;
 		}
 
+		int validity_check = 0; // reset validity check to 1 for each MC cycle
+
 		for (int jj = 0; jj < n; jj++)
 		{
-			int validity_check = 1;	  // reset validity check to 1 for each MC cycle
 			mon = (long)n * ran3[jj]; // Choose random number out of total number of random numbers
 			// printf("%ld\n", mon);
 			// printf("%ld\n", jj);
 			xold = xhost[mon];
 			yold = yhost[mon];
 			zold = zhost[mon];
-
-			crank_dev(xhost, yhost, zhost, mon);
-
-			// cudaMemcpy(monDev, &mon, sizeof(long), cudaMemcpyHostToDevice);
 			cudaMemcpy(x, xhost, n * sizeof(double), cudaMemcpyHostToDevice);
 			cudaMemcpy(y, yhost, n * sizeof(double), cudaMemcpyHostToDevice);
-			cudaMemcpy(z, xhost, n * sizeof(double), cudaMemcpyHostToDevice);
+			cudaMemcpy(z, zhost, n * sizeof(double), cudaMemcpyHostToDevice);
+
+			crank_dev<<<1, 1>>>(x, y, z, n, mon, validity_check);
+
+			cudaMemcpy(xhost, x, n * sizeof(double), cudaMemcpyDeviceToHost);
+			cudaMemcpy(yhost, y, n * sizeof(double), cudaMemcpyDeviceToHost);
+			cudaMemcpy(zhost, z, n * sizeof(double), cudaMemcpyDeviceToHost);
+
+			// cudaMemcpy(monDev, &mon, sizeof(long), cudaMemcpyHostToDevice);
 			// cudaMemcpy(dev_N, &n, sizeof(long), cudaMemcpyHostToDevice);
 			// cudaMemcpy(dev_validity_check, &validity_check, sizeof(int), cudaMemcpyHostToDevice);
 
-			check_accept<<<threadsPerBlock, blocksPerGrid>>>(x, y, z, n, mon, validity_check);
+			// check_accept<<<threadsPerBlock, blocksPerGrid>>>(x, y, z, n, mon, validity_check);
 
 			if (validity_check == accept)
 			{
@@ -273,6 +280,7 @@ int main()
 
 		if (imov == 1 && ii % freq_samp == 0)
 		{
+			fprintf(fp, "%ld\n", n);
 			fprintf(fp, "Polymer: %ld\n", ii);
 			for (int i = 0; i < n; ++i)
 			{
@@ -345,6 +353,7 @@ void init_pos(double *xout, double *yout, double *zout, long N)
 	}
 }
 
+/*
 void crank_dev(double *xout, double *yout, double *zout, long k)
 {
 
@@ -403,6 +412,80 @@ void crank_dev(double *xout, double *yout, double *zout, long k)
 		yout[k] = yold;
 		zout[k] = zold;
 	}
+}
+*/
+__global__ void crank_dev(double *xout, double *yout, double *zout, long n, long mon, int check)
+{
+	double delphi_max = 3.141592653;
+	long tid = blockIdx.x * blockDim.x + threadIdx.x;
+	int threadsPerBlock = 1;
+	int blocksPerGrid = (n + threadsPerBlock - 1) / threadsPerBlock;
+
+	if (tid < n)
+	{
+		double xold = xout[mon];
+		double yold = yout[mon];
+		double zold = zout[mon];
+		double rx, ry, rz, Rx, Ry, Rz, Rmag, rdotRn, Rnx, Rny, Rnz;
+		double ux, uy, uz, vx, vy, vz, vmag, wx, wy, wz, wmag;
+		double cosphi, sinphi, delphi;
+
+		rx = xout[mon] - xout[mon - 1];
+		ry = yout[mon] - yout[mon - 1];
+		rz = zout[mon] - zout[mon - 1];
+
+		Rx = xout[mon + 1] - xout[mon - 1];
+		Ry = yout[mon + 1] - yout[mon - 1];
+		Rz = zout[mon + 1] - zout[mon - 1];
+		Rmag = sqrt(Rx * Rx + Ry * Ry + Rz * Rz);
+
+		Rnx = Rx / Rmag;
+		Rny = Ry / Rmag;
+		Rnz = Rz / Rmag;
+
+		rdotRn = rx * Rnx + ry * Rny + rz * Rnz;
+		ux = rdotRn * Rnx;
+		uy = rdotRn * Rny;
+		uz = rdotRn * Rnz;
+
+		vx = rx - ux;
+		vy = ry - uy;
+		vz = rz - uz;
+		vmag = sqrt(vx * vx + vy * vy + vz * vz);
+		// if (vmag < 0.00000001) printf("vmag = %lf\n",vmag);
+
+		wx = uy * vz - uz * vy;
+		wy = uz * vx - ux * vz;
+		wz = ux * vy - uy * vx;
+		wmag = sqrt(wx * wx + wy * wy + wz * wz);
+
+		if (wmag > 0.00000001)
+		{
+
+			delphi = (2.0 * mon - 1.0) * delphi_max;
+			cosphi = cos(delphi);
+			sinphi = sin(delphi);
+
+			rx = ux + cosphi * vx + sinphi * vmag * wx / wmag;
+			ry = uy + cosphi * vy + sinphi * vmag * wy / wmag;
+			rz = uz + cosphi * vz + sinphi * vmag * wz / wmag;
+
+			xout[mon] = xout[mon - 1] + rx;
+			yout[mon] = yout[mon - 1] + ry;
+			zout[mon] = zout[mon - 1] + rz;
+		}
+		else
+		{ // bonds are parallel
+
+			xout[mon] = xold;
+			yout[mon] = yold;
+			zout[mon] = zold;
+		}
+
+		// check_accept<<<threadsPerBlock, blocksPerGrid>>>(xout, yout, zout, n, mon, check);
+	}
+
+	__syncthreads();
 }
 
 /*
@@ -513,7 +596,7 @@ __device__ int squareEllipse(double xPos, double yPos, double zPos)
 	return accept;
 }
 
-__global__ void check_accept(double *rx, double *ry, double *rz, long n, long monomer, int check)
+__device__ void check_accept(double *rx, double *ry, double *rz, long n, long monomer, int check)
 {
 	long tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -534,11 +617,11 @@ __global__ void check_accept(double *rx, double *ry, double *rz, long n, long mo
 
 		if (tid < monomer - 1 || tid > monomer + 1)
 		{
-			//double testx = rx[monomer] - rx[tid];
-			//double testy = ry[monomer] - ry[tid];
-			//double testz = rz[monomer] - rz[tid];
-			//double testdiff = testx * testx + testy * testy + testz * testz;
-			//printf("Mon: %ld\tDistsq: %lf\tx: %lf\t y: %lf\t z: %lf\n", monomer, testdiff, testx, testy, testz);
+			// double testx = rx[monomer] - rx[tid];
+			// double testy = ry[monomer] - ry[tid];
+			// double testz = rz[monomer] - rz[tid];
+			// double testdiff = testx * testx + testy * testy + testz * testz;
+			// printf("Mon: %ld\tDistsq: %lf\tx: %lf\t y: %lf\t z: %lf\n", monomer, testdiff, testx, testy, testz);
 
 			dx = rx[monomer] - rx[tid];
 			dy = ry[monomer] - ry[tid];
@@ -559,10 +642,7 @@ __global__ void check_accept(double *rx, double *ry, double *rz, long n, long mo
 		{
 			check = accept;
 		}
-
-		// printf("%ld\n", check);
 	}
-
 	__syncthreads();
 }
 
