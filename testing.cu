@@ -42,10 +42,11 @@ int *dev_validity_check = nullptr;
 
 int main()
 {
+	input();
 
 	int accept = 0;
 	int reject = 1;
-	long n = 10; // Number of elements to generate
+	long n = nseg1; // Number of elements to generate
 	long threadsPerBlock, blocksPerGrid, mon;
 	double *ran3Device = nullptr; // Device array to store random numbers
 	double *ran3 = nullptr;		  // Host array to store random numbers
@@ -106,11 +107,6 @@ int main()
 		printf("cudaMalloc dev_rectArea failed: %s\n", cudaGetErrorString(cudaStatus));
 		return 1;
 	}
-
-	// puts("Before input");
-
-	input();
-	// input_dev();
 
 	bmin2 = bmin * bmin;
 
@@ -208,12 +204,19 @@ int main()
 		return 1;
 	}
 
+	init_pos(xhost, yhost, zhost, n);
+
 	if (imov == 1)
 	{
 		fp = fopen("chain.xyz", "w");
+		fprintf(fp, "%ld\n", n);
+		fprintf(fp, "Polymer: %ld\n", 0);
+		for (int i = 0; i < n; ++i)
+		{
+			fprintf(fp, "N    %lf  %lf  %lf\n", xhost[i], yhost[i], zhost[i]);
+		}
 	}
 
-	init_pos(xhost, yhost, zhost, n);
 	threadsPerBlock = 1;
 	blocksPerGrid = (n + threadsPerBlock - 1) / threadsPerBlock;
 
@@ -242,6 +245,10 @@ int main()
 
 		int validity_check = 0; // reset validity check to 1 for each MC cycle
 
+		cudaMemcpy(x, xhost, n * sizeof(double), cudaMemcpyHostToDevice);
+		cudaMemcpy(y, yhost, n * sizeof(double), cudaMemcpyHostToDevice);
+		cudaMemcpy(z, zhost, n * sizeof(double), cudaMemcpyHostToDevice);
+
 		for (int jj = 0; jj < n; jj++)
 		{
 			mon = (long)n * ran3[jj]; // Choose random number out of total number of random numbers
@@ -250,33 +257,19 @@ int main()
 			xold = xhost[mon];
 			yold = yhost[mon];
 			zold = zhost[mon];
-			cudaMemcpy(x, xhost, n * sizeof(double), cudaMemcpyHostToDevice);
-			cudaMemcpy(y, yhost, n * sizeof(double), cudaMemcpyHostToDevice);
-			cudaMemcpy(z, zhost, n * sizeof(double), cudaMemcpyHostToDevice);
 
 			crank_dev<<<1, 1>>>(x, y, z, n, mon, validity_check);
-
-			cudaMemcpy(xhost, x, n * sizeof(double), cudaMemcpyDeviceToHost);
-			cudaMemcpy(yhost, y, n * sizeof(double), cudaMemcpyDeviceToHost);
-			cudaMemcpy(zhost, z, n * sizeof(double), cudaMemcpyDeviceToHost);
 
 			// cudaMemcpy(monDev, &mon, sizeof(long), cudaMemcpyHostToDevice);
 			// cudaMemcpy(dev_N, &n, sizeof(long), cudaMemcpyHostToDevice);
 			// cudaMemcpy(dev_validity_check, &validity_check, sizeof(int), cudaMemcpyHostToDevice);
 
 			// check_accept<<<threadsPerBlock, blocksPerGrid>>>(x, y, z, n, mon, validity_check);
-
-			if (validity_check == accept)
-			{
-				continue;
-			}
-			else if (validity_check == reject)
-			{
-				xhost[mon] = xold;
-				yhost[mon] = yold;
-				zhost[mon] = zold;
-			}
 		}
+
+		cudaMemcpy(xhost, x, n * sizeof(double), cudaMemcpyDeviceToHost);
+		cudaMemcpy(yhost, y, n * sizeof(double), cudaMemcpyDeviceToHost);
+		cudaMemcpy(zhost, z, n * sizeof(double), cudaMemcpyDeviceToHost);
 
 		if (imov == 1 && ii % freq_samp == 0)
 		{
@@ -335,7 +328,8 @@ __device__ void randomKernelDevice(double *output, int n)
 
 void init_pos(double *xout, double *yout, double *zout, long N)
 {
-	double rt2 = sqrt(2);
+	double rt2 = sqrt(2) / 2;
+
 	for (int i = 0; i < N; i++)
 	{
 		yout[i] = 0.000000000;
@@ -353,95 +347,72 @@ void init_pos(double *xout, double *yout, double *zout, long N)
 	}
 }
 
-/*
-void crank_dev(double *xout, double *yout, double *zout, long k)
-{
-
-	double rx, ry, rz, Rx, Ry, Rz, Rmag, rdotRn, Rnx, Rny, Rnz;
-	double ux, uy, uz, vx, vy, vz, vmag, wx, wy, wz, wmag;
-	double cosphi, sinphi, delphi;
-
-	rx = xout[k] - xout[k - 1];
-	ry = yout[k] - yout[k - 1];
-	rz = zout[k] - zout[k - 1];
-
-	Rx = xout[k + 1] - xout[k - 1];
-	Ry = yout[k + 1] - yout[k - 1];
-	Rz = zout[k + 1] - zout[k - 1];
-	Rmag = sqrt(Rx * Rx + Ry * Ry + Rz * Rz);
-
-	Rnx = Rx / Rmag;
-	Rny = Ry / Rmag;
-	Rnz = Rz / Rmag;
-
-	rdotRn = rx * Rnx + ry * Rny + rz * Rnz;
-	ux = rdotRn * Rnx;
-	uy = rdotRn * Rny;
-	uz = rdotRn * Rnz;
-
-	vx = rx - ux;
-	vy = ry - uy;
-	vz = rz - uz;
-	vmag = sqrt(vx * vx + vy * vy + vz * vz);
-	// if (vmag < 0.00000001) printf("vmag = %lf\n",vmag);
-
-	wx = uy * vz - uz * vy;
-	wy = uz * vx - ux * vz;
-	wz = ux * vy - uy * vx;
-	wmag = sqrt(wx * wx + wy * wy + wz * wz);
-
-	if (wmag > 0.00000001)
-	{
-
-		delphi = (2.0 * k - 1.0) * delphi_max;
-		cosphi = cos(delphi);
-		sinphi = sin(delphi);
-
-		rx = ux + cosphi * vx + sinphi * vmag * wx / wmag;
-		ry = uy + cosphi * vy + sinphi * vmag * wy / wmag;
-		rz = uz + cosphi * vz + sinphi * vmag * wz / wmag;
-
-		xout[k] = xout[k - 1] + rx;
-		yout[k] = yout[k - 1] + ry;
-		zout[k] = zout[k - 1] + rz;
-	}
-	else
-	{ // bonds are parallel
-
-		xout[k] = xold;
-		yout[k] = yold;
-		zout[k] = zold;
-	}
-}
-*/
 __global__ void crank_dev(double *xout, double *yout, double *zout, long n, long mon, int check)
 {
 	double delphi_max = 3.141592653;
+	double *randomNumber = nullptr;
+	cudaMalloc(&randomNumber, sizeof(double));
+	double xold;
+	double yold;
+	double zold;
+	randomKernelDevice(randomNumber, 1);
 	long tid = blockIdx.x * blockDim.x + threadIdx.x;
+	int accept = 0, reject = 1;
 	int threadsPerBlock = 1;
 	int blocksPerGrid = (n + threadsPerBlock - 1) / threadsPerBlock;
 
 	if (tid < n)
 	{
-		double xold = xout[mon];
-		double yold = yout[mon];
-		double zold = zout[mon];
-		double rx, ry, rz, Rx, Ry, Rz, Rmag, rdotRn, Rnx, Rny, Rnz;
+		xold = xout[mon];
+		yold = yout[mon];
+		zold = zout[mon];
+		double rx, ry, rz, rmag, Rx, Ry, Rz, Rmag, rdotRn, Rnx, Rny, Rnz;
 		double ux, uy, uz, vx, vy, vz, vmag, wx, wy, wz, wmag;
 		double cosphi, sinphi, delphi;
 
-		rx = xout[mon] - xout[mon - 1];
-		ry = yout[mon] - yout[mon - 1];
-		rz = zout[mon] - zout[mon - 1];
+		if (mon == 0)
+		{
+			rx = -1 * (xout[mon] - xout[mon + 1]);
+			ry = -1 * (yout[mon] - yout[mon + 1]);
+			rz = -1 * (zout[mon] - zout[mon + 1]);
 
-		Rx = xout[mon + 1] - xout[mon - 1];
-		Ry = yout[mon + 1] - yout[mon - 1];
-		Rz = zout[mon + 1] - zout[mon - 1];
+			Rx = xout[mon + 1] - xout[n - 1];
+			Ry = yout[mon + 1] - yout[n - 1];
+			Rz = zout[mon + 1] - zout[n - 1];
+		}
+
+		else if (mon == n - 1)
+		{
+			rx = xout[mon] - xout[mon - 1];
+			ry = yout[mon] - yout[mon - 1];
+			rz = zout[mon] - zout[mon - 1];
+
+			Rx = xout[0] - xout[mon - 1];
+			Ry = yout[0] - yout[mon - 1];
+			Rz = zout[0] - zout[mon - 1];
+		}
+
+		else
+		{
+			rx = xout[mon] - xout[mon - 1];
+			ry = yout[mon] - yout[mon - 1];
+			rz = zout[mon] - zout[mon - 1];
+
+			Rx = xout[mon + 1] - xout[mon - 1];
+			Ry = yout[mon + 1] - yout[mon - 1];
+			Rz = zout[mon + 1] - zout[mon - 1];
+		}
+
+		rmag = sqrt(rx * rx + ry * ry + rz * rz);
 		Rmag = sqrt(Rx * Rx + Ry * Ry + Rz * Rz);
 
 		Rnx = Rx / Rmag;
 		Rny = Ry / Rmag;
 		Rnz = Rz / Rmag;
+
+		rx = rx / rmag;
+		ry = ry / rmag;
+		rz = rz / rmag;
 
 		rdotRn = rx * Rnx + ry * Rny + rz * Rnz;
 		ux = rdotRn * Rnx;
@@ -461,8 +432,7 @@ __global__ void crank_dev(double *xout, double *yout, double *zout, long n, long
 
 		if (wmag > 0.00000001)
 		{
-
-			delphi = (2.0 * mon - 1.0) * delphi_max;
+			delphi = (randomNumber[0]) * delphi_max;
 			cosphi = cos(delphi);
 			sinphi = sin(delphi);
 
@@ -482,9 +452,17 @@ __global__ void crank_dev(double *xout, double *yout, double *zout, long n, long
 			zout[mon] = zold;
 		}
 
-		// check_accept<<<threadsPerBlock, blocksPerGrid>>>(xout, yout, zout, n, mon, check);
+		check_accept(xout, yout, zout, n, mon, check);
 	}
 
+	if (check == reject)
+	{
+		xout[mon] = xold;
+		yout[mon] = yold;
+		zout[mon] = zold;
+	}
+
+	cudaFree(randomNumber);
 	__syncthreads();
 }
 
@@ -598,7 +576,7 @@ __device__ int squareEllipse(double xPos, double yPos, double zPos)
 
 __device__ void check_accept(double *rx, double *ry, double *rz, long n, long monomer, int check)
 {
-	long tid = blockIdx.x * blockDim.x + threadIdx.x;
+	long tid = threadIdx.x;
 
 	int accept, reject;
 	double dx, dy, dz, dr2;
