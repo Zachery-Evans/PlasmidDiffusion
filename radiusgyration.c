@@ -256,7 +256,7 @@ int main()
     fclose(fp);
   }
 
-  printf("Radius of Gyration = %lf\n", (double) Rgsq_avg / RgHistIter);
+  printf("Radius of Gyration = %lf\n", (double)Rgsq_avg / RgHistIter);
 
   if (imov == 1)
   {
