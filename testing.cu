@@ -370,49 +370,23 @@ __global__ void crank_dev(double *xout, double *yout, double *zout, long n, long
 		double ux, uy, uz, vx, vy, vz, vmag, wx, wy, wz, wmag;
 		double cosphi, sinphi, delphi;
 
-		if (mon == 0)
-		{
-			rx = -1 * (xout[mon] - xout[mon + 1]);
-			ry = -1 * (yout[mon] - yout[mon + 1]);
-			rz = -1 * (zout[mon] - zout[mon + 1]);
+		rx = xout[mon] - xout[mon - 1];
+		ry = yout[mon] - yout[mon - 1];
+		rz = zout[mon] - zout[mon - 1];
 
-			Rx = xout[mon + 1] - xout[n - 1];
-			Ry = yout[mon + 1] - yout[n - 1];
-			Rz = zout[mon + 1] - zout[n - 1];
-		}
+		Rx = xout[mon + 1] - xout[mon - 1];
+		Ry = yout[mon + 1] - yout[mon - 1];
+		Rz = zout[mon + 1] - zout[mon - 1];
 
-		else if (mon == n - 1)
-		{
-			rx = xout[mon] - xout[mon - 1];
-			ry = yout[mon] - yout[mon - 1];
-			rz = zout[mon] - zout[mon - 1];
-
-			Rx = xout[0] - xout[mon - 1];
-			Ry = yout[0] - yout[mon - 1];
-			Rz = zout[0] - zout[mon - 1];
-		}
-
-		else
-		{
-			rx = xout[mon] - xout[mon - 1];
-			ry = yout[mon] - yout[mon - 1];
-			rz = zout[mon] - zout[mon - 1];
-
-			Rx = xout[mon + 1] - xout[mon - 1];
-			Ry = yout[mon + 1] - yout[mon - 1];
-			Rz = zout[mon + 1] - zout[mon - 1];
-		}
-
-		rmag = sqrt(rx * rx + ry * ry + rz * rz);
 		Rmag = sqrt(Rx * Rx + Ry * Ry + Rz * Rz);
 
 		Rnx = Rx / Rmag;
 		Rny = Ry / Rmag;
 		Rnz = Rz / Rmag;
 
-		rx = rx / rmag;
-		ry = ry / rmag;
-		rz = rz / rmag;
+		rx = rx;
+		ry = ry;
+		rz = rz;
 
 		rdotRn = rx * Rnx + ry * Rny + rz * Rnz;
 		ux = rdotRn * Rnx;
