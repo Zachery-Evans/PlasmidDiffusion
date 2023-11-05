@@ -9,18 +9,15 @@
 
 void input(void);
 void init_pos(double *, double *, double *, long);
-// void crank_dev(double *, double *, double *, long);
 
-__global__ void crank_dev(double *, double *, double *, long, long, int);
-//__global__ void check_accept(double *, double *, double *, long, long, int);
+__global__ void crank_dev(double *, double *, double *, long, long);
 __global__ void randomKernel(double *, int);
-//__host__ void input_dev(void);
-__global__ void reptation_move_chain1(double *, double *, double *, double *, long, long, int);
+__global__ void reptation_dev(double *, double *, double *, double, long, long, int *);
+__global__ void overlap(double *, double *, double *, long, long);
+__global__ void check_accept(double *, double *, double *, long, long, int *);
+__device__ void calc_delta_xyz(double *, double *, double *, long, int, double *, double *, double *);
 
-__device__ void check_accept(double *, double *, double *, long, long, int);
-__device__ void calc_delta_xyz(double *, double *, double *, long, int);
-
-__device__ int check_accept_reptation(double *, double *, double *, long, long);
+__device__ int check_accept_reptation(double *, double *, double *, long, long, int *);
 
 long nseg1, nseg2, nseg3, nseg4, i, j, k, ii, ncyc, nacc, kk, iseed;
 long neq, ichain, nsamp, nacc_shift, nshift, xcmPrint, ycmPrint;
@@ -57,6 +54,7 @@ int main()
 	double *x = nullptr, *y = nullptr, *z = nullptr;
 	double *dev_kappa = nullptr;
 	double rep_prob = 0.95, *rep_prob_rannum = nullptr;
+	int *validity_check = nullptr;
 
 	cudaError_t cudaStatus;
 
@@ -170,6 +168,8 @@ int main()
 		return 1;
 	}
 
+	validity_check = (int *)malloc(sizeof(int));
+
 	// Allocate memory on the host
 	ran3 = (double *)malloc(n * sizeof(double));
 	if (ran3 == nullptr)
@@ -210,14 +210,14 @@ int main()
 		free(z);
 		return 1;
 	}
-
-	cudaStatus = cudaMalloc(&monDev, sizeof(long));
-	if (cudaStatus != cudaSuccess)
-	{
-		printf("cudaMalloc monDev failed: %s\n", cudaGetErrorString(cudaStatus));
-		return 1;
-	}
-
+	/*
+		cudaStatus = cudaMalloc(&monDev, sizeof(long));
+		if (cudaStatus != cudaSuccess)
+		{
+			printf("cudaMalloc monDev failed: %s\n", cudaGetErrorString(cudaStatus));
+			return 1;
+		}
+	*/
 	init_pos(xhost, yhost, zhost, n);
 
 	if (imov == 1)
@@ -231,10 +231,12 @@ int main()
 		}
 	}
 
-	threadsPerBlock = 1;
-	blocksPerGrid = (n + threadsPerBlock - 1) / threadsPerBlock;
+	threadsPerBlock = n;
+	blocksPerGrid = 1;
 
 	// Begin MC Cycles
+	curandState state;
+	double *random_number = nullptr;
 
 	for (long ii = 0; ii < ncyc; ii++)
 	{
@@ -257,28 +259,47 @@ int main()
 			return 1;
 		}
 
-		int validity_check = 0; // reset validity check to 1 for each MC cycle
-
 		cudaMemcpy(x, xhost, n * sizeof(double), cudaMemcpyHostToDevice);
 		cudaMemcpy(y, yhost, n * sizeof(double), cudaMemcpyHostToDevice);
 		cudaMemcpy(z, zhost, n * sizeof(double), cudaMemcpyHostToDevice);
 
 		for (int jj = 0; jj < n; jj++)
 		{
+			randomKernel<<<1,1>>>(random_number, 1);
+			*validity_check = 0; // reset validity check for each MC cycle, since if > 0 then failure
+
+			cudaMemcpy(dev_validity_check, validity_check, sizeof(int), cudaMemcpyHostToDevice);
 			mon = (long)n * ran3[jj]; // Choose random number out of total number of random numbers
-			//printf("%ld\n", mon);
-			// printf("%ld\n", jj);
-			xold = xhost[mon];
-			yold = yhost[mon];
-			zold = zhost[mon];
+
+			// printf("%ld\n", mon);
+			//  printf("%ld\n", jj);
 
 			kmaxtest = n - 2;
-			crank_dev<<<1, blocksPerGrid>>>(x, y, z, n, mon, validity_check);
-			// cudaMemcpy(monDev, &mon, sizeof(long), cudaMemcpyHostToDevice);
-			// cudaMemcpy(dev_N, &n, sizeof(long), cudaMemcpyHostToDevice);
-			// cudaMemcpy(dev_validity_check, &validity_check, sizeof(int), cudaMemcpyHostToDevice);
 
-			// check_accept<<<threadsPerBlock, blocksPerGrid>>>(x, y, z, n, mon, validity_check);
+			if (random_number[0] >= rep_prob && (mon >= 2 || mon < kmaxtest))
+			{
+				crank_dev<<<1, 1>>>(x, y, z, n, mon);
+				check_accept<<<blocksPerGrid, threadsPerBlock>>>(x, y, z, n, mon, dev_validity_check);
+			}
+			else
+			{
+				reptation_dev<<<1, 1>>>(x, y, z, kappa, n, mon, dev_validity_check);
+			}
+			cudaMemcpy(validity_check, dev_validity_check, sizeof(int), cudaMemcpyDeviceToHost);
+
+			cudaStatus = cudaGetLastError();
+			if (cudaStatus != cudaSuccess)
+			{
+				printf("dev_validity check failed memcpy: %s\n", cudaGetErrorString(cudaStatus));
+				return 1;
+			}
+
+			if (*validity_check > accept)
+			{
+				cudaMemcpy(x, xhost, n * sizeof(double), cudaMemcpyHostToDevice);
+				cudaMemcpy(y, yhost, n * sizeof(double), cudaMemcpyHostToDevice);
+				cudaMemcpy(z, zhost, n * sizeof(double), cudaMemcpyHostToDevice);
+			}
 		}
 
 		cudaMemcpy(xhost, x, n * sizeof(double), cudaMemcpyDeviceToHost);
@@ -315,12 +336,12 @@ __device__ double randomNumber(curandState *state)
 __global__ void randomKernel(double *output, int n)
 {
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
 	if (tid < n)
 	{
 		// Initialize the random number generator state for each thread
 		curandState state;
 		curand_init(clock64(), tid, 0, &state);
-
 		// Generate a random number for each thread and store it in the output array
 		output[tid] = randomNumber(&state);
 	}
@@ -361,28 +382,25 @@ void init_pos(double *xout, double *yout, double *zout, long N)
 	}
 }
 
-__global__ void crank_dev(double *xout, double *yout, double *zout, long n, long mon, int check)
+__global__ void crank_dev(double *xout, double *yout, double *zout, long n, long mon)
 {
 	double delphi_max = 3.141592653;
 	double *randomNumber = nullptr;
+	double xold, yold, zold;
 	cudaMalloc(&randomNumber, sizeof(double));
 	randomKernelDevice(randomNumber, 1);
-	double xold;
-	double yold;
-	double zold;
-	long tid = threadIdx.x;
+	long tid = blockDim.x * blockIdx.x + threadIdx.x;
 	int accept = 0, reject = 1;
-	int threadsPerBlock = 1;
-	int blocksPerGrid = (n + threadsPerBlock - 1) / threadsPerBlock;
 
 	if (tid < n)
 	{
-		xold = xout[mon];
-		yold = yout[mon];
-		zold = zout[mon];
 		double rx, ry, rz, rmag, Rx, Ry, Rz, Rmag, rdotRn, Rnx, Rny, Rnz;
 		double ux, uy, uz, vx, vy, vz, vmag, wx, wy, wz, wmag;
 		double cosphi, sinphi, delphi;
+
+		xold = xout[tid];
+		yold = yout[tid];
+		zold = zout[tid];
 
 		rx = xout[mon] - xout[mon - 1];
 		ry = yout[mon] - yout[mon - 1];
@@ -434,27 +452,17 @@ __global__ void crank_dev(double *xout, double *yout, double *zout, long n, long
 		}
 		else
 		{ // bonds are parallel
-
 			xout[mon] = xold;
 			yout[mon] = yold;
 			zout[mon] = zold;
 		}
-
-		check_accept(xout, yout, zout, n, mon, check);
 	}
-
-	if (check == reject)
-	{
-		xout[mon] = xold;
-		yout[mon] = yold;
-		zout[mon] = zold;
-	}
-
 	cudaFree(randomNumber);
+
 	__syncthreads();
 }
 
-__global__ void reptation_move_chain1(double *r1x, double *r1y, double *r1z, double *rept_kappa, long nseg, long ind, int check)
+__global__ void reptation_dev(double *r1x, double *r1y, double *r1z, double rept_kappa, long nseg, long ind, int *check)
 {
 	double *rannum = nullptr;
 	cudaMalloc(&rannum, sizeof(double));
@@ -463,7 +471,7 @@ __global__ void reptation_move_chain1(double *r1x, double *r1y, double *r1z, dou
 
 	double phi_prime, costheta_prime, dx_fixed, dy_fixed, dz_fixed, xold, yold, zold;
 
-	if (*rannum <= 0.5)
+	if (rannum[0] <= 0.5)
 	{
 		irep = 0;
 	}
@@ -473,13 +481,13 @@ __global__ void reptation_move_chain1(double *r1x, double *r1y, double *r1z, dou
 	}
 	phi_prime = rannum[0] * 2.0 * PI;
 
-	if (*rept_kappa > -0.000001 && *rept_kappa < 0.000001)
+	if (rept_kappa > -0.000001 && rept_kappa < 0.000001)
 	{
 		costheta_prime = (2.0 * rannum[1]) - 1.0;
 	}
 	else
 	{
-		costheta_prime = log((rannum[1] * exp(*rept_kappa)) + ((1.0 - rannum[1]) * exp(-1.0 * *rept_kappa))) / *rept_kappa;
+		costheta_prime = log((rannum[1] * exp(rept_kappa)) + ((1.0 - rannum[1]) * exp(-1.0 * rept_kappa))) / rept_kappa;
 	}
 
 	//
@@ -492,7 +500,7 @@ __global__ void reptation_move_chain1(double *r1x, double *r1y, double *r1z, dou
 	yold = r1y[irep];
 	zold = r1z[irep];
 
-	calc_delta_xyz(r1x, r1y, r1z, nseg, irep);
+	calc_delta_xyz(r1x, r1y, r1z, nseg, irep, &dx_fixed, &dy_fixed, &dz_fixed);
 
 	if (irep == 0)
 	{
@@ -507,7 +515,7 @@ __global__ void reptation_move_chain1(double *r1x, double *r1y, double *r1z, dou
 		r1y[nseg - 1] = r1y[nseg - 2] + dy_fixed;
 		r1z[nseg - 1] = r1z[nseg - 2] + dz_fixed;
 
-		overlap = check_accept_reptation(r1x, r1y, r1z, nseg, nseg - 1);
+		overlap = check_accept_reptation(r1x, r1y, r1z, nseg, nseg - 1, check);
 
 		if (overlap == 0)
 		{
@@ -540,7 +548,7 @@ __global__ void reptation_move_chain1(double *r1x, double *r1y, double *r1z, dou
 		r1y[0] = r1y[1] + dy_fixed;
 		r1z[0] = r1z[1] + dz_fixed;
 
-		overlap = check_accept_reptation(r1x, r1y, r1z, nseg, 0);
+		overlap = check_accept_reptation(r1x, r1y, r1z, nseg, 0, check);
 
 		if (overlap == 0)
 		{
@@ -562,10 +570,10 @@ __global__ void reptation_move_chain1(double *r1x, double *r1y, double *r1z, dou
 	}
 }
 
-__device__ void calc_delta_xyz(double *r1x, double *r1y, double *r1z, long n_xyz, int irep)
+__device__ void calc_delta_xyz(double *r1x, double *r1y, double *r1z, long n_xyz, int irep, double *dx_fixed, double *dy_fixed, double *dz_fixed)
 {
 	double dx_prime, dy_prime, dz_prime, costheta_prime, phi_prime, dr_prime, ux, uy, uz;
-	double u, uxy, cos_beta, sin_beta, cos_alpha, sin_alpha, dx_fixed, dy_fixed, dz_fixed, alpha;
+	double u, uxy, cos_beta, sin_beta, cos_alpha, sin_alpha, alpha;
 
 	dx_prime = dr_prime * sqrt(1.0 - (costheta_prime * costheta_prime)) * cos(phi_prime);
 	dy_prime = dr_prime * sqrt(1.0 - (costheta_prime * costheta_prime)) * sin(phi_prime);
@@ -617,51 +625,49 @@ __device__ void calc_delta_xyz(double *r1x, double *r1y, double *r1z, long n_xyz
 	}
 
 	// inverted matrix
-	dx_fixed = (cos_beta * cos_alpha * dx_prime) - (sin_alpha * dy_prime) + (sin_beta * cos_alpha * dz_prime);
-	dy_fixed = (cos_beta * sin_alpha * dx_prime) + (cos_alpha * dy_prime) + (sin_beta * sin_alpha * dz_prime);
-	dz_fixed = (cos_beta * dz_prime) - (sin_beta * dx_prime);
+	*dx_fixed = (cos_beta * cos_alpha * dx_prime) - (sin_alpha * dy_prime) + (sin_beta * cos_alpha * dz_prime);
+	*dy_fixed = (cos_beta * sin_alpha * dx_prime) + (cos_alpha * dy_prime) + (sin_beta * sin_alpha * dz_prime);
+	*dz_fixed = (cos_beta * dz_prime) - (sin_beta * dx_prime);
 }
 
-__device__ int check_accept_reptation(double *rx, double *ry, double *rz, long nseg, long krep)
+__device__ int check_accept_reptation(double *rx, double *ry, double *rz, long nseg, long krep, int *check)
 {
-	int accept, reject; // will return either accept or reject at end of function
 
+	int accept, reject; // will return either accept or reject at end of function
 	double dx, dy, dz, dr2;
+	long tid = blockDim.x * blockIdx.x + threadIdx.x;
 
 	accept = 0;
 	reject = 1;
 
-	for (long kk = 0; kk < nseg; kk++)
+	if (tid < nseg)
 	{
 		// Check to see if iterative constant is greater than the size of all
 		// polymers, if so, break inner loop and continue to next monomer in
 		// checked polymer.
 		/*
-		if (kk > nseg1 && kk > nseg2 && kk > nseg3 && kk > nseg4)
-		{/*
 		if (squareEllipse(rx[kk], ry[kk], rz[kk]) == reject && kk < nseg)
 		{
 			return (reject);
 		}
 		*/
 
-		if ((kk < krep - 1 || kk > krep + 1) && kk < nseg)
+		if ((tid < krep - 1 || tid > krep + 1) && tid < nseg)
 		{
-			dz = rz[krep] - rz[kk];
+			dz = rz[krep] - rz[tid];
 			if (fabs(dz) < 1.0)
 			{
-				dx = rx[krep] - rx[kk];
-				dy = ry[krep] - ry[kk];
+				dx = rx[krep] - rx[tid];
+				dy = ry[krep] - ry[tid];
 				dr2 = dx * dx + dy * dy + dz * dz;
 				if (dr2 < 1.0)
 				{
-					return (reject); // if overlap with other monomer within chain, reject
+					*check += 1; // if overlap with other monomer within chain, reject
 				}
 			}
 		}
+		
 	}
-
-	return (accept);
 }
 
 /*
@@ -772,7 +778,7 @@ __device__ int squareEllipse(double xPos, double yPos, double zPos)
 	return accept;
 }
 
-__device__ void check_accept(double *rx, double *ry, double *rz, long n, long monomer, int check)
+__global__ void check_accept(double *rx, double *ry, double *rz, long N, long monomer, int *check)
 {
 	long tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -782,7 +788,7 @@ __device__ void check_accept(double *rx, double *ry, double *rz, long n, long mo
 	accept = 0;
 	reject = 1;
 
-	if (tid < n)
+	if (tid < N)
 	{
 		/* Not restricting to a geometry for now.
 		if (squareEllipse(rx[tid], ry[tid], rz[tid]) == reject)
@@ -806,24 +812,14 @@ __device__ void check_accept(double *rx, double *ry, double *rz, long n, long mo
 
 			if (dr2 < 1.0)
 			{
-				check = reject;
+				*check += reject;
 			}
 		}
-
-		if (check == reject)
-		{
-			check = reject;
-		}
-		else
-		{
-			check = accept;
-		}
 	}
-	__syncthreads();
 }
 
 // overlap checks if the particle overlaps with the one that came before it.
-__device__ void overlap(double *x_pos, double *y_pos, double *z_pos, long k, long N)
+__global__ void overlap(double *x_pos, double *y_pos, double *z_pos, long k, long N)
 {
 	double dx_pos, dy_pos, dz_pos, dist_tot;
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
