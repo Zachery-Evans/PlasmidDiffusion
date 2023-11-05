@@ -12,12 +12,12 @@ void init_pos(double *, double *, double *, long);
 
 __global__ void crank_dev(double *, double *, double *, long, long);
 __global__ void randomKernel(double *, int);
-__global__ void reptation_dev(double *, double *, double *, double, long, long, int *);
-__global__ void overlap(double *, double *, double *, long, long);
+__global__ void reptation_dev(double *, double *, double *, double, long, long, int, int *);
+__global__ void reptation_dev_undo(double *, double *, double *, long, long, long);
 __global__ void check_accept(double *, double *, double *, long, long, int *);
-__device__ void calc_delta_xyz(double *, double *, double *, long, int, double *, double *, double *);
+__device__ void calc_delta_xyz(double *, double *, double *, long, int, double *, double *, double *, double, double);
 
-__device__ int check_accept_reptation(double *, double *, double *, long, long, int *);
+__global__ void check_accept_reptation(double *, double *, double *, long, long, int *);
 
 long nseg1, nseg2, nseg3, nseg4, i, j, k, ii, ncyc, nacc, kk, iseed;
 long neq, ichain, nsamp, nacc_shift, nshift, xcmPrint, ycmPrint;
@@ -52,9 +52,8 @@ int main()
 	double *ran3 = nullptr;		  // Host array to store random numbers
 	double *xhost = nullptr, *yhost = nullptr, *zhost = nullptr;
 	double *x = nullptr, *y = nullptr, *z = nullptr;
-	double *dev_kappa = nullptr;
-	double rep_prob = 0.95, *rep_prob_rannum = nullptr;
-	int *validity_check = nullptr;
+	double *dev_kappa = nullptr, rep_prob = 0.95;
+	int *validity_check = nullptr, irep;
 
 	cudaError_t cudaStatus;
 
@@ -235,8 +234,9 @@ int main()
 	blocksPerGrid = 1;
 
 	// Begin MC Cycles
-	curandState state;
-	double *random_number = nullptr;
+	double *random_number = nullptr, *dev_random_number = nullptr;
+	random_number = (double *)malloc(2 * sizeof(double));
+	cudaStatus = cudaMalloc(&dev_random_number, 2 * sizeof(double));
 
 	for (long ii = 0; ii < ncyc; ii++)
 	{
@@ -265,10 +265,12 @@ int main()
 
 		for (int jj = 0; jj < n; jj++)
 		{
-			randomKernel<<<1,1>>>(random_number, 1);
 			*validity_check = 0; // reset validity check for each MC cycle, since if > 0 then failure
 
+			randomKernel<<<1, 2>>>(dev_random_number, 2);
+			cudaMemcpy(random_number, dev_random_number, 2 * sizeof(double), cudaMemcpyDeviceToHost);
 			cudaMemcpy(dev_validity_check, validity_check, sizeof(int), cudaMemcpyHostToDevice);
+
 			mon = (long)n * ran3[jj]; // Choose random number out of total number of random numbers
 
 			// printf("%ld\n", mon);
@@ -283,8 +285,18 @@ int main()
 			}
 			else
 			{
-				reptation_dev<<<1, 1>>>(x, y, z, kappa, n, mon, dev_validity_check);
+				if (random_number[1] <= 0.5)
+				{
+					irep = 0;
+					//reptation_dev<<<1, 1>>>(x, y, z, kappa, nseg1, mon, irep, dev_validity_check);
+				}
+				else
+				{
+					irep = n - 1;
+					// reptation_dev<<<1, 1>>>(x, y, z, kappa, nseg1, mon, irep, dev_validity_check);
+				}
 			}
+
 			cudaMemcpy(validity_check, dev_validity_check, sizeof(int), cudaMemcpyDeviceToHost);
 
 			cudaStatus = cudaGetLastError();
@@ -296,13 +308,13 @@ int main()
 
 			if (*validity_check > accept)
 			{
-				cudaMemcpy(x, xhost, n * sizeof(double), cudaMemcpyHostToDevice);
+				cudaMemcpy(x, xhost, n * sizeof(double), cudaMemcpyHostToDevice); // Reset to configuration before MC cycle
 				cudaMemcpy(y, yhost, n * sizeof(double), cudaMemcpyHostToDevice);
 				cudaMemcpy(z, zhost, n * sizeof(double), cudaMemcpyHostToDevice);
 			}
 		}
 
-		cudaMemcpy(xhost, x, n * sizeof(double), cudaMemcpyDeviceToHost);
+		cudaMemcpy(xhost, x, n * sizeof(double), cudaMemcpyDeviceToHost); // Copy to new configuration
 		cudaMemcpy(yhost, y, n * sizeof(double), cudaMemcpyDeviceToHost);
 		cudaMemcpy(zhost, z, n * sizeof(double), cudaMemcpyDeviceToHost);
 
@@ -394,7 +406,7 @@ __global__ void crank_dev(double *xout, double *yout, double *zout, long n, long
 
 	if (tid < n)
 	{
-		double rx, ry, rz, rmag, Rx, Ry, Rz, Rmag, rdotRn, Rnx, Rny, Rnz;
+		double rx, ry, rz, Rx, Ry, Rz, Rmag, rdotRn, Rnx, Rny, Rnz;
 		double ux, uy, uz, vx, vy, vz, vmag, wx, wy, wz, wmag;
 		double cosphi, sinphi, delphi;
 
@@ -458,36 +470,26 @@ __global__ void crank_dev(double *xout, double *yout, double *zout, long n, long
 		}
 	}
 	cudaFree(randomNumber);
-
 	__syncthreads();
 }
 
-__global__ void reptation_dev(double *r1x, double *r1y, double *r1z, double rept_kappa, long nseg, long ind, int *check)
+__global__ void reptation_dev(double *r1x, double *r1y, double *r1z, double rept_kappa, long nseg, long ind, int irep_dev, int *check)
 {
-	double *rannum = nullptr;
+	double *rannum = nullptr, xold, yold, zold;
+	double phi_prime, costheta_prime, *dx_fixed = nullptr, *dy_fixed = nullptr, *dz_fixed = nullptr;
+	int nacc_rep, dr_prime;
 	cudaMalloc(&rannum, sizeof(double));
-	randomKernelDevice(rannum, 2);
-	int irep, nacc_rep, dr_prime, overlap;
-
-	double phi_prime, costheta_prime, dx_fixed, dy_fixed, dz_fixed, xold, yold, zold;
-
-	if (rannum[0] <= 0.5)
-	{
-		irep = 0;
-	}
-	else
-	{
-		irep = nseg - 1;
-	}
-	phi_prime = rannum[0] * 2.0 * PI;
+	randomKernelDevice(rannum, 1);
+	phi_prime = rannum[0] * 2.0 * 3.141592653;
+	randomKernelDevice(rannum, 1);
 
 	if (rept_kappa > -0.000001 && rept_kappa < 0.000001)
 	{
-		costheta_prime = (2.0 * rannum[1]) - 1.0;
+		costheta_prime = (2.0 * rannum[0]) - 1.0;
 	}
 	else
 	{
-		costheta_prime = log((rannum[1] * exp(rept_kappa)) + ((1.0 - rannum[1]) * exp(-1.0 * rept_kappa))) / rept_kappa;
+		costheta_prime = log((rannum[0] * exp(rept_kappa)) + ((1.0 - rannum[0]) * exp(-1.0 * rept_kappa))) / rept_kappa;
 	}
 
 	//
@@ -496,13 +498,13 @@ __global__ void reptation_dev(double *r1x, double *r1y, double *r1z, double rept
 	//      dr_prime = pow((0.602*rannum)+0.729,(1.0/3.0));
 	dr_prime = 1.0;
 
-	xold = r1x[irep];
-	yold = r1y[irep];
-	zold = r1z[irep];
+	xold = r1x[irep_dev];
+	yold = r1y[irep_dev];
+	zold = r1z[irep_dev];
 
-	calc_delta_xyz(r1x, r1y, r1z, nseg, irep, &dx_fixed, &dy_fixed, &dz_fixed);
+	calc_delta_xyz(r1x, r1y, r1z, nseg, irep_dev, dx_fixed, dy_fixed, dz_fixed, costheta_prime, phi_prime);
 
-	if (irep == 0)
+	if (irep_dev == 0)
 	{
 		for (ind = 0; ind < nseg - 1; ind++)
 		{
@@ -511,24 +513,15 @@ __global__ void reptation_dev(double *r1x, double *r1y, double *r1z, double rept
 			r1z[ind] = r1z[ind + 1];
 		}
 
-		r1x[nseg - 1] = r1x[nseg - 2] + dx_fixed;
-		r1y[nseg - 1] = r1y[nseg - 2] + dy_fixed;
-		r1z[nseg - 1] = r1z[nseg - 2] + dz_fixed;
+		r1x[nseg - 1] = r1x[nseg - 2] + *dx_fixed;
+		r1y[nseg - 1] = r1y[nseg - 2] + *dy_fixed;
+		r1z[nseg - 1] = r1z[nseg - 2] + *dz_fixed;
 
-		overlap = check_accept_reptation(r1x, r1y, r1z, nseg, nseg - 1, check);
+		check_accept_reptation<<<1, nseg>>>(r1x, r1y, r1z, nseg, nseg - 1, check);
 
-		if (overlap == 0)
+		if (*check == 0)
 		{
-			nacc_rep += 1;
-		}
-		else
-		{
-			for (ind = nseg - 1; ind > 0; ind--)
-			{
-				r1x[ind] = r1x[ind - 1];
-				r1y[ind] = r1y[ind - 1];
-				r1z[ind] = r1z[ind - 1];
-			}
+			reptation_dev_undo<<<1, nseg>>>(r1x, r1y, r1z, nseg, ind, irep_dev);
 
 			r1x[0] = xold;
 			r1y[0] = yold;
@@ -544,35 +537,54 @@ __global__ void reptation_dev(double *r1x, double *r1y, double *r1z, double rept
 			r1z[ind] = r1z[ind - 1];
 		}
 
-		r1x[0] = r1x[1] + dx_fixed;
-		r1y[0] = r1y[1] + dy_fixed;
-		r1z[0] = r1z[1] + dz_fixed;
+		r1x[0] = r1x[1] + *dx_fixed;
+		r1y[0] = r1y[1] + *dy_fixed;
+		r1z[0] = r1z[1] + *dz_fixed;
 
-		overlap = check_accept_reptation(r1x, r1y, r1z, nseg, 0, check);
+		check_accept_reptation<<<1, nseg>>>(r1x, r1y, r1z, nseg, 0, check);
 
-		if (overlap == 0)
+		if (*check == 0)
 		{
 			nacc_rep += 1;
 		}
 		else
 		{
-			for (ind = 0; ind < nseg - 1; ind++)
-			{
-				r1x[ind] = r1x[ind + 1];
-				r1y[ind] = r1y[ind + 1];
-				r1z[ind] = r1z[ind + 1];
-			}
+			reptation_dev_undo<<<1, nseg>>>(r1x, r1y, r1z, nseg, ind, irep_dev);
 
 			r1x[nseg - 1] = xold;
 			r1y[nseg - 1] = yold;
 			r1z[nseg - 1] = zold;
 		}
 	}
+	cudaFree(rannum);
+	__syncthreads();
 }
 
-__device__ void calc_delta_xyz(double *r1x, double *r1y, double *r1z, long n_xyz, int irep, double *dx_fixed, double *dy_fixed, double *dz_fixed)
+__global__ void reptation_dev_undo(double *r1x, double *r1y, double *r1z, long nseg, long ind, int irep)
 {
-	double dx_prime, dy_prime, dz_prime, costheta_prime, phi_prime, dr_prime, ux, uy, uz;
+	long tid = blockDim.x * blockIdx.x + threadIdx.x;
+
+	if (tid < nseg)
+	{
+		if (irep == 0 && tid < nseg - 1)
+		{
+			r1x[tid] = r1x[tid - 1];
+			r1y[tid] = r1y[tid - 1];
+			r1z[tid] = r1z[tid - 1];
+		}
+		else if (irep != 0 && tid > 0)
+		{
+			r1x[tid] = r1x[tid + 1];
+			r1y[tid] = r1y[tid + 1];
+			r1z[tid] = r1z[tid + 1];
+		}
+	}
+	__syncthreads();
+}
+
+__device__ void calc_delta_xyz(double *r1x, double *r1y, double *r1z, long n_xyz, int irep, double *dx_fixed, double *dy_fixed, double *dz_fixed, double costheta_prime, double phi_prime)
+{
+	double dx_prime, dy_prime, dz_prime, dr_prime = 1.0, ux, uy, uz;
 	double u, uxy, cos_beta, sin_beta, cos_alpha, sin_alpha, alpha;
 
 	dx_prime = dr_prime * sqrt(1.0 - (costheta_prime * costheta_prime)) * cos(phi_prime);
@@ -616,9 +628,9 @@ __device__ void calc_delta_xyz(double *r1x, double *r1y, double *r1z, long n_xyz
 		{
 			alpha = acos(fabs(ux) / uxy);
 			if (ux < 0)
-				alpha += PI;
+				alpha += 3.141592653;
 			else
-				alpha = (2.0 * PI) - alpha;
+				alpha = (2.0 * 3.141592653) - alpha;
 			cos_alpha = cos(alpha);
 			sin_alpha = sin(alpha);
 		}
@@ -630,7 +642,7 @@ __device__ void calc_delta_xyz(double *r1x, double *r1y, double *r1z, long n_xyz
 	*dz_fixed = (cos_beta * dz_prime) - (sin_beta * dx_prime);
 }
 
-__device__ int check_accept_reptation(double *rx, double *ry, double *rz, long nseg, long krep, int *check)
+__global__ void check_accept_reptation(double *rx, double *ry, double *rz, long nseg, long krep, int *check)
 {
 
 	int accept, reject; // will return either accept or reject at end of function
@@ -666,7 +678,6 @@ __device__ int check_accept_reptation(double *rx, double *ry, double *rz, long n
 				}
 			}
 		}
-		
 	}
 }
 
@@ -815,34 +826,6 @@ __global__ void check_accept(double *rx, double *ry, double *rz, long N, long mo
 				*check += reject;
 			}
 		}
-	}
-}
-
-// overlap checks if the particle overlaps with the one that came before it.
-__global__ void overlap(double *x_pos, double *y_pos, double *z_pos, long k, long N)
-{
-	double dx_pos, dy_pos, dz_pos, dist_tot;
-	int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-	if (tid < N)
-	{
-		// check non-bonded particles distance
-
-		if (k != tid)
-		{
-			dx_pos = x_pos[k] - x_pos[tid]; // Measure x y z distance from particle a to particle b
-			dy_pos = y_pos[k] - y_pos[tid];
-			dz_pos = z_pos[k] - z_pos[tid];
-
-			dist_tot = dx_pos * dx_pos + dy_pos * dy_pos + dz_pos * dz_pos; // Calculate magnitude of dist squared
-
-			if (dist_tot < 1.0)
-			{
-				// check[tid] = false;
-			}
-		}
-
-		// check[tid] = true;
 	}
 }
 
