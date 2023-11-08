@@ -13,7 +13,8 @@ void init_pos(double *, double *, double *, long);
 __global__ void crank_dev(double *, double *, double *, long, long);
 __global__ void randomKernel(double *, int);
 __global__ void reptation_dev(double *, double *, double *, double, long, long, int, int *);
-__global__ void reptation_dev_undo(double *, double *, double *, long, long, long);
+__global__ void reptation_dev_undo(double *, double *, double *, long, int);
+__global__ void reptation_dev_shift(double *, double *, double *, long, int);
 __global__ void check_accept(double *, double *, double *, long, long, int *);
 __device__ void calc_delta_xyz(double *, double *, double *, long, int, double *, double *, double *, double, double);
 
@@ -45,7 +46,6 @@ int main()
 	input();
 
 	int accept = 0;
-	int reject = 1;
 	long n = nseg1; // Number of elements to generate
 	long threadsPerBlock, blocksPerGrid, mon;
 	double *ran3Device = nullptr; // Device array to store random numbers
@@ -288,12 +288,12 @@ int main()
 				if (random_number[1] <= 0.5)
 				{
 					irep = 0;
-					//reptation_dev<<<1, 1>>>(x, y, z, kappa, nseg1, mon, irep, dev_validity_check);
+					reptation_dev<<<1, 1>>>(x, y, z, kappa, nseg1, mon, irep, dev_validity_check);
 				}
 				else
 				{
 					irep = n - 1;
-					// reptation_dev<<<1, 1>>>(x, y, z, kappa, nseg1, mon, irep, dev_validity_check);
+					reptation_dev<<<1, 1>>>(x, y, z, kappa, nseg1, mon, irep, dev_validity_check);
 				}
 			}
 
@@ -402,7 +402,6 @@ __global__ void crank_dev(double *xout, double *yout, double *zout, long n, long
 	cudaMalloc(&randomNumber, sizeof(double));
 	randomKernelDevice(randomNumber, 1);
 	long tid = blockDim.x * blockIdx.x + threadIdx.x;
-	int accept = 0, reject = 1;
 
 	if (tid < n)
 	{
@@ -468,99 +467,130 @@ __global__ void crank_dev(double *xout, double *yout, double *zout, long n, long
 			yout[mon] = yold;
 			zout[mon] = zold;
 		}
+		__syncthreads();
 	}
 	cudaFree(randomNumber);
-	__syncthreads();
 }
 
 __global__ void reptation_dev(double *r1x, double *r1y, double *r1z, double rept_kappa, long nseg, long ind, int irep_dev, int *check)
 {
 	double *rannum = nullptr, xold, yold, zold;
 	double phi_prime, costheta_prime, *dx_fixed = nullptr, *dy_fixed = nullptr, *dz_fixed = nullptr;
-	int nacc_rep, dr_prime;
-	cudaMalloc(&rannum, sizeof(double));
-	randomKernelDevice(rannum, 1);
-	phi_prime = rannum[0] * 2.0 * 3.141592653;
-	randomKernelDevice(rannum, 1);
+	long tid = blockDim.x * blockIdx.x + threadIdx.x;
 
-	if (rept_kappa > -0.000001 && rept_kappa < 0.000001)
+	if (tid < nseg)
 	{
-		costheta_prime = (2.0 * rannum[0]) - 1.0;
-	}
-	else
-	{
-		costheta_prime = log((rannum[0] * exp(rept_kappa)) + ((1.0 - rannum[0]) * exp(-1.0 * rept_kappa))) / rept_kappa;
-	}
+		cudaMalloc(&rannum, sizeof(double));
+		cudaMalloc(&dx_fixed, sizeof(double));
+		cudaMalloc(&dy_fixed, sizeof(double));
+		cudaMalloc(&dz_fixed, sizeof(double));
+		randomKernelDevice(rannum, 1);
+		phi_prime = rannum[0] * 2.0 * 3.141592653;
+		randomKernelDevice(rannum, 1);
 
-	//
-	//      keep bond length = 1
-	//
-	//      dr_prime = pow((0.602*rannum)+0.729,(1.0/3.0));
-	dr_prime = 1.0;
-
-	xold = r1x[irep_dev];
-	yold = r1y[irep_dev];
-	zold = r1z[irep_dev];
-
-	calc_delta_xyz(r1x, r1y, r1z, nseg, irep_dev, dx_fixed, dy_fixed, dz_fixed, costheta_prime, phi_prime);
-
-	if (irep_dev == 0)
-	{
-		for (ind = 0; ind < nseg - 1; ind++)
+		if (rept_kappa > -0.000001 && rept_kappa < 0.000001)
 		{
-			r1x[ind] = r1x[ind + 1];
-			r1y[ind] = r1y[ind + 1];
-			r1z[ind] = r1z[ind + 1];
-		}
-
-		r1x[nseg - 1] = r1x[nseg - 2] + *dx_fixed;
-		r1y[nseg - 1] = r1y[nseg - 2] + *dy_fixed;
-		r1z[nseg - 1] = r1z[nseg - 2] + *dz_fixed;
-
-		check_accept_reptation<<<1, nseg>>>(r1x, r1y, r1z, nseg, nseg - 1, check);
-
-		if (*check == 0)
-		{
-			reptation_dev_undo<<<1, nseg>>>(r1x, r1y, r1z, nseg, ind, irep_dev);
-
-			r1x[0] = xold;
-			r1y[0] = yold;
-			r1z[0] = zold;
-		}
-	}
-	else
-	{ // irep == nseg1-1
-		for (ind = nseg - 1; ind > 0; ind--)
-		{
-			r1x[ind] = r1x[ind - 1];
-			r1y[ind] = r1y[ind - 1];
-			r1z[ind] = r1z[ind - 1];
-		}
-
-		r1x[0] = r1x[1] + *dx_fixed;
-		r1y[0] = r1y[1] + *dy_fixed;
-		r1z[0] = r1z[1] + *dz_fixed;
-
-		check_accept_reptation<<<1, nseg>>>(r1x, r1y, r1z, nseg, 0, check);
-
-		if (*check == 0)
-		{
-			nacc_rep += 1;
+			costheta_prime = (2.0 * rannum[0]) - 1.0;
 		}
 		else
 		{
-			reptation_dev_undo<<<1, nseg>>>(r1x, r1y, r1z, nseg, ind, irep_dev);
+			costheta_prime = log((rannum[0] * exp(rept_kappa)) + ((1.0 - rannum[0]) * exp(-1.0 * rept_kappa))) / rept_kappa;
+		}
+		cudaFree(rannum);
 
-			r1x[nseg - 1] = xold;
-			r1y[nseg - 1] = yold;
-			r1z[nseg - 1] = zold;
+		xold = r1x[irep_dev];
+		yold = r1y[irep_dev];
+		zold = r1z[irep_dev];
+
+		// printf("%ld\n", irep_dev);
+		calc_delta_xyz(r1x, r1y, r1z, nseg, irep_dev, dx_fixed, dy_fixed, dz_fixed, costheta_prime, phi_prime);
+
+		if (irep_dev == 0)
+		{
+
+			for (ind = 0; ind < nseg - 1; ind++)
+			{
+				r1x[ind] = r1x[ind + 1];
+				r1y[ind] = r1y[ind + 1];
+				r1z[ind] = r1z[ind + 1];
+			}
+
+			// reptation_dev_shift<<<1, nseg>>>(r1x, r1y, r1z, nseg, irep_dev);
+			//   printf("here\n");
+
+			r1x[nseg - 1] = r1x[nseg - 2] + *dx_fixed;
+			r1y[nseg - 1] = r1y[nseg - 2] + *dy_fixed;
+			r1z[nseg - 1] = r1z[nseg - 2] + *dz_fixed;
+
+			check_accept_reptation<<<1, nseg>>>(r1x, r1y, r1z, nseg, nseg - 1, check);
+
+			if (*check != 0)
+			{
+				reptation_dev_undo<<<1, nseg>>>(r1x, r1y, r1z, nseg, irep_dev);
+
+				r1x[0] = xold;
+				r1y[0] = yold;
+				r1z[0] = zold;
+			}
+		}
+		else
+		{ // irep == nseg1-1
+
+			for (ind = nseg - 1; ind > 0; ind--)
+			{
+				r1x[ind] = r1x[ind - 1];
+				r1y[ind] = r1y[ind - 1];
+				r1z[ind] = r1z[ind - 1];
+			}
+
+			// reptation_dev_shift<<<1, nseg>>>(r1x, r1y, r1z, nseg, irep_dev);
+			// printf("here\n");
+
+			r1x[0] = r1x[1] + *dx_fixed;
+			r1y[0] = r1y[1] + *dy_fixed;
+			r1z[0] = r1z[1] + *dz_fixed;
+
+			check_accept_reptation<<<1, nseg>>>(r1x, r1y, r1z, nseg, 0, check);
+
+			if (*check != 0)
+			{
+				reptation_dev_undo<<<1, nseg>>>(r1x, r1y, r1z, nseg, irep_dev);
+
+				r1x[nseg - 1] = xold;
+				r1y[nseg - 1] = yold;
+				r1z[nseg - 1] = zold;
+			}
 		}
 	}
-	cudaFree(rannum);
+	cudaFree(dx_fixed);
+	cudaFree(dy_fixed);
+	cudaFree(dz_fixed);
 	__syncthreads();
 }
 
-__global__ void reptation_dev_undo(double *r1x, double *r1y, double *r1z, long nseg, long ind, int irep)
+__global__ void reptation_dev_shift(double *r1x, double *r1y, double *r1z, long nseg, int irep)
+{
+	long tid = blockDim.x * blockIdx.x + threadIdx.x;
+
+	if (tid < nseg)
+	{
+		if (irep == 0 && tid < nseg - 1)
+		{
+			r1x[tid] = r1x[tid + 1];
+			r1y[tid] = r1y[tid + 1];
+			r1z[tid] = r1z[tid + 1];
+		}
+		else if (irep != 0 && tid > 0)
+		{
+			r1x[tid] = r1x[tid - 1];
+			r1y[tid] = r1y[tid - 1];
+			r1z[tid] = r1z[tid - 1];
+		}
+	}
+	__syncthreads();
+}
+
+__global__ void reptation_dev_undo(double *r1x, double *r1y, double *r1z, long nseg, int irep)
 {
 	long tid = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -645,12 +675,9 @@ __device__ void calc_delta_xyz(double *r1x, double *r1y, double *r1z, long n_xyz
 __global__ void check_accept_reptation(double *rx, double *ry, double *rz, long nseg, long krep, int *check)
 {
 
-	int accept, reject; // will return either accept or reject at end of function
+	int reject = 1; // will return either accept or reject at end of function
 	double dx, dy, dz, dr2;
 	long tid = blockDim.x * blockIdx.x + threadIdx.x;
-
-	accept = 0;
-	reject = 1;
 
 	if (tid < nseg)
 	{
@@ -674,7 +701,7 @@ __global__ void check_accept_reptation(double *rx, double *ry, double *rz, long 
 				dr2 = dx * dx + dy * dy + dz * dz;
 				if (dr2 < 1.0)
 				{
-					*check += 1; // if overlap with other monomer within chain, reject
+					*check += reject; // if overlap with other monomer within chain, reject
 				}
 			}
 		}
@@ -793,11 +820,8 @@ __global__ void check_accept(double *rx, double *ry, double *rz, long N, long mo
 {
 	long tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-	int accept, reject;
+	int reject = 1;
 	double dx, dy, dz, dr2;
-
-	accept = 0;
-	reject = 1;
 
 	if (tid < N)
 	{
