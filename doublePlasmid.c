@@ -2057,7 +2057,6 @@ int check_shift_chain(double rx[5000], double ry[5000], double rz[5000], long ns
       }
 
       /*
-
       if (kk < nseg2 && ichain != 2)
       {
         dx = rx[i] - r2x[kk];
