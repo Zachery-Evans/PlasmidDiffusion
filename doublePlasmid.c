@@ -95,7 +95,6 @@ void stateCheckTriple(double, double, double);
 
 void reptation_move_chain1(void);
 
-void shift_move_chain(void);
 void shift_move_plasmid(double[], double[], double[], long);
 
 int check_accept_reptation(double[], double[], double[], long, long);
@@ -750,7 +749,7 @@ void stateCheckSingle(double cmx)
   {
     state[0]++;
   }
-  else 
+  else
   {
     state[1]++;
   }
@@ -1049,7 +1048,7 @@ int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
         break;
       }
 
-      // Check if nseg=2 plasmid escapes squareEllipse or overlaps
+      // Check if plasmid escapes squareEllipse or overlaps w/ itself
       if (kk < nseg)
       {
         if (squareEllipse(rx[kk], ry[kk], rz[kk]) == reject)
@@ -1081,7 +1080,7 @@ int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
           return (reject);
         }
       }
-
+      /*
       // Check if plasmids overlap
       if (kk < nseg2 && ichain != 2)
       {
@@ -1119,6 +1118,7 @@ int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
           return (reject);
         }
       }
+      */
     }
 
     if (plasRigid == 1)
@@ -2056,6 +2056,8 @@ int check_shift_chain(double rx[5000], double ry[5000], double rz[5000], long ns
         }
       }
 
+      /*
+
       if (kk < nseg2 && ichain != 2)
       {
         dx = rx[i] - r2x[kk];
@@ -2091,6 +2093,7 @@ int check_shift_chain(double rx[5000], double ry[5000], double rz[5000], long ns
           return (reject);
         }
       }
+      */
     }
   }
   return (accept);
@@ -2318,218 +2321,75 @@ int check_accept_reptation(double rx[5000], double ry[5000], double rz[5000], lo
   accept = 0;
   reject = 1;
 
-  if (ichain == 1)
+  for (kk = 0; kk < nseg1 + nseg2 + nseg3 + nseg4; kk++)
   {
-    for (kk = 0; kk < nseg1 + nseg2 + nseg3 + nseg4; kk++)
+    // Check to see if iterative constant is greater than the size of all
+    // polymers, if so, break inner loop and continue to next monomer in
+    // checked polymer.
+    if (kk > nseg1 && kk > nseg2 && kk > nseg3 && kk > nseg4)
     {
-      // Check to see if iterative constant is greater than the size of all
-      // polymers, if so, break inner loop and continue to next monomer in
-      // checked polymer.
-      if (kk > nseg1 && kk > nseg2 && kk > nseg3 && kk > nseg4)
-      {
-        break;
-      }
+      break;
+    }
 
-      if (squareEllipse(rx[kk], ry[kk], rz[kk]) == reject && kk < nseg)
-      {
-        return (reject);
-      }
+    if (squareEllipse(rx[kk], ry[kk], rz[kk]) == reject && kk < nseg)
+    {
+      return (reject);
+    }
 
-      if ((kk < krep - 1 || kk > krep + 1) && kk < nseg)
+    if ((kk < krep - 1 || kk > krep + 1) && kk < nseg)
+    {
+      dz = rz[krep] - rz[kk];
+      if (fabs(dz) < 1.0)
       {
-        dz = rz[krep] - rz[kk];
-        if (fabs(dz) < 1.0)
+        dx = rx[krep] - rx[kk];
+        dy = ry[krep] - ry[kk];
+        dr2 = dx * dx + dy * dy + dz * dz;
+        if (dr2 < 1.0)
         {
-          dx = rx[krep] - rx[kk];
-          dy = ry[krep] - ry[kk];
-          dr2 = dx * dx + dy * dy + dz * dz;
-          if (dr2 < 1.0)
-          {
-            return (reject); // if overlap with other monomer within chain, reject
-          }
-        }
-      }
-
-      if (kk < nseg2)
-      {
-        dz = rz[krep] - r2z[kk];
-        if (fabs(dz) < 1.0)
-        {
-          dx = rx[krep] - r2x[kk];
-          dy = ry[krep] - r2y[kk];
-          dr2 = dx * dx + dy * dy + dz * dz;
-          if (dr2 < 1.0)
-            return (reject); // if overlap with monomer in other chain, reject
-        }
-      }
-
-      if (kk < nseg3)
-      {
-        dz = rz[krep] - r3z[kk];
-        if (fabs(dz) < 1.0)
-        {
-          dx = rx[krep] - r3x[kk];
-          dy = ry[krep] - r3y[kk];
-          dr2 = dx * dx + dy * dy + dz * dz;
-          if (dr2 < 1.0)
-          {
-            return (reject); // if overlap with monomer in other chain, reject
-          }
-        }
-      }
-
-      if (kk < nseg4)
-      {
-        dz = rz[krep] - r4z[kk];
-        if (fabs(dz) < 1.0)
-        {
-          dx = rx[krep] - r4x[kk];
-          dy = ry[krep] - r4y[kk];
-          dr2 = dx * dx + dy * dy + dz * dz;
-          if (dr2 < 1.0)
-          {
-            return (reject); // if overlap with monomer in other chain, reject
-          }
+          return (reject); // if overlap with other monomer within chain, reject
         }
       }
     }
-  }
-  else
-  { // plasmids
 
-    for (kk = 0; kk < nseg1 + nseg2 + nseg3 + nseg4; kk++)
+    if (kk < nseg2)
     {
-      // Check to see if iterative constant is greater than the size of all
-      // polymers, if so, break inner loop and continue to next monomer in
-      // checked polymer.
-      if (kk > nseg1 && kk > nseg2 && kk > nseg3 && kk > nseg4)
+      dz = rz[krep] - r2z[kk];
+      if (fabs(dz) < 1.0)
       {
-        break;
+        dx = rx[krep] - r2x[kk];
+        dy = ry[krep] - r2y[kk];
+        dr2 = dx * dx + dy * dy + dz * dz;
+        if (dr2 < 1.0)
+          return (reject); // if overlap with monomer in other chain, reject
       }
+    }
 
-      if (kk < nseg)
+    if (kk < nseg3)
+    {
+      dz = rz[krep] - r3z[kk];
+      if (fabs(dz) < 1.0)
       {
-        if (squareEllipse(rx[kk], ry[kk], rz[kk]) == reject)
+        dx = rx[krep] - r3x[kk];
+        dy = ry[krep] - r3y[kk];
+        dr2 = dx * dx + dy * dy + dz * dz;
+        if (dr2 < 1.0)
         {
-          return (reject);
-        }
-      }
-
-      if (kk < nseg1)
-      {
-        dz = rz[krep] - r1z[kk];
-        if (fabs(dz) < 1.0)
-        {
-          dx = rx[krep] - r1x[kk];
-          dy = ry[krep] - r1y[kk];
-          dr2 = dx * dx + dy * dy + dz * dz;
-
-          if (dr2 < 1.0)
-          {
-            return (reject);
-          }
+          return (reject); // if overlap with monomer in other chain, reject
         }
       }
+    }
 
-      if (kk < nseg2)
+    if (kk < nseg4)
+    {
+      dz = rz[krep] - r4z[kk];
+      if (fabs(dz) < 1.0)
       {
-        if ((kk < krep - 1 || kk > krep + 1) && ichain == 2)
+        dx = rx[krep] - r4x[kk];
+        dy = ry[krep] - r4y[kk];
+        dr2 = dx * dx + dy * dy + dz * dz;
+        if (dr2 < 1.0)
         {
-          dz = rz[krep] - r2z[kk];
-          if (fabs(dz) < 1.0)
-          {
-            dx = rx[krep] - r2x[kk];
-            dy = ry[krep] - r2y[kk];
-            dr2 = dx * dx + dy * dy + dz * dz;
-
-            if (dr2 < 1.0)
-            {
-              return (reject);
-            }
-          }
-        }
-        else if (ichain != 2)
-        {
-          dz = rz[krep] - r2z[kk];
-          if (fabs(dz) < 1.0)
-          {
-            dx = rx[krep] - r2x[kk];
-            dy = ry[krep] - r2y[kk];
-            dr2 = dx * dx + dy * dy + dz * dz;
-
-            if (dr2 < 1.0)
-            {
-              return (reject);
-            }
-          }
-        }
-      }
-
-      if (kk < nseg3)
-      {
-        if ((kk < krep - 1 || kk > krep + 1) && ichain == 3)
-        {
-          dz = rz[krep] - r3z[kk];
-          if (fabs(dz) < 1.0)
-          {
-            dx = rx[krep] - r3x[kk];
-            dy = ry[krep] - r3y[kk];
-            dr2 = dx * dx + dy * dy + dz * dz;
-
-            if (dr2 < 1.0)
-            {
-              return (reject);
-            }
-          }
-        }
-        else if (ichain != 3)
-        {
-          dz = rz[krep] - r3z[kk];
-          if (fabs(dz) < 1.0)
-          {
-            dx = rx[krep] - r3x[kk];
-            dy = ry[krep] - r3y[kk];
-            dr2 = dx * dx + dy * dy + dz * dz;
-
-            if (dr2 < 1.0)
-            {
-              return (reject);
-            }
-          }
-        }
-      }
-
-      if (kk < nseg4)
-      {
-        if ((kk < krep - 1 || kk > krep + 1) && ichain == 4)
-        {
-          dz = rz[krep] - r4z[kk];
-          if (fabs(dz) < 1.0)
-          {
-            dx = rx[krep] - r4x[kk];
-            dy = ry[krep] - r4y[kk];
-            dr2 = dx * dx + dy * dy + dz * dz;
-
-            if (dr2 < 1.0)
-            {
-              return (reject);
-            }
-          }
-        }
-        else if (ichain != 4)
-        {
-          dz = rz[krep] - r4z[kk];
-          if (fabs(dz) < 1.0)
-          {
-            dx = rx[krep] - r4x[kk];
-            dy = ry[krep] - r4y[kk];
-            dr2 = dx * dx + dy * dy + dz * dz;
-
-            if (dr2 < 1.0)
-            {
-              return (reject);
-            }
-          }
+          return (reject); // if overlap with monomer in other chain, reject
         }
       }
     }
