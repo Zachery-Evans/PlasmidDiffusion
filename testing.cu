@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <cuda.h>
 #include <math.h>
+#include <cuda.h> // Include the cuda commands. Require these next few libraries
 #include <curand_kernel.h> // Include the CUDA Random Number Generation library
 #include <curand.h>
 
@@ -37,7 +37,7 @@ int host_check;
 
 __device__ double *dev_Ld2 = nullptr, *dev_Hd2 = nullptr, *dev_rmax = nullptr, *dev_dx = nullptr, *dev_dy = nullptr, *dev_dz = nullptr, *dev_dr2 = nullptr;
 __device__ double *dev_amax = nullptr, *dev_bmin = nullptr, *dev_amax2 = nullptr, *dev_bmin2 = nullptr, *dev_ecc = nullptr, *dev_Area = nullptr;
-__device__ double *dev_rectangleArea = nullptr, *dev_xBoxMaxd2 = nullptr, *dev_yBoxMaxd2 = nullptr;
+__device__ double *dev_rectangleArea = nullptr, *dev_xBoxMaxd2 = nullptr, *dev_yBoxMaxd2 = nullptr, *dev_zBoxMaxd2 = nullptr;
 long *dev_N = nullptr;
 int *dev_validity_check = nullptr;
 
@@ -75,8 +75,6 @@ int main()
 		return 1;
 	}
 
-	// cudaMemcpy(dev_kappa, &kappa, sizeof(double), cudaMemcpyHostToDevice);
-
 	cudaStatus = cudaMalloc(&dev_validity_check, sizeof(int));
 	if (cudaStatus != cudaSuccess)
 	{
@@ -94,28 +92,35 @@ int main()
 	cudaStatus = cudaMalloc(&dev_Ld2, sizeof(double));
 	if (cudaStatus != cudaSuccess)
 	{
-		printf("cudaMalloc dev_rectArea failed: %s\n", cudaGetErrorString(cudaStatus));
+		printf("cudaMalloc dev_Ld2 failed: %s\n", cudaGetErrorString(cudaStatus));
 		return 1;
 	}
 
 	cudaStatus = cudaMalloc(&dev_Hd2, sizeof(double));
 	if (cudaStatus != cudaSuccess)
 	{
-		printf("cudaMalloc dev_rectArea failed: %s\n", cudaGetErrorString(cudaStatus));
+		printf("cudaMalloc dev_Hd2 failed: %s\n", cudaGetErrorString(cudaStatus));
 		return 1;
 	}
 
 	cudaStatus = cudaMalloc(&dev_xBoxMaxd2, sizeof(double));
 	if (cudaStatus != cudaSuccess)
 	{
-		printf("cudaMalloc dev_rectArea failed: %s\n", cudaGetErrorString(cudaStatus));
+		printf("cudaMalloc dev_xBoxMaxd2 failed: %s\n", cudaGetErrorString(cudaStatus));
 		return 1;
 	}
 
 	cudaStatus = cudaMalloc(&dev_yBoxMaxd2, sizeof(double));
 	if (cudaStatus != cudaSuccess)
 	{
-		printf("cudaMalloc dev_rectArea failed: %s\n", cudaGetErrorString(cudaStatus));
+		printf("cudaMalloc dev_yBoxMaxd2 failed: %s\n", cudaGetErrorString(cudaStatus));
+		return 1;
+	}
+
+		cudaStatus = cudaMalloc(&dev_zBoxMaxd2, sizeof(double));
+	if (cudaStatus != cudaSuccess)
+	{
+		printf("cudaMalloc dev_zBoxMaxd2 failed: %s\n", cudaGetErrorString(cudaStatus));
 		return 1;
 	}
 
