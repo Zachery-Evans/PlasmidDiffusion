@@ -240,14 +240,7 @@ int main()
     start = clock();
   }
 
-  if (plasRigid == 1)
-  {
-    init_pos(); // function call
-  }
-  else
-  {
-    init_pos_circular();
-  }
+  init_pos_circular();
 
   // Don't include if statement below in cluster
   if (imov == 1)
