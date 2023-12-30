@@ -1669,21 +1669,21 @@ void init_pos_circular(void)
   {
     r2z[i] = 2.0;
     r2x[i] = Rplasmid2 * cos(i * theta_plasmid2) - xBoxMaxd2 + Rplasmid2;
-    r2y[i] = Rplasmid2 * sin(i * theta_plasmid2) - Rplasmid2 / 2.0;
+    r2y[i] = Rplasmid2 * sin(i * theta_plasmid2);
   }
 
   for (i = 0; i < nseg3; i++)
   {
     r3z[i] = 4.0; // Initialized just above the first plasmid
     r3x[i] = Rplasmid3 * cos(i * theta_plasmid3) - xBoxMaxd2 + Rplasmid3;
-    r3y[i] = Rplasmid3 * sin(i * theta_plasmid3) - Rplasmid3 / 2.0;
+    r3y[i] = Rplasmid3 * sin(i * theta_plasmid3);
   }
 
   for (i = 0; i < nseg4; i++)
   {
     r4z[i] = 6.0; // Initialized just above the first plasmid
-    r4x[i] = Rplasmid4 * cos(i * theta_plasmid4) - xBoxMaxd2 + Rplasmid4;
-    r4y[i] = Rplasmid4 * sin(i * theta_plasmid4) - Rplasmid4 / 2.0;
+    r4x[i] = Rplasmid4 * cos(i * theta_plasmid4) + xBoxMaxd2 - Rplasmid4;
+    r4y[i] = Rplasmid4 * sin(i * theta_plasmid4);
   }
 }
 

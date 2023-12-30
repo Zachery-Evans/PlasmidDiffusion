@@ -66,18 +66,30 @@ int main(void)
         fprintf(fp, "%d\n", 1);
         fprintf(fp, "Surface:  %d\n", 0);
 
-        for (double ii = 0.0; ii < xBoxMax; ii += 0.5)
+        for (double ii = 0.0; ii < xBoxMax; ii += 0.8)
         {
             fprintf(fp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 + ii, bmin, Hd2);
             fprintf(fp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 + ii, -bmin, Hd2);
+
+            for (double jj = -Hd2; jj < Hd2; jj += 0.02)
+            {
+                fprintf(fp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 + ii, bmin, jj);
+                fprintf(fp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 + ii, -bmin, jj);
+            }
         }
 
         if (ecc < 1.0)
         {
-            for (double ii = -PI / 2; ii < PI / 2; ii += 0.01)
+            for (double ii = -PI / 2; ii < PI / 2; ii += 0.1)
             {
                 fprintf(fp, "N    %lf  %lf  %lf\n", xBoxMaxd2 + amax * cos(ii), bmin + bmin * sin(ii) - bmin, Hd2);
                 fprintf(fp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 - amax * cos(ii), -bmin + bmin * sin(ii) + bmin, Hd2);
+
+                for (double jj = -Hd2; jj < Hd2; jj += 0.1)
+                {
+                    fprintf(fp, "N    %lf  %lf  %lf\n", xBoxMaxd2 + amax * cos(ii), bmin + bmin * sin(ii) - bmin, jj);
+                    fprintf(fp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 - amax * cos(ii), -bmin + bmin * sin(ii) + bmin, jj);
+                }
             }
         }
 
@@ -128,22 +140,28 @@ int main(void)
     fp = fopen("geometry.xyz", "r");
 
     // Check if the file exists and can be opened
-    if (fp == NULL) {
+    if (fp == NULL)
+    {
         printf("Could not open file %s\n", "geometry.xyz");
         return 1; // Return an error code to indicate failure
     }
 
-    do {
+    do
+    {
         // Read the next character from the file
         c = fgetc(fp);
 
         // Check for newline characters
-        if (c == '\n') {
+        if (c == '\n')
+        {
             Nsim++;
-        } else if (c == '\r') {
+        }
+        else if (c == '\r')
+        {
             // Check for possible Windows-style newline ('\r\n') or spaces
             int next = fgetc(fp);
-            if (next == '\n' || next == ' ') {
+            if (next == '\n' || next == ' ')
+            {
                 Nsim++;
             }
             // Handle other cases where '\r' is not followed by '\n' or space
@@ -192,18 +210,42 @@ int main(void)
         fprintf(fp, "%ld\n", Nsim - 2);
         fprintf(fp, "Surface:  %ld\n", 0);
 
-        for (double ii = 0.0; ii < xBoxMax; ii += 0.5)
+        for (double ii = 0.0; ii < xBoxMax; ii += 0.01)
         {
             fprintf(fp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 + ii, bmin, Hd2);
             fprintf(fp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 + ii, -bmin, Hd2);
         }
 
+        for (double ii = 0.0; ii < xBoxMax; ii += 0.8)
+        {
+            fprintf(fp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 + ii, bmin, Hd2);
+            fprintf(fp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 + ii, -bmin, Hd2);
+
+            for (double jj = -Hd2; jj < Hd2; jj += 0.2)
+            {
+                fprintf(fp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 + ii, bmin, jj);
+                fprintf(fp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 + ii, -bmin, jj);
+            }
+        }
+
         if (ecc < 1.0)
         {
-            for (double ii = -PI / 2; ii < PI / 2; ii += 0.01)
+            for (double ii = -PI / 2; ii < PI / 2; ii += 0.001)
             {
                 fprintf(fp, "N    %lf  %lf  %lf\n", xBoxMaxd2 + amax * cos(ii), bmin + bmin * sin(ii) - bmin, Hd2);
                 fprintf(fp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 - amax * cos(ii), -bmin + bmin * sin(ii) + bmin, Hd2);
+            }
+
+            for (double ii = -PI / 2; ii < PI / 2; ii += 0.03)
+            {
+                fprintf(fp, "N    %lf  %lf  %lf\n", xBoxMaxd2 + amax * cos(ii), bmin + bmin * sin(ii) - bmin, Hd2);
+                fprintf(fp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 - amax * cos(ii), -bmin + bmin * sin(ii) + bmin, Hd2);
+
+                for (double jj = -Hd2; jj < Hd2; jj += 0.2)
+                {
+                    fprintf(fp, "N    %lf  %lf  %lf\n", xBoxMaxd2 + amax * cos(ii), bmin + bmin * sin(ii) - bmin, jj);
+                    fprintf(fp, "N    %lf  %lf  %lf\n", -xBoxMaxd2 - amax * cos(ii), -bmin + bmin * sin(ii) + bmin, jj);
+                }
             }
         }
 
@@ -212,7 +254,7 @@ int main(void)
 
         for (double jj = -yBoxMaxd2; jj < yBoxMaxd2; jj += 0.5)
         {
-            for (double ii = -xBoxMaxd2 - amax; ii < amax + xBoxMaxd2; ii += 0.5)
+            for (double ii = -xBoxMaxd2 - amax; ii < amax + xBoxMaxd2; ii += 0.2)
             {
                 if (ii > xBoxMaxd2 && ecc < 1.0)
                 { // If the polymer is outside of the rightmost semi-ellipse, write only if inside elliptical cavity
