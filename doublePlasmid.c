@@ -1073,45 +1073,6 @@ int check_accept(double rx[5000], double ry[5000], double rz[5000], long nseg)
           return (reject);
         }
       }
-      /*
-      // Check if plasmids overlap
-      if (kk < nseg2 && ichain != 2)
-      {
-        dx = rx[k] - r2x[kk];
-        dy = ry[k] - r2y[kk];
-        dz = rz[k] - r2z[kk];
-        dr2 = dx * dx + dy * dy + dz * dz;
-        if (dr2 < 1.0)
-        {
-          return (reject);
-        }
-      }
-
-      // Check if plasmids overlap
-      if (kk < nseg3 && ichain != 3)
-      {
-        dx = rx[k] - r3x[kk];
-        dy = ry[k] - r3y[kk];
-        dz = rz[k] - r3z[kk];
-        dr2 = dx * dx + dy * dy + dz * dz;
-        if (dr2 < 1.0)
-        {
-          return (reject);
-        }
-      }
-
-      if (kk < nseg4 && ichain != 4)
-      {
-        dx = rx[k] - r4x[kk];
-        dy = ry[k] - r4y[kk];
-        dz = rz[k] - r4z[kk];
-        dr2 = dx * dx + dy * dy + dz * dz;
-        if (dr2 < 1.0)
-        {
-          return (reject);
-        }
-      }
-      */
     }
 
     if (plasRigid == 1)
