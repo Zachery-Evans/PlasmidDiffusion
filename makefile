@@ -8,6 +8,7 @@ all:
 	cc -lm -O3 geometry.c -o geo.run
 	cc -lm -O3 uncertainty.c -o unc.run
 	./geo.run
+	./geo.run
 	./mc.run $(ARGS)
 	
 
