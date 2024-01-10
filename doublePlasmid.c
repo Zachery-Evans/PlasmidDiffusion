@@ -1432,42 +1432,59 @@ double calc_cosine(int i1, int i2, int i3, double rx[5000], double ry[5000], dou
 // Initialize plasmids as circles
 void init_pos_circular(void)
 {
-  double xadd, yadd, xmax, ymax, zplace;
+  double xadd, yadd, xmax, ymax, zplace, echeck;
 
-  r1x[0] = -xBoxMaxd2;
-  r1y[0] = -yBoxMaxd2 + 2.0;
+  r1x[0] = -0.0;
+  r1y[0] = -bmin + 4.0;
   r1z[0] = 1.0;
   xadd = 1.0;
   yadd = 1.0;
   zplace = 1.0;
+
+  xmax = xBoxMaxd2;
+  ymax = yBoxMaxd2;
 
   for (i = 1; i < nseg1; i++)
   {
     r1x[i] = r1x[i - 1] + xadd;
     r1y[i] = r1y[i - 1];
     r1z[i] = zplace;
-    xmax = xBoxMaxd2; // Changed to be inside of the rectangle structure
-    // xmax = amax * sqrt(1.0 - pow(r1y[i] / bmin, 2.0)) - 3.0;
-
-    if (r1x[i] > xmax || r1x[i] < -xmax)
+    if (rectangleArea > 0.0)
     {
-      if (r1y[i] + 2.0 > ymax || r1y[i] - 2.0 < -ymax)
+      echeck = (((r1x[i] - xBoxMaxd2) * (r1x[i] - xBoxMaxd2)) / amax2) + ((r1y[i] * r1y[i]) / bmin2); // Changed to be inside of the rectangle structure
+      if (r1x[i] > xBoxMaxd2 || r1x[i] < -xBoxMaxd2)
       {
-        zplace -= 1.0;
-        yadd = -1.0 * yadd;
-        // printf("%ld   %lf\n", i, yadd);
+        if (echeck > 0.8)
+        {
+          if (r1y[i] + 1.0 > ymax || r1y[i] - 1.0 < -ymax)
+          {
+            zplace -= 1;
+          }
+          r1x[i] -= xadd;
+          r1y[i] = r1y[i] + yadd;
+          xadd *= -1.0;
+        }
       }
-
-      r1x[i] -= xadd;
-      r1y[i] = r1y[i] + yadd;
-      ymax = yBoxMaxd2;
-
-      if (r1y[i] > ymax || r1y[i] < -ymax)
+      else
       {
-        printf("Can't place polymer... exiting...\n");
-        exit(0);
+        continue;
       }
-      xadd *= -1.0;
+    }
+
+    else
+    {
+      echeck = ((r1x[i] * r1x[i]) / amax2) + ((r1y[i] * r1y[i]) / bmin2);
+
+      if (echeck > 0.8)
+      {
+        if (r1y[i] + 1.0 > ymax || r1y[i] - 1.0 < -ymax)
+        {
+          zplace -= 1;
+        }
+        r1x[i] -= xadd;
+        r1y[i] = r1y[i] + yadd;
+        xadd *= -1.0;
+      }
     }
   }
 
@@ -1484,21 +1501,21 @@ void init_pos_circular(void)
   {
     r2z[i] = 2.0;
     r2x[i] = Rplasmid2 * cos(i * theta_plasmid2) - xBoxMaxd2 + Rplasmid2;
-    r2y[i] = Rplasmid2 * sin(i * theta_plasmid2) - Rplasmid2 / 2.0;
+    r2y[i] = Rplasmid2 * sin(i * theta_plasmid2);
   }
 
   for (i = 0; i < nseg3; i++)
   {
     r3z[i] = 4.0; // Initialized just above the first plasmid
     r3x[i] = Rplasmid3 * cos(i * theta_plasmid3) - xBoxMaxd2 + Rplasmid3;
-    r3y[i] = Rplasmid3 * sin(i * theta_plasmid3) - Rplasmid3 / 2.0;
+    r3y[i] = Rplasmid3 * sin(i * theta_plasmid3);
   }
 
   for (i = 0; i < nseg4; i++)
   {
     r4z[i] = 6.0; // Initialized just above the first plasmid
-    r4x[i] = Rplasmid4 * cos(i * theta_plasmid4) - xBoxMaxd2 + Rplasmid4;
-    r4y[i] = Rplasmid4 * sin(i * theta_plasmid4) - Rplasmid4 / 2.0;
+    r4x[i] = Rplasmid4 * cos(i * theta_plasmid4) + xBoxMaxd2 - Rplasmid4;
+    r4y[i] = Rplasmid4 * sin(i * theta_plasmid4);
   }
 }
 
