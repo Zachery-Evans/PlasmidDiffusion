@@ -74,7 +74,6 @@ There are some pecularities that were implemented into this program in order to 
 
 // function headers
 double ran3(void);
-void init_pos(void);
 void init_pos_circular(void);
 void write_log(void);
 void write_data(void);
@@ -1430,145 +1429,7 @@ double calc_cosine(int i1, int i2, int i3, double rx[5000], double ry[5000], dou
 //  window.
 // ----------------------------------------------------------------------
 
-void init_pos(void)
-{
-
-  double xadd, yadd, xmax, ymax, zplace, echeck;
-
-  r1x[0] = -0.0;
-  r1y[0] = -bmin + 4.0;
-  r1z[0] = 1.0;
-  xadd = 1.0;
-  yadd = 1.0;
-  zplace = 1.0;
-
-  xmax = xBoxMaxd2;
-  ymax = yBoxMaxd2;
-
-  for (i = 1; i < nseg1; i++)
-  {
-    r1x[i] = r1x[i - 1] + xadd;
-    r1y[i] = r1y[i - 1];
-    r1z[i] = zplace;
-    if (rectangleArea > 0.0)
-    {
-      echeck = (((r1x[i] - xBoxMaxd2) * (r1x[i] - xBoxMaxd2)) / amax2) + ((r1y[i] * r1y[i]) / bmin2); // Changed to be inside of the rectangle structure
-      if (r1x[i] > xBoxMaxd2 || r1x[i] < -xBoxMaxd2)
-      {
-        if (echeck > 0.8)
-        {
-          if (r1y[i] + 1.0 > ymax || r1y[i] - 1.0 < -ymax)
-          {
-            zplace -= 1;
-          }
-          r1x[i] -= xadd;
-          r1y[i] = r1y[i] + yadd;
-          xadd *= -1.0;
-        }
-      }
-      else
-      {
-        continue;
-      }
-    }
-
-    else
-    {
-      echeck = ((r1x[i] * r1x[i]) / amax2) + ((r1y[i] * r1y[i]) / bmin2);
-
-      if (echeck > 0.8)
-      {
-        if (r1y[i] + 1.0 > ymax || r1y[i] - 1.0 < -ymax)
-        {
-          zplace -= 1;
-        }
-        r1x[i] -= xadd;
-        r1y[i] = r1y[i] + yadd;
-        xadd *= -1.0;
-      }
-    }
-  }
-
-  for (i = 0; i < nseg2; i++)
-  {
-    r2z[i] = 2.0;
-
-    if (i < nseg2 / 2)
-    {
-      r2x[i] = (double)-i;
-      r2y[i] = 0.0;
-    }
-    if (i == nseg2 / 2 + 0.5 || i == nseg2 / 2)
-    {
-      r2x[i] = (double)-i;
-      r2y[i] = -1.0;
-    }
-    if (i > nseg2 / 2 && i < nseg2 - 1)
-    {
-      r2x[i] = (double)+i - nseg2;
-      r2y[i] = -2.0;
-    }
-    if (i == nseg2 - 1)
-    {
-      r2x[i] = (double)+i - nseg2;
-      r2y[i] = -1.0;
-    }
-  }
-
-  for (i = 0; i < nseg3; i++)
-  {
-    r3z[i] = 4.0;
-
-    if (i < nseg3 / 2)
-    {
-      r3x[i] = (double)-i;
-      r3y[i] = -0.0;
-    }
-    if (i == nseg3 / 2 + 0.5 || i == nseg3 / 2)
-    {
-      r3x[i] = (double)-i;
-      r3y[i] = -1.0;
-    }
-    if (i > nseg3 / 2 && i < nseg3 - 1)
-    {
-      r3x[i] = (double)+i - nseg3;
-      r3y[i] = -2.0;
-    }
-    if (i == nseg3 - 1)
-    {
-      r3x[i] = (double)+i - nseg3;
-      r3y[i] = -1.0;
-    }
-  }
-
-  for (i = 0; i < nseg4; i++)
-  {
-    r4z[i] = 6.0;
-
-    if (i < nseg4 / 2)
-    {
-      r4x[i] = (double)-i;
-      r4y[i] = 0.0;
-    }
-    if (i == nseg4 / 2 + 0.5 || i == nseg4 / 2)
-    {
-      r4x[i] = (double)-i;
-      r4y[i] = -1.0;
-    }
-    if (i > nseg4 / 2 && i < nseg4 - 1)
-    {
-      r4x[i] = (double)+i - nseg4;
-      r4y[i] = -2.0;
-    }
-    if (i == nseg4 - 1)
-    {
-      r4x[i] = (double)+i - nseg4;
-      r4y[i] = -1.0;
-    }
-  }
-}
-
-// Initialize plasmids as circles rather than trapezoid
+// Initialize plasmids as circles
 void init_pos_circular(void)
 {
   double xadd, yadd, xmax, ymax, zplace;
@@ -2009,44 +1870,6 @@ int check_shift_chain(double rx[5000], double ry[5000], double rz[5000], long ns
           return (reject);
         }
       }
-
-      /*
-      if (kk < nseg2 && ichain != 2)
-      {
-        dx = rx[i] - r2x[kk];
-        dy = ry[i] - r2y[kk];
-        dz = rz[i] - r2z[kk];
-        dr2 = dx * dx + dy * dy + dz * dz;
-        if (dr2 < 1.0)
-        {
-          return (reject);
-        }
-      }
-
-      if (kk < nseg3 && ichain != 3)
-      {
-        dx = rx[i] - r3x[kk];
-        dy = ry[i] - r3y[kk];
-        dz = rz[i] - r3z[kk];
-        dr2 = dx * dx + dy * dy + dz * dz;
-        if (dr2 < 1.0)
-        {
-          return (reject);
-        }
-      }
-
-      if (kk < nseg4 && ichain != 4)
-      {
-        dx = rx[i] - r4x[kk];
-        dy = ry[i] - r4y[kk];
-        dz = rz[i] - r4z[kk];
-        dr2 = dx * dx + dy * dy + dz * dz;
-        if (dr2 < 1.0)
-        {
-          return (reject);
-        }
-      }
-      */
     }
   }
   return (accept);
